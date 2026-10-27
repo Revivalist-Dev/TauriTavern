@@ -33,11 +33,15 @@ SillyBunny 的桌面 UI 以第一方宿主层的形式接入 TauriTavern，而�
 
 `shared/sb-core` 的 `registerPanel()` 优先使用这个宿主；宿主尚未就绪时把面板放进 `__SB_PENDING_PANELS__`，安装时统一取出。没有宿主时才回退到 `sb-tabs`。
 
-已接入的面板扩展：`sb-prompt`、`sb-chat`、`sb-groups`、`sb-image-gen`、`sb-chat-archive`、`sb-card-scripts`；`sillybunny-debugger` 保留自己的扩展菜单入口。
+注入的抽屉晚于 `script.js` 的一次性 `.drawer-toggle` 绑定，因此宿主对每个注入抽屉调用 `doNavbarIconClick`，并用 `setTopLevelDrawerOpen` 关闭，否则点击图标不会打开任何面板。
+
+已接入的面板扩展：`sb-prompt`、`sb-chat`、`sb-groups`、`sb-image-gen`、`sb-chat-archive`、`sb-card-scripts`、`sb-trackers`；`sillybunny-debugger` 保留自己的扩展菜单入口。Cards 与 Lorebooks 面板已移除。
 
 ## 布局约束
 
 - 只有 `min-width: 1000px` 时启用图标栏与侧面板；更窄的窗口保持上游布局。
+- `#sheld` 在宿主模式下占满图标栏右侧的可用宽度，不再沿用 50% 的聊天宽度。
+- 图标栏可滚动并显示细滚动条；核心抽屉与扩展面板之间有一条分隔线。
 - 不读取平台 API，不判断移动宿主；配色取自 `--SmartTheme*` 变量，跟随用户主题。
 - 不引入手机断点或触摸专用交互。
 

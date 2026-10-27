@@ -47,11 +47,26 @@ body.sb-shell {
         z-index: 3005;
         overflow-y: auto;
         overflow-x: hidden;
-        scrollbar-width: none;
+        padding-bottom: 14px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--sb-border) transparent;
     }
 
     body.sb-shell #top-settings-holder::-webkit-scrollbar {
-        width: 0;
+        width: 6px;
+    }
+
+    body.sb-shell #top-settings-holder::-webkit-scrollbar-thumb {
+        background: var(--sb-border);
+        border-radius: 3px;
+    }
+
+    body.sb-shell #top-settings-holder .sb-rail-separator {
+        width: 30px;
+        height: 1px;
+        margin: 6px auto;
+        flex: none;
+        background: var(--sb-border);
     }
 
     body.sb-shell #top-settings-holder .drawer {
@@ -71,7 +86,7 @@ body.sb-shell {
     }
 
     body.sb-shell #top-settings-holder .drawer-toggle:hover,
-    body.sb-shell #top-settings-holder .drawer-toggle.openIcon {
+    body.sb-shell #top-settings-holder .drawer-toggle:has(.drawer-icon.openIcon) {
         background: color-mix(in srgb, var(--sb-accent) 18%, transparent);
         color: var(--SmartThemeBodyColor, #e8ecf2);
     }
@@ -122,7 +137,7 @@ body.sb-shell {
     body.sb-shell #sheld {
         top: 6px;
         height: calc(100dvh - 12px);
-        width: min(var(--sheldWidth), calc(100vw - var(--sb-rail-width) - 16px));
+        width: calc(100vw - var(--sb-rail-width) - 16px);
         margin-left: var(--sb-rail-width);
         margin-right: 8px;
     }

@@ -7,6 +7,9 @@
  * presentation and no second generation pipeline.
  */
 
+import { doNavbarIconClick } from '../../../../script.js';
+import { setTopLevelDrawerOpen } from '../../../../scripts/drawers.js';
+
 const RAIL_ID = 'top-settings-holder';
 const PANEL_PREFIX = 'sb_panel_';
 const DEFAULT_ICON = 'fa-solid fa-puzzle-piece';
@@ -31,9 +34,26 @@ function panelId(id) {
 }
 
 function closePanel(entry) {
-    entry.content.classList.remove('openDrawer');
-    entry.content.classList.add('closedDrawer');
-    entry.drawer.querySelector('.drawer-toggle')?.classList.remove('openIcon');
+    setTopLevelDrawerOpen(entry.content, false);
+}
+
+/**
+ * Bind a drawer created after SillyTavern's one-time `.drawer-toggle` binding.
+ * @param {HTMLElement} drawer
+ * @param {(() => void) | undefined} afterOpen
+ */
+export function wireInjectedDrawer(drawer, afterOpen) {
+    const toggle = drawer?.querySelector('.drawer-toggle');
+    if (!(toggle instanceof HTMLElement) || toggle.dataset.sbWired === '1') {
+        return;
+    }
+    toggle.dataset.sbWired = '1';
+    toggle.addEventListener('click', () => {
+        void (async () => {
+            await doNavbarIconClick.call(toggle);
+            afterOpen?.();
+        })();
+    });
 }
 
 function renderPanel(entry) {
@@ -80,18 +100,19 @@ function createDrawer(panel) {
     const body = element('div', 'sb-panel-body');
     content.append(header, body);
     drawer.append(toggle, content);
+    if (!holder.querySelector('.sb-rail-separator')) {
+        holder.append(element('div', 'sb-rail-separator'));
+    }
     holder.append(drawer);
 
     close.addEventListener('click', () => {
         closePanel(panels.get(panel.id) ?? { drawer, content });
     });
-    toggle.addEventListener('click', () => {
-        window.requestAnimationFrame(() => {
-            const entry = panels.get(panel.id);
-            if (entry && entry.content.classList.contains('openDrawer')) {
-                renderPanel(entry);
-            }
-        });
+    wireInjectedDrawer(drawer, () => {
+        const entry = panels.get(panel.id);
+        if (entry && entry.content.classList.contains('openDrawer')) {
+            renderPanel(entry);
+        }
     });
 
     return { drawer, content, body };
@@ -133,9 +154,7 @@ export function openPanel(id) {
             closePanel(other);
         }
     }
-    entry.content.classList.remove('closedDrawer');
-    entry.content.classList.add('openDrawer');
-    entry.drawer.querySelector('.drawer-toggle')?.classList.add('openIcon');
+    setTopLevelDrawerOpen(entry.content, true);
     renderPanel(entry);
     return true;
 }

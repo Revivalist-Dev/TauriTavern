@@ -65,8 +65,13 @@ export async function installSillyBunnyShell() {
     document.body.classList.add(SHELL_CLASS);
     ensureConversationDrawer();
 
-    const { installPanelHost } = await import('./panels.js');
+    const { installPanelHost, wireInjectedDrawer } = await import('./panels.js');
     installPanelHost();
+
+    const conversationDrawer = document.getElementById(CONVERSATION_DRAWER_ID);
+    if (conversationDrawer) {
+        wireInjectedDrawer(conversationDrawer);
+    }
 
     if (conversationInstalled) {
         return;
