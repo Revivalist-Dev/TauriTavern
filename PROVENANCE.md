@@ -50,8 +50,13 @@ The merged tree keeps these Zedon integration additions:
 
 ## Windows-only fork divergence
 
-This working copy is deliberately diverged from upstream. It builds and runs on Windows x64 only.
-The divergence is recorded here so future upstream merges are manual and reviewable.
+**This working copy builds and runs on Windows x64 only.** Every upstream sync run must preserve
+that scope; the per-run procedure, the never-reintroduce list and the rejection log live in
+[`docs/UpstreamSync.md`](docs/UpstreamSync.md). `node scripts/check-windows-only.mjs` prints the
+scope notice and fails the run when a non-Windows path comes back.
+
+This working copy is deliberately diverged from upstream. The divergence is recorded here so future
+upstream merges are manual and reviewable.
 
 ### Build, CI and packaging
 

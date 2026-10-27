@@ -86,6 +86,9 @@ jobs:
           cache: true
           install: false
       - run: pnpm install --frozen-lockfile
+      - name: Verify Windows-only scope
+        shell: pwsh
+        run: node scripts/check-windows-only.mjs
       - name: Build desktop bundles
         uses: tauri-apps/tauri-action@v1
         env:
@@ -124,6 +127,9 @@ jobs:
           cache: true
           install: false
       - run: pnpm install --frozen-lockfile
+      - name: Verify Windows-only scope
+        shell: pwsh
+        run: node scripts/check-windows-only.mjs
       - name: Build portable binary
         run: node scripts/build-portable.mjs --output-dir portable
       - name: Upload portable binary

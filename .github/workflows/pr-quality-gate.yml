@@ -40,5 +40,8 @@ jobs:
           install: false
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Verify Windows-only scope
+        shell: pwsh
+        run: node scripts/check-windows-only.mjs
       - name: Run checks and tests
         run: pnpm run check

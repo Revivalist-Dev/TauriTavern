@@ -39,10 +39,6 @@ await unsubscribe();
 
 `safeInsets` 与 `ime` 表示视口内仍需页面自行避让的量，宿主已全部消费，因此为零。订阅立即交付一次快照，之后把 window resize 与 visual viewport resize/scroll 按帧合并交付；最后一个订阅取消时移除监听。
 
-## 系统栏区域
-
-非沉浸模式下，系统栏后面显示宿主绘制的壁纸或主题底色。网页像素（包括遮罩、滤镜和视频）不会延伸到系统栏。
-
 ## 截取
 
 `await layout.capture()` 返回当前内容视口的 `image/png` Blob，属于第一方使用的 Project Contract。图像左上角对应内容视口 `(0, 0)`，宽度对应 `window.innerWidth`；分辨率由平台决定，调用方用图片宽度除以视口宽度换算 CSS 坐标。系统栏不在图中，不滚动页面或拼接视口外内容。

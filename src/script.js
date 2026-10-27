@@ -1094,6 +1094,11 @@ export async function pingServer() {
     }
 }
 
+/** The startup failure dialog shows only this message, so it carries the host's reason. */
+async function startupRequestError(name, response) {
+    return new Error(`${name} request failed with status ${response.status}: ${await response.text()}`);
+}
+
 async function fetchBootstrapMetadata() {
     const response = await fetch('/api/bootstrap', {
         method: 'POST',
@@ -1101,7 +1106,7 @@ async function fetchBootstrapMetadata() {
     });
 
     if (!response.ok) {
-        throw new Error(`Bootstrap metadata request failed with status ${response.status}`);
+        throw await startupRequestError('Bootstrap metadata', response);
     }
 
     return response.json();
@@ -1115,7 +1120,7 @@ async function fetchSettingsSnapshot() {
         cache: 'no-cache',
     });
     if (!response.ok) {
-        throw new Error(`Settings request failed with status ${response.status}`);
+        throw await startupRequestError('Settings', response);
     }
     return response.json();
 }
@@ -1161,7 +1166,7 @@ async function firstLoadInit() {
 
         const tokenResponse = await fetch('/csrf-token');
         if (!tokenResponse.ok) {
-            throw new Error(`CSRF request failed with status ${tokenResponse.status}`);
+            throw await startupRequestError('CSRF', tokenResponse);
         }
         const tokenData = await tokenResponse.json();
         if (typeof tokenData?.token !== 'string' || !tokenData.token) {
@@ -3976,6 +3981,24 @@ export function getExtensionPromptMaxDepth() {
     // Clamp to 1 <= depth <= MAX_INJECTION_DEPTH
     return Math.max(Math.min(maxDepth, MAX_INJECTION_DEPTH), 1);
     */
+}
+
+/**
+ * Gets the depths, in ascending order, at which in-chat prompts can be injected.
+ * @param {Record<string, object>|null} prompts Extension prompts by key
+ * @param {Iterable<unknown>} [depths] Depths of other prompts that are injected
+ * @returns {number[]} Depths from 0 to the maximum depth
+ */
+export function getInChatInjectionDepths(prompts, depths = []) {
+    const maxDepth = getExtensionPromptMaxDepth();
+    const usedDepths = new Set(depths);
+    for (const prompt of Object.values(prompts ?? {})) {
+        if (prompt.position != extension_prompt_types.IN_CHAT || !prompt.value) continue;
+        // A prompt without a depth matches every depth.
+        if (prompt.depth === undefined) return Array.from({ length: maxDepth + 1 }, (_, depth) => depth);
+        usedDepths.add(prompt.depth);
+    }
+    return [...usedDepths].filter(depth => Number.isInteger(depth) && depth >= 0 && depth <= maxDepth).sort((a, b) => a - b);
 }
 
 /**
@@ -6949,8 +6972,7 @@ async function doChatInject(messages, isContinue) {
     let totalInsertedMessages = 0;
     messages.reverse();
 
-    const maxDepth = getExtensionPromptMaxDepth();
-    for (let i = 0; i <= maxDepth; i++) {
+    for (const i of getInChatInjectionDepths(extension_prompts)) {
         // Order of priority (most important go lower)
         const roles = [extension_prompt_roles.SYSTEM, extension_prompt_roles.USER, extension_prompt_roles.ASSISTANT];
         const names = {
@@ -9298,6 +9320,7 @@ export function changeMainAPI(api = null) {
     }
 
     main_api = selectedVal;
+    document.body.dataset.mainApi = selectedVal;
     setOnlineStatus('no_connection');
 
     if (main_api == 'koboldhorde') {
