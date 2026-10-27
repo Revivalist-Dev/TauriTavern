@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   dispatch:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     name: dispatch-canary-dev
 
     steps:

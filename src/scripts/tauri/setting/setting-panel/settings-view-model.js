@@ -6,17 +6,15 @@ import {
     getRuntimePaths,
     getTauriTavernSettings,
 } from '../../../../tauri-bridge.js';
-import { getActiveIosPolicyCapabilities } from '../../../tauritavern/ios-policy.js';
 import { isOledBackgroundEnabled } from '../oled-background.js';
 import { createDataRootState, createTauriTavernSettingsState } from './settings-state.js';
 
 export function resolveTauriTavernSettingsCapabilities() {
-    const iosCaps = getActiveIosPolicyCapabilities();
     const supportsDataRootSelection = isDesktopHost();
 
     return {
-        requestProxyAllowed: iosCaps?.network?.request_proxy !== false,
-        lanSyncAllowed: iosCaps?.sync?.lan !== false,
+        requestProxyAllowed: true,
+        lanSyncAllowed: true,
         supportsCloseToTrayOnClose: hostPlatform() === 'windows',
         supportsDataRootSelection,
     };

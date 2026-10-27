@@ -1,6 +1,5 @@
 // @ts-check
 
-import { isMobileHost } from '../../../../scripts/util/host-identity.js';
 import { createFileStagingService } from '../files/file-staging-service.js';
 
 /**
@@ -54,17 +53,7 @@ export function createUploadService({ safeInvoke, invoke } = {}) {
 
     /** @param {string | null} filePath */
     function shouldUseDirectUploadPath(filePath) {
-        if (!isLikelyFileSystemPath(filePath)) {
-            return false;
-        }
-
-        // Mobile file pickers often expose scoped paths that are not directly readable by Rust.
-        // Materializing into app storage keeps behavior consistent and permission-safe.
-        if (isMobileHost()) {
-            return false;
-        }
-
-        return true;
+        return isLikelyFileSystemPath(filePath);
     }
 
     /**

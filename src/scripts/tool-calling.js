@@ -11,7 +11,6 @@ import { enumTypes, SlashCommandEnumValue } from './slash-commands/SlashCommandE
 import { SlashCommandParser } from './slash-commands/SlashCommandParser.js';
 import { slashCommandReturnHelper } from './slash-commands/SlashCommandReturnHelper.js';
 import { isTrueBoolean } from './utils.js';
-import { getActiveIosPolicyCapabilities } from './tauritavern/ios-policy.js';
 import { getEffectiveGenerationSettings } from './tauri/generation-params/omission.js';
 
 /**
@@ -1120,7 +1119,7 @@ export class ToolManager {
     }
 
     static initToolSlashCommands() {
-        const toolRegistrationAllowed = getActiveIosPolicyCapabilities()?.scripting?.tool_registration !== false;
+        const toolRegistrationAllowed = true;
         const toolsEnumProvider = () => ToolManager.tools.map(tool => {
             const toolOpenAI = tool.toFunctionOpenAI();
             return new SlashCommandEnumValue(toolOpenAI.function.name, toolOpenAI.function.description, enumTypes.enum, enumIcons.closure);

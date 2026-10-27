@@ -37,33 +37,29 @@ function stagingHost(encoding, failChunkOffset) {
     return { service, filePath, chunks, discarded };
 }
 
-test('mobile uploads preserve bytes across IPC chunks and own their staged copies', async () => {
+test('uploads preserve bytes across IPC chunks and own their staged copies', async () => {
     const bytes = Uint8Array.of(0, 255, 128, 64, 1, 2, 3, 4, 5, 6);
-    for (const [identity, encoding] of [[HOSTS.android, 'base64'], [HOSTS.ios, undefined]]) {
-        const restore = installHostIdentity(identity);
-        try {
-            const { service, filePath, chunks, discarded } = stagingHost(encoding);
-            const blob = new Blob([bytes], { type: 'image/png' });
-            // A mobile picker's scoped path cannot substitute for an owned copy.
-            Object.defineProperty(blob, 'path', { value: '/private/scoped/avatar.png' });
-            const file = await service.materializeUploadFile(blob, { kind: 'avatar', preferredName: 'portrait.png' });
+    const restore = installHostIdentity(HOSTS.windows);
+    try {
+        const { service, filePath, chunks, discarded } = stagingHost(undefined);
+        const blob = new Blob([bytes], { type: 'image/png' });
+        const file = await service.materializeUploadFile(blob, { kind: 'avatar', preferredName: 'portrait.png' });
 
-            assert.equal(file.filePath, filePath);
-            assert.equal(file.isTemporary, true);
-            assert.deepEqual(Buffer.concat(chunks), Buffer.from(bytes));
-            assert.deepEqual(discarded, []);
-            await file.cleanup();
-            assert.deepEqual(discarded, [filePath]);
-        } finally {
-            restore();
-        }
+        assert.equal(file.filePath, filePath);
+        assert.equal(file.isTemporary, true);
+        assert.deepEqual(Buffer.concat(chunks), Buffer.from(bytes));
+        assert.deepEqual(discarded, []);
+        await file.cleanup();
+        assert.deepEqual(discarded, [filePath]);
+    } finally {
+        restore();
     }
 });
 
 test('failed upload discards the partial staged file and reports the failure', async t => {
-    t.after(installHostIdentity(HOSTS.android));
+    t.after(installHostIdentity(HOSTS.windows));
     t.mock.method(console, 'warn', () => {});
-    const { service, filePath, chunks, discarded } = stagingHost('base64', 4);
+    const { service, filePath, chunks, discarded } = stagingHost(undefined, 4);
     const file = await service.materializeUploadFile(new Blob(['abcdefgh']));
 
     assert.equal(Buffer.concat(chunks).toString(), 'abcd');

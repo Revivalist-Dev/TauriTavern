@@ -1,6 +1,6 @@
 ---
 name: tt-troubleshooting
-description: Diagnosing problems in TauriTavern and reporting them — error messages, failed or cut-off replies, world info that does not trigger, extensions that fail to load, custom endpoints, sync, the data directory, iOS and mobile limits, and exporting a debug bundle for the developers. Read it when a user reports something broken or unexpected, before guessing at a cause.
+description: Diagnosing problems in TauriTavern and reporting them — error messages, failed or cut-off replies, world info that does not trigger, extensions that fail to load, custom endpoints, sync, the data directory, and exporting a debug bundle for the developers. Read it when a user reports something broken or unexpected, before guessing at a cause.
 license: AGPL-3.0
 ---
 
@@ -33,7 +33,6 @@ Reproducing a failed reply means generating in the user's chat. If the user has 
 ## Isolate
 
 - **Extensions** cause many problems. Have the user retest with third-party extensions disabled, then re-enable them half at a time. Every round reloads the page, so agree on it with the user first.
-- **Platform.** Older Android WebViews and iOS builds behave differently (below).
 
 ## Known problems
 
@@ -64,11 +63,6 @@ Reproducing a failed reply means generating in the user's chat. If the user has 
 - Its list says which extension failed to load and why: a script that could not load, missing or disabled dependencies, or a required client version. The extension is named by its display name, and the text is in the user's language.
 - Install and update errors, and which Git sources work: tt-extensions skill.
 
-**Older mobile WebViews**
-- `… .at is not a function` and similar: TauriTavern adds `at`, `findLast`, `toSorted`, `Object.hasOwn` and a few others. If `window.__TAURITAVERN_MOBILE_RUNTIME_COMPAT__ === true`, the polyfills are in place and the extension uses something newer.
-- Missing extension styles: when the WebView lacks CSS `@layer`, TauriTavern serves a flattened copy, and the stylesheet URL carries `ttCompat=layer`.
-- More notes: the extension and compatibility sections of `references/FrontendGuide.md` in the tt-docs skill.
-
 **Chat rendering**
 - **Virtualization stopped.** When Chat DOM Virtualization fails at startup or later, a popup says it stopped and shows the error. Common errors:
   - a renderer extension too old for it (JS-Slash-Runner needs 4.9.1, LittleWhiteBox 3.0.4);
@@ -78,24 +72,13 @@ Reproducing a failed reply means generating in the user's chat. If the user has 
 - **Iframe placeholders.** With virtualization off, placeholders or reload hints in message iframes come from the Embedded Runtime, whose mode is in TauriTavern settings, Performance. With virtualization on, the renderers draw same-height placeholders for messages outside the visible range.
 - Reference: `references/CurrentState/EmbeddedRuntime.md` in the tt-docs skill.
 
-**iOS TestFlight builds**
-- The public TestFlight build turns off, among others:
-  - third-party extensions;
-  - custom endpoints and reverse proxies;
-  - sources other than OpenAI, Claude and Google AI Studio;
-  - image generation;
-  - LAN sync.
-- Errors read `iOS policy disabled capability: <key>` or `iOS policy disabled chat completion source: <source>`. This is by design, not a fault.
-- `window.__TAURITAVERN__.iosPolicy?.profile` gives the policy of the device you are running on.
-- Reference: `references/CurrentState/iOSPolicy.md` in the tt-docs skill.
-
 **Sync**
 - `Another local mutation is already running`: another sync or local operation is still in progress. Wait and retry.
 - "Newer wins" depends on the devices' clocks agreeing.
 - After a partial failure, the transferred files stay, and a retry rescans.
 - Reference: `references/CurrentState/Sync.md` in the tt-docs skill.
 
-**Data directory (desktop)**
+**Data directory (Windows)**
 - A new data directory must be an existing, empty, absolute path, and it takes effect after a restart.
 - If moving fails, the app keeps using the old directory and says so.
 - Reference: `references/CurrentState/DataDirectorySelection.md` in the tt-docs skill.

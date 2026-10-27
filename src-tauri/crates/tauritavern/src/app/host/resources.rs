@@ -68,10 +68,6 @@ pub(super) fn install_runtime_resources(
         host_resource_store.clone(),
     ));
     app.manage(host_resource_service.clone());
-    #[cfg(mobile)]
-    app.manage(Arc::new(
-        tt_adapter_media::window_backdrop::WindowBackdropRenderer::new(host_resource_store),
-    ));
 
     // User media is a separate command-facing service, but it shares the same
     // runtime data root and should be published with the rest of resource state.

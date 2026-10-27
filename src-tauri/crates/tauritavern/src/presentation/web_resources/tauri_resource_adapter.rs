@@ -1,8 +1,6 @@
-use crate::platform::identity::HOST_IDENTITY;
 use std::borrow::Cow;
 #[cfg(any(dev, debug_assertions, test))]
 use std::sync::Arc;
-use tt_contracts::host::{HostKind, HostPlatform};
 
 #[cfg(any(dev, debug_assertions))]
 use tauri::Manager;
@@ -17,24 +15,11 @@ use tt_application::services::host_resource_service::{
     HostResourceDeliveryCapabilities, HostResourceResponse, HostResourceService,
 };
 
-const WRY_DELIVERY: HostResourceDeliveryCapabilities = resource_delivery(false);
+const WRY_DELIVERY: HostResourceDeliveryCapabilities =
+    HostResourceDeliveryCapabilities::new(true, false);
 #[cfg(any(dev, debug_assertions))]
-const DEV_IPC_DELIVERY: HostResourceDeliveryCapabilities = resource_delivery(true);
-
-const fn resource_delivery(over_ipc: bool) -> HostResourceDeliveryCapabilities {
-    let delivery = match HOST_IDENTITY.platform {
-        HostPlatform::Android => HostResourceDeliveryCapabilities::new(false, !over_ipc),
-        HostPlatform::Windows
-        | HostPlatform::Macos
-        | HostPlatform::Linux
-        | HostPlatform::Ios
-        | HostPlatform::Ohos => HostResourceDeliveryCapabilities::new(true, false),
-    };
-    match HOST_IDENTITY.kind {
-        HostKind::Mobile => delivery.with_max_third_party_asset_bytes(32 * 1024 * 1024),
-        HostKind::Desktop => delivery,
-    }
-}
+const DEV_IPC_DELIVERY: HostResourceDeliveryCapabilities =
+    HostResourceDeliveryCapabilities::new(true, false);
 
 pub(crate) fn handle_tauri_web_resource_request(
     host_resources: &HostResourceService,

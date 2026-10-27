@@ -115,27 +115,23 @@ test('metadata saves capture nested values before asynchronous transport', async
     }
 });
 
-test('chat transport preserves UTF-8 across bounded native and Android frames', async () => {
+test('chat transport preserves UTF-8 across bounded Windows frames', async () => {
     const payload = [{ chat_metadata: {} }, { mes: '你好 👋\nnext line'.repeat(20) }, {}];
-    for (const identity of [HOSTS.windows, HOSTS.android]) {
-        const host = createCommitHost({ maxFrameBytes: 7 });
-        const restore = installRuntime(identity, host.invoke);
-        try {
-            await commit(payload);
-            assert.ok(host.frames.every(frame => frame.bytes.byteLength <= 7));
-            let offset = 0;
-            for (const frame of host.frames) {
-                assert.equal(frame.offset, offset);
-                offset += frame.bytes.byteLength;
-            }
-            const appends = host.calls.filter(call => call.command === 'append_chat_commit_chunk');
-            assert.ok(appends.every(call => identity.platform === 'android'
-                ? typeof call.args.data === 'string'
-                : call.args instanceof Uint8Array));
-            assert.equal(Buffer.concat(host.frames.map(frame => frame.bytes)).toString(), payload.map(JSON.stringify).join('\n'));
-        } finally {
-            restore();
+    const host = createCommitHost({ maxFrameBytes: 7 });
+    const restore = installRuntime(HOSTS.windows, host.invoke);
+    try {
+        await commit(payload);
+        assert.ok(host.frames.every(frame => frame.bytes.byteLength <= 7));
+        let offset = 0;
+        for (const frame of host.frames) {
+            assert.equal(frame.offset, offset);
+            offset += frame.bytes.byteLength;
         }
+        const appends = host.calls.filter(call => call.command === 'append_chat_commit_chunk');
+        assert.ok(appends.every(call => call.args instanceof Uint8Array));
+        assert.equal(Buffer.concat(host.frames.map(frame => frame.bytes)).toString(), payload.map(JSON.stringify).join('\n'));
+    } finally {
+        restore();
     }
 });
 
@@ -151,7 +147,7 @@ test('chat save snapshots nested values and keeps one frame in flight', async ()
             })
             : offset + bytes.byteLength,
     });
-    const restore = installRuntime(HOSTS.android, host.invoke);
+    const restore = installRuntime(HOSTS.windows, host.invoke);
     const payload = [
         { chat_metadata: { integrity: '10000000-0000-4000-8000-000000000002', variables: { score: 1 } } },
         { mes: 'first message', extra: { extension: { enabled: true } } },
@@ -183,7 +179,7 @@ test('chat payload commit aborts ACK failures', async () => {
     const host = createCommitHost({
         onAppend: ({ offset, bytes }) => offset + bytes.byteLength + 1,
     });
-    const restore = installRuntime(HOSTS.macos, host.invoke);
+    const restore = installRuntime(HOSTS.windows, host.invoke);
 
     try {
         await assert.rejects(() => commit([{ mes: '012345' }]), /unexpected offset/i);
@@ -198,7 +194,7 @@ test('chat payload commit surfaces abort failure with the original error', async
         onAppend: () => { throw new Error('append failed'); },
         abortError: new Error('abort failed'),
     });
-    const restore = installRuntime(HOSTS.macos, host.invoke);
+    const restore = installRuntime(HOSTS.windows, host.invoke);
 
     try {
         await assert.rejects(
@@ -247,7 +243,7 @@ for (const route of [
             },
         ]) {
             const host = createCommitHost({ finishError: scenario.finishError, expectedTarget: route.target });
-            const restore = installRuntime(HOSTS.macos, host.invoke);
+            const restore = installRuntime(HOSTS.windows, host.invoke);
 
             try {
                 const response = await router.handle({

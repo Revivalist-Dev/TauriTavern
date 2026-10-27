@@ -14,7 +14,6 @@ import { stripCommandErrorPrefixes } from '../../util/command-error-utils.js';
 import { isGitHubRateLimitMessage } from '../../util/github-rate-limit.js';
 import { githubRateLimitStopper } from '../../util/github-rate-limit-stopper.js';
 import { extractErrorText, toUserFacingErrorText } from '../../util/user-facing-error.js';
-import { getActiveIosPolicyCapabilities } from '../../tauritavern/ios-policy.js';
 
 const MODULE_NAME = 'tauritavern-version';
 const LINKS = Object.freeze({
@@ -33,14 +32,6 @@ let tauriTavernSettingsCache = null;
 let tauriTavernSettingsPromise = null;
 let versionInfoCache = null;
 let versionInfoPromise = null;
-
-function resolveIosUpdateCapabilities() {
-    return getActiveIosPolicyCapabilities()?.updates ?? null;
-}
-
-function resolveIosAboutCapabilities() {
-    return getActiveIosPolicyCapabilities()?.about ?? null;
-}
 
 function localize(key, fallback) {
     return translate(fallback, key);
@@ -278,17 +269,6 @@ async function onCheckUpdateClick() {
         return;
     }
 
-    const updateCaps = resolveIosUpdateCapabilities();
-    if (updateCaps && updateCaps.manual_check === false) {
-        globalThis.toastr?.error?.(
-            localize(
-                'ttv_version.check_update_disabled',
-                'Manual update checking is disabled by your iOS policy.',
-            ),
-        );
-        return;
-    }
-
     const $btn = $('#tauritavern_check_update');
     const $icon = $btn.find('i');
     const $text = $btn.find('span');
@@ -480,12 +460,6 @@ async function runStartupUpdateCheck() {
 }
 
 eventSource.once(event_types.APP_READY, () => {
-    const updateCaps = resolveIosUpdateCapabilities();
-    if (updateCaps && updateCaps.startup_check === false) {
-        console.debug('Startup update check skipped: disabled by iOS policy');
-        return;
-    }
-
     void runStartupUpdateCheck();
 });
 
@@ -591,46 +565,7 @@ jQuery(async () => {
     const html = await renderExtensionTemplateAsync(MODULE_NAME, 'settings', LINKS);
     container.append(html);
     $('#tauritavern_export_debug_bundle').on('click', () => void onExportDebugBundleClick());
-
-    const aboutCaps = resolveIosAboutCapabilities();
-    if (aboutCaps && aboutCaps.git_info === false) {
-        const gitRow = document.getElementById('ttv-git-row');
-        if (!(gitRow instanceof HTMLElement)) {
-            throw new Error('[TauriTavern][iOSPolicy] ttv-git-row not found');
-        }
-        gitRow.hidden = true;
-    }
-
-    const updateCaps = resolveIosUpdateCapabilities();
-    if (updateCaps && updateCaps.manual_check === false) {
-        $('#tauritavern_check_update').remove();
-
-        const channelRow = document.getElementById('ttv-channel-row');
-        if (!(channelRow instanceof HTMLElement)) {
-            throw new Error('[TauriTavern][iOSPolicy] ttv-channel-row not found');
-        }
-        channelRow.hidden = true;
-
-        const compatRow = document.getElementById('ttv-compat-row');
-        if (!(compatRow instanceof HTMLElement)) {
-            throw new Error('[TauriTavern][iOSPolicy] ttv-compat-row not found');
-        }
-        compatRow.hidden = true;
-
-        const discordLink = document.getElementById('ttv-discord-link');
-        if (!(discordLink instanceof HTMLElement)) {
-            throw new Error('[TauriTavern][iOSPolicy] ttv-discord-link not found');
-        }
-        discordLink.hidden = true;
-
-        const telegramLink = document.getElementById('ttv-telegram-link');
-        if (!(telegramLink instanceof HTMLElement)) {
-            throw new Error('[TauriTavern][iOSPolicy] ttv-telegram-link not found');
-        }
-        telegramLink.hidden = true;
-    } else {
-        $('#tauritavern_check_update').on('click', onCheckUpdateClick);
-    }
+    $('#tauritavern_check_update').on('click', onCheckUpdateClick);
     $('#tauritavern_update_dismiss').on('click', hideUpdateResult);
     container.on('click', 'a[target="_blank"]', onExternalLinkClick);
 

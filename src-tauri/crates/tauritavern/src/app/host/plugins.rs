@@ -37,21 +37,8 @@ pub(super) fn install<R: Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init());
 
-    #[cfg(any(target_os = "android", target_env = "ohos"))]
-    let builder = builder.plugin(crate::platform::window_layout::plugin());
-
-    #[cfg(target_os = "android")]
-    let builder = builder
-        .plugin(crate::platform::generation_background::plugin())
-        .plugin(crate::platform::lan_discovery::plugin())
-        .plugin(crate::platform::file_transfer::plugin())
-        .plugin(crate::platform::speech_synthesis::plugin());
-
     #[cfg(feature = "devtools-pilot")]
     let builder = builder.plugin(tauri_plugin_pilot::init());
-
-    #[cfg(mobile)]
-    let builder = builder.plugin(tauri_plugin_barcode_scanner::init());
 
     #[cfg(any(dev, debug_assertions))]
     // Dev-only static-resource protocol for extension assets served outside the

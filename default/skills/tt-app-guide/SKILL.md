@@ -6,13 +6,13 @@ license: AGPL-3.0
 
 # TauriTavern app guide
 
-TauriTavern runs the SillyTavern 1.19.0 frontend on a Rust backend, as a native app for desktop, Android, iOS and HarmonyOS. Most of the interface is upstream SillyTavern; TauriTavern adds its own settings, data handling and platform behavior.
+TauriTavern runs the SillyTavern 1.19.0 frontend on a Rust backend as a native Windows app. Most of the interface is upstream SillyTavern; TauriTavern adds its own settings, data handling and Windows behavior.
 
 ## How it differs from SillyTavern
 
 - **Chat Completion only.** The API selector `#main_api` is fixed to Chat Completion and the Text Completion APIs are hidden. Requests are built from the Chat Completion preset's Prompt Manager; the instruct and context templates in Advanced Formatting apply only to Text Completion.
 - **No Node server.** Server plugins and anything else that needs the SillyTavern server process do not exist here. Third-party extensions run in the page only (tt-extensions skill).
-- **Platform features.** A movable data directory (desktop, needs a restart), LAN Sync and TT-Sync between devices, a one-time native approval for each custom API endpoint, and features turned off by policy in iOS TestFlight builds. The tt-docs skill has a document for each.
+- **Platform features.** A movable data directory (needs a restart), LAN Sync and TT-Sync between Windows machines, and a one-time native approval for each custom API endpoint. The tt-docs skill has a document for each.
 - **This assistant lives in the Advanced Formatting drawer.** The real Advanced Formatting settings sit behind it.
 
 ## Reading the current state
@@ -58,7 +58,6 @@ Elsewhere:
 - **Updates and the debug bundle.** They are in the TauriTavern version panel in the Extensions drawer, which is collapsed by default.
   - The update channel is the radio group `input[name="tauritavern_update_channel"]` (`stable` or `canary`); `#ttv-channel-toggle` only expands it.
   - The update check is `#tauritavern_check_update`, and the debug bundle export is `#tauritavern_export_debug_bundle`.
-  - iOS builds may hide the update controls.
 - **The extensions menu.** `#extensionsMenuButton`, next to the chat input, opens `#extensionsMenu`.
 
 ## Working in the live interface

@@ -512,14 +512,14 @@ impl SettingsRepository for FileSettingsRepository {
 #[cfg(test)]
 mod tests {
     use super::fields::{APPEARANCE_FILE, DYNAMIC_THEME_FILE, LAYOUT_FILE, PRESETS_FILE};
-    use super::{FileSettingsRepository, load_tauritavern_settings_blocking};
+    use super::FileSettingsRepository;
     use rand::random;
     use serde_json::json;
     use std::fs;
     use std::path::{Path, PathBuf};
     use std::sync::Arc;
     use tt_domain::models::settings::revision::UserSettingsRevision;
-    use tt_domain::models::settings::{TauriTavernSettings, UserSettings};
+    use tt_domain::models::settings::UserSettings;
     use tt_ports::repositories::settings_repository::SettingsRepository;
 
     struct TestDir {
@@ -734,43 +734,6 @@ mod tests {
             serde_json::from_slice(&fs::read(presets_path).unwrap()).unwrap();
         assert_eq!(core.data, clean);
         assert_eq!(presets.data, json!({"oai_settings": clean}));
-    }
-
-    #[tokio::test]
-    async fn native_settings_share_initial_values_without_overwriting_stored_policy() {
-        let dir = TestDir::new();
-        let initial = TauriTavernSettings {
-            ios_policy: Some(json!({"version": 1, "profile": "ios_external_beta"})),
-            ..Default::default()
-        };
-        let repository = FileSettingsRepository::new(
-            dir.path().to_path_buf(),
-            default_user_settings(),
-            initial.clone(),
-            Arc::default(),
-            1024,
-        );
-        let first = load_tauritavern_settings_blocking(dir.path(), &initial).unwrap();
-        assert_eq!(
-            first.ios_policy,
-            repository
-                .load_tauritavern_settings()
-                .await
-                .unwrap()
-                .ios_policy
-        );
-        let mut changed = first;
-        changed.ios_policy = Some(json!({"version": 1, "profile": "full"}));
-        repository
-            .save_tauritavern_settings(&changed)
-            .await
-            .unwrap();
-        assert_eq!(
-            load_tauritavern_settings_blocking(dir.path(), &initial)
-                .unwrap()
-                .ios_policy,
-            changed.ios_policy
-        );
     }
 
     #[tokio::test]

@@ -171,7 +171,7 @@ const delivered = await dev.exportBundle();
 
 ### 语义
 
-- 由用户在系统保存面板中选择位置（iOS 为分享面板），见[文件传输](../CurrentState/FileTransfer.md)。
+- 由用户在系统保存面板中选择位置，见[文件传输](../CurrentState/FileTransfer.md)。
 - 导出内容包含后端文件日志、前端日志 snapshot、LLM API Logs（含 raw）与设置/版本信息。
 - 导出文件可能包含 prompt/响应体等敏感信息；分享前请自行检查。
 

@@ -1,6 +1,6 @@
 ---
 name: tt-docs
-description: TauriTavern's own documentation for this version — the page API (window.__TAURITAVERN__.api), frontend structure, extension support, chat rendering, logs, custom endpoints, sync, data directory, updates, iOS and mobile limits, and the in-app assistant. Open its index when another TauriTavern skill points here, or when you need the exact behavior of a TauriTavern API or feature.
+description: TauriTavern's own documentation for this version — the page API (window.__TAURITAVERN__.api), frontend structure, extension support, chat rendering, logs, custom endpoints, sync, data directory, updates, and the in-app assistant. Open its index when another TauriTavern skill points here, or when you need the exact behavior of a TauriTavern API or feature.
 license: AGPL-3.0
 ---
 
@@ -38,9 +38,8 @@ These are TauriTavern's own documents, from the same source revision as this app
 - `references/CurrentState/UserEndpointAccess.md` — Custom API endpoints (custom URL, reverse proxy): the one-time native approval dialog, where approvals are stored, and what cancelling does.
 - `references/CurrentState/Sync.md` — LAN Sync and TT-Sync: what data syncs, which settings sections sync independently, discovery and pairing, and automatic sync.
 - `references/CurrentState/DataDirectorySelection.md` — Choosing or moving the data directory: what is supported and what is not.
-- `references/CurrentState/UpdateChannels.md` — Stable and Canary update channels, how updates are detected, and public TestFlight builds.
-- `references/CurrentState/iOSPolicy.md` — Features restricted in iOS builds: policy profiles and capabilities, how they are applied, and their known limits.
-- `references/CurrentState/MobileStyleAdaptation.md` — The mobile content viewport and window background on Android, iOS and HarmonyOS, and where styles differ from upstream.
-- `references/CurrentState/TTS.md` — System text-to-speech on Android and the built-in System TTS provider.
+- `references/CurrentState/UpdateChannels.md` — Stable and Canary update channels, and how updates are detected and installed on Windows.
+- `references/CurrentState/SillyBunnyShell.md` — The Windows-only SillyBunny desktop shell: left rail, side panels, conversation mode and how it reuses stock SillyTavern generation.
+- `references/CurrentState/UpstreamPullRequests.md` — The Windows-only decision table for open upstream pull requests: apply, defer or reject.
 - `references/CurrentState/CharacterIdentityContract.md` — How characters keep their identity across renames and imports, how a character's chats are found, and how a card's embedded world info is adopted.
 - `references/CurrentState/InAppAssistant.md` — The in-app assistant itself: its profile and lifecycle, Sessions and history, interface, and the boundaries of its tools.

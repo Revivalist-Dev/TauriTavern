@@ -12,7 +12,6 @@ license: AGPL-3.0
 - **Two install locations.** Local, for this user (`data/default-user/extensions/<folder>` in the data directory), and global (`data/extensions/third-party/<folder>`). When both hold the same folder, the local one wins.
 - **Served path.** Either way, the extension's files are served at `/scripts/extensions/third-party/<folder>/`, and its internal name is `third-party/<folder>`.
 - **Activation.** Third-party extensions activate once the app is ready. When Chat DOM Virtualization is on, the renderers (JS-Slash-Runner, LittleWhiteBox and any extension declaring a `chatSurface` hook) activate earlier, during startup, because they must register before the chat is first drawn.
-- **Size limit.** On mobile, a file over 32 MiB is refused when it is loaded.
 
 ## Inspecting what is installed
 
@@ -44,7 +43,7 @@ From the page:
 
 ## What TauriTavern provides
 
-- **Compatibility.** lodash as `window._`; polyfills for older mobile WebViews; flattened CSS `@layer` where the WebView lacks it. The tt-troubleshooting skill lists the symptoms.
+- **Compatibility.** lodash as `window._`. The Windows WebView2 runtime is the only target, so no mobile polyfills are installed.
 - **ChatSurface.** TauriTavern owns chat rendering.
   - JS-Slash-Runner and LittleWhiteBox register with ChatSurface as renderers, but only under their usual folder names, `JS-Slash-Runner` and `LittleWhiteBox`.
   - Chat DOM Virtualization (TauriTavern settings, Performance; off by default; saved as `chat_virtualization_enabled` in the TauriTavern settings) needs JS-Slash-Runner 4.9.1 or later and LittleWhiteBox 3.0.4 or later. It will not start while both have code block rendering on.

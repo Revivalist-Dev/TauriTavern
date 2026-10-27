@@ -3,11 +3,8 @@ use std::sync::Arc;
 use tauri::State;
 
 use crate::app::AppState;
-use crate::presentation::commands::helpers::{
-    ensure_ios_policy_allows, log_command, map_command_error,
-};
+use crate::presentation::commands::helpers::{log_command, map_command_error};
 use crate::presentation::errors::CommandError;
-use tt_domain::ios_policy::IosPolicyScope;
 use tt_domain::models::extension::{
     Extension, ExtensionBranch, ExtensionInstallResult, ExtensionUpdateResult, ExtensionVersion,
 };
@@ -18,44 +15,12 @@ pub async fn get_extensions(
 ) -> Result<Vec<Extension>, CommandError> {
     log_command("get_extensions");
 
-    let mut extensions = app_state
+    let extensions = app_state
         .services
         .extension_service
         .get_extensions()
         .await
         .map_err(map_command_error("Failed to get extensions"))?;
-
-    if app_state.ios_policy.scope == IosPolicyScope::Ios {
-        let allow_third_party = app_state
-            .ios_policy
-            .capabilities
-            .extensions
-            .third_party_execution;
-        let system_allowlist = &app_state
-            .ios_policy
-            .capabilities
-            .extensions
-            .system_allowlist;
-
-        let before = extensions.len();
-        extensions.retain(|extension| match extension.extension_type {
-            tt_domain::models::extension::ExtensionType::System => {
-                system_allowlist.allows(&extension.name)
-            }
-            tt_domain::models::extension::ExtensionType::Local
-            | tt_domain::models::extension::ExtensionType::Global => allow_third_party,
-        });
-
-        let filtered = before.saturating_sub(extensions.len());
-        if filtered > 0 {
-            tracing::info!(
-                filtered,
-                before,
-                profile = ?app_state.ios_policy.profile,
-                "iOS policy filtered extensions during discovery"
-            );
-        }
-    }
 
     Ok(extensions)
 }
@@ -68,16 +33,6 @@ pub async fn install_extension(
     app_state: State<'_, Arc<AppState>>,
 ) -> Result<ExtensionInstallResult, CommandError> {
     log_command("install_extension");
-
-    ensure_ios_policy_allows(
-        &app_state.ios_policy,
-        app_state
-            .ios_policy
-            .capabilities
-            .extensions
-            .third_party_management,
-        "extensions.third_party_management",
-    )?;
 
     app_state
         .services
@@ -95,16 +50,6 @@ pub async fn update_extension(
 ) -> Result<ExtensionUpdateResult, CommandError> {
     log_command(format!("update_extension {}", extension_name));
 
-    ensure_ios_policy_allows(
-        &app_state.ios_policy,
-        app_state
-            .ios_policy
-            .capabilities
-            .extensions
-            .third_party_management,
-        "extensions.third_party_management",
-    )?;
-
     app_state
         .services
         .extension_service
@@ -120,16 +65,6 @@ pub async fn delete_extension(
     app_state: State<'_, Arc<AppState>>,
 ) -> Result<(), CommandError> {
     log_command(format!("delete_extension {}", extension_name));
-
-    ensure_ios_policy_allows(
-        &app_state.ios_policy,
-        app_state
-            .ios_policy
-            .capabilities
-            .extensions
-            .third_party_management,
-        "extensions.third_party_management",
-    )?;
 
     app_state
         .services
@@ -147,16 +82,6 @@ pub async fn get_extension_version(
 ) -> Result<ExtensionVersion, CommandError> {
     log_command(format!("get_extension_version {}", extension_name));
 
-    ensure_ios_policy_allows(
-        &app_state.ios_policy,
-        app_state
-            .ios_policy
-            .capabilities
-            .extensions
-            .third_party_management,
-        "extensions.third_party_management",
-    )?;
-
     app_state
         .services
         .extension_service
@@ -172,16 +97,6 @@ pub async fn get_extension_branches(
     app_state: State<'_, Arc<AppState>>,
 ) -> Result<Vec<ExtensionBranch>, CommandError> {
     log_command(format!("get_extension_branches {}", extension_name));
-
-    ensure_ios_policy_allows(
-        &app_state.ios_policy,
-        app_state
-            .ios_policy
-            .capabilities
-            .extensions
-            .third_party_management,
-        "extensions.third_party_management",
-    )?;
 
     app_state
         .services
@@ -203,16 +118,6 @@ pub async fn switch_extension_branch(
         extension_name, branch
     ));
 
-    ensure_ios_policy_allows(
-        &app_state.ios_policy,
-        app_state
-            .ios_policy
-            .capabilities
-            .extensions
-            .third_party_management,
-        "extensions.third_party_management",
-    )?;
-
     app_state
         .services
         .extension_service
@@ -232,16 +137,6 @@ pub async fn move_extension(
         "move_extension {} from {} to {}",
         extension_name, source, destination
     ));
-
-    ensure_ios_policy_allows(
-        &app_state.ios_policy,
-        app_state
-            .ios_policy
-            .capabilities
-            .extensions
-            .third_party_management,
-        "extensions.third_party_management",
-    )?;
 
     app_state
         .services

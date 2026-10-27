@@ -5,8 +5,7 @@ use tauri::State;
 use crate::app::AppState;
 use crate::app::dev_observability::DevObservabilityHub;
 use crate::presentation::commands::chunk_body::{chunk_bytes_from_request, commit_headers};
-use crate::presentation::commands::helpers::{
-    ensure_ios_policy_allows, log_command, map_command_error,
+use crate::presentation::commands::helpers::{ log_command, map_command_error,
 };
 use crate::presentation::errors::CommandError;
 use tt_application::dto::settings_dto::{
@@ -45,7 +44,6 @@ pub async fn get_chat_backup_storage_stats(
         .map_err(map_command_error("Failed to get chat backup storage stats"))
 }
 
-#[cfg(target_os = "windows")]
 #[tauri::command]
 pub async fn update_tauritavern_settings(
     dto: UpdateTauriTavernSettingsDto,
@@ -62,11 +60,6 @@ pub async fn update_tauritavern_settings(
         .as_ref()
         .is_some_and(|settings| settings.enabled)
     {
-        ensure_ios_policy_allows(
-            &app_state.ios_policy,
-            app_state.ios_policy.capabilities.network.request_proxy,
-            "network.request_proxy",
-        )?;
     }
 
     let settings = app_state
@@ -77,52 +70,6 @@ pub async fn update_tauritavern_settings(
         .map_err(map_command_error("Failed to update TauriTavern settings"))?;
 
     tray_state.set_close_to_tray_on_close(settings.close_to_tray_on_close);
-    host_resources.set_avatar_persona_original_images_enabled(
-        settings.avatar_persona_original_images_enabled,
-    );
-
-    observability.apply_llm_api_log_retention(settings.dev.llm_api_keep);
-
-    if agent_retention_settings_updated {
-        app_state
-            .services
-            .agent_run_retention_automation_service
-            .notify_settings_changed();
-    }
-
-    Ok(settings)
-}
-
-#[cfg(not(target_os = "windows"))]
-#[tauri::command]
-pub async fn update_tauritavern_settings(
-    dto: UpdateTauriTavernSettingsDto,
-    app_state: State<'_, Arc<AppState>>,
-    observability: State<'_, Arc<DevObservabilityHub>>,
-    host_resources: State<'_, Arc<HostResourceService>>,
-) -> Result<TauriTavernSettingsDto, CommandError> {
-    log_command("update_tauritavern_settings");
-
-    let agent_retention_settings_updated = has_agent_retention_settings_update(&dto);
-    if dto
-        .request_proxy
-        .as_ref()
-        .is_some_and(|settings| settings.enabled)
-    {
-        ensure_ios_policy_allows(
-            &app_state.ios_policy,
-            app_state.ios_policy.capabilities.network.request_proxy,
-            "network.request_proxy",
-        )?;
-    }
-
-    let settings = app_state
-        .services
-        .settings_service
-        .update_tauritavern_settings(dto)
-        .await
-        .map_err(map_command_error("Failed to update TauriTavern settings"))?;
-
     host_resources.set_avatar_persona_original_images_enabled(
         settings.avatar_persona_original_images_enabled,
     );

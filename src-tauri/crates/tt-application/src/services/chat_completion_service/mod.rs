@@ -13,7 +13,6 @@ use crate::dto::chat_completion_dto::{
 use crate::errors::ApplicationError;
 use crate::services::hashing::hex_lower;
 use tt_domain::errors::DomainError;
-use tt_domain::ios_policy::{IosPolicyActivationReport, IosPolicyScope};
 use tt_domain::models::claude_model::supports_one_hour_prompt_cache;
 use tt_domain::models::settings::{PromptCacheTtl, TauriTavernSettings};
 use tt_ports::generation_background::{GenerationBackgroundOutcome, GenerationBackgroundRuntime};
@@ -81,7 +80,6 @@ pub struct ChatCompletionService {
     settings_repository: Arc<dyn SettingsRepository>,
     prompt_cache_repository: Arc<dyn PromptCacheRepository>,
     generation_background_runtime: Option<Arc<dyn GenerationBackgroundRuntime>>,
-    ios_policy: IosPolicyActivationReport,
     stream_sessions: StreamSessionRegistry,
     active_generations: CancellationRegistry,
 }
@@ -93,7 +91,6 @@ impl ChatCompletionService {
         settings_repository: Arc<dyn SettingsRepository>,
         prompt_cache_repository: Arc<dyn PromptCacheRepository>,
         generation_background_runtime: Option<Arc<dyn GenerationBackgroundRuntime>>,
-        ios_policy: IosPolicyActivationReport,
     ) -> Self {
         Self {
             chat_completion_repository,
@@ -101,14 +98,9 @@ impl ChatCompletionService {
             settings_repository,
             prompt_cache_repository,
             generation_background_runtime,
-            ios_policy,
             stream_sessions: StreamSessionRegistry::default(),
             active_generations: CancellationRegistry::default(),
         }
-    }
-
-    fn ios_policy_is_active(&self) -> bool {
-        self.ios_policy.scope == IosPolicyScope::Ios
     }
 
     fn resolve_status_source(
@@ -120,8 +112,6 @@ impl ChatCompletionService {
         }
 
         let source = self.resolve_source(&dto.chat_completion_source)?;
-        self.ensure_chat_completion_source_allowed(source)?;
-        self.ensure_endpoint_overrides_allowed_for_status(source, dto)?;
 
         match source {
             ChatCompletionSource::VertexAi | ChatCompletionSource::MiniMax => Ok(None),
@@ -137,9 +127,6 @@ impl ChatCompletionService {
             dto.get_string("chat_completion_source")
                 .unwrap_or(OPENAI_SOURCE),
         )?;
-        self.ensure_chat_completion_source_allowed(source)?;
-        self.ensure_endpoint_overrides_allowed_for_payload(source, &dto.payload)?;
-        self.ensure_chat_completion_features_allowed(&dto.payload)?;
         Ok(source)
     }
 
@@ -166,227 +153,6 @@ impl ChatCompletionService {
             dto.get_string("reverse_proxy").unwrap_or_default(),
             &custom_url,
         )
-    }
-
-    fn ensure_chat_completion_source_allowed(
-        &self,
-        source: ChatCompletionSource,
-    ) -> Result<(), ApplicationError> {
-        if !self.ios_policy_is_active() {
-            return Ok(());
-        }
-
-        if self
-            .ios_policy
-            .capabilities
-            .llm
-            .chat_completion_sources
-            .allows_source(source)
-        {
-            return Ok(());
-        }
-
-        Err(ApplicationError::PermissionDenied(format!(
-            "iOS policy disabled chat completion source: {}",
-            source.key()
-        )))
-    }
-
-    fn ensure_endpoint_overrides_allowed_for_status(
-        &self,
-        source: ChatCompletionSource,
-        dto: &ChatCompletionStatusRequestDto,
-    ) -> Result<(), ApplicationError> {
-        if !self.ios_policy_is_active() {
-            return Ok(());
-        }
-
-        if self.ios_policy.capabilities.llm.endpoint_overrides {
-            return Ok(());
-        }
-
-        if source == ChatCompletionSource::Custom {
-            return Err(ApplicationError::PermissionDenied(
-                "iOS policy disabled capability: llm.endpoint_overrides".to_string(),
-            ));
-        }
-
-        let mut overridden = Vec::new();
-        if !dto.reverse_proxy.trim().is_empty() {
-            overridden.push("reverse_proxy");
-        }
-        if !dto.proxy_password.trim().is_empty() {
-            overridden.push("proxy_password");
-        }
-        if !dto.custom_url.trim().is_empty() {
-            overridden.push("custom_url");
-        }
-        let custom_include_headers = additional_parameters::normalize_custom_parameter_field(
-            &dto.custom_include_headers,
-            "custom_include_headers",
-        )?;
-        if !custom_include_headers.trim().is_empty() {
-            overridden.push("custom_include_headers");
-        }
-
-        if overridden.is_empty() {
-            return Ok(());
-        }
-
-        Err(ApplicationError::PermissionDenied(format!(
-            "iOS policy disabled capability: llm.endpoint_overrides (used: {})",
-            overridden.join(", ")
-        )))
-    }
-
-    fn ensure_endpoint_overrides_allowed_for_payload(
-        &self,
-        source: ChatCompletionSource,
-        payload: &Map<String, Value>,
-    ) -> Result<(), ApplicationError> {
-        if !self.ios_policy_is_active() {
-            return Ok(());
-        }
-
-        if self.ios_policy.capabilities.llm.endpoint_overrides {
-            return Ok(());
-        }
-
-        if source == ChatCompletionSource::Custom {
-            return Err(ApplicationError::PermissionDenied(
-                "iOS policy disabled capability: llm.endpoint_overrides".to_string(),
-            ));
-        }
-
-        let mut overridden = Vec::new();
-        for key in ["reverse_proxy", "proxy_password", "custom_url"] {
-            let Some(value) = payload.get(key) else {
-                continue;
-            };
-
-            let value = value.as_str().ok_or_else(|| {
-                ApplicationError::ValidationError(format!(
-                    "Chat completion request field must be a string: {}",
-                    key
-                ))
-            })?;
-
-            if !value.trim().is_empty() {
-                overridden.push(key);
-            }
-        }
-
-        for key in [
-            "custom_include_body",
-            "custom_exclude_body",
-            "custom_include_headers",
-        ] {
-            let Some(value) = payload.get(key) else {
-                continue;
-            };
-
-            let value = additional_parameters::normalize_custom_parameter_field(value, key)?;
-
-            if !value.trim().is_empty() {
-                overridden.push(key);
-            }
-        }
-
-        if overridden.is_empty() {
-            return Ok(());
-        }
-
-        Err(ApplicationError::PermissionDenied(format!(
-            "iOS policy disabled capability: llm.endpoint_overrides (used: {})",
-            overridden.join(", ")
-        )))
-    }
-
-    fn ensure_chat_completion_features_allowed(
-        &self,
-        payload: &Map<String, Value>,
-    ) -> Result<(), ApplicationError> {
-        if !self.ios_policy_is_active() {
-            return Ok(());
-        }
-
-        if let Some(value) = payload.get("enable_web_search") {
-            let enabled = value.as_bool().ok_or_else(|| {
-                ApplicationError::ValidationError(
-                    "Chat completion request field must be a boolean: enable_web_search"
-                        .to_string(),
-                )
-            })?;
-
-            if enabled
-                && !self
-                    .ios_policy
-                    .capabilities
-                    .llm
-                    .chat_completion_features
-                    .web_search
-            {
-                return Err(ApplicationError::PermissionDenied(
-                    "iOS policy disabled capability: llm.chat_completion_features.web_search"
-                        .to_string(),
-                ));
-            }
-        }
-
-        let request_images_enabled = match payload.get("request_images") {
-            None => false,
-            Some(value) => value.as_bool().ok_or_else(|| {
-                ApplicationError::ValidationError(
-                    "Chat completion request field must be a boolean: request_images".to_string(),
-                )
-            })?,
-        };
-
-        let request_image_resolution = payload.get("request_image_resolution");
-        let request_image_aspect_ratio = payload.get("request_image_aspect_ratio");
-
-        let mut request_image_overrides = Vec::new();
-        for (key, value) in [
-            ("request_image_resolution", request_image_resolution),
-            ("request_image_aspect_ratio", request_image_aspect_ratio),
-        ] {
-            let Some(value) = value else {
-                continue;
-            };
-
-            let value = value.as_str().ok_or_else(|| {
-                ApplicationError::ValidationError(format!(
-                    "Chat completion request field must be a string: {}",
-                    key
-                ))
-            })?;
-
-            if !value.trim().is_empty() {
-                request_image_overrides.push(key);
-            }
-        }
-
-        if (request_images_enabled || !request_image_overrides.is_empty())
-            && !self
-                .ios_policy
-                .capabilities
-                .llm
-                .chat_completion_features
-                .request_images
-        {
-            let suffix = if request_image_overrides.is_empty() {
-                String::new()
-            } else {
-                format!(" (used: {})", request_image_overrides.join(", "))
-            };
-
-            return Err(ApplicationError::PermissionDenied(format!(
-                "iOS policy disabled capability: llm.chat_completion_features.request_images{}",
-                suffix
-            )));
-        }
-
-        Ok(())
     }
 
     pub async fn get_status(

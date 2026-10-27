@@ -124,15 +124,6 @@ pub(super) fn create_main_window(
 
     let window = builder.build()?;
 
-    #[cfg(target_os = "ios")]
-    // iOS needs explicit WKWebView policy for safe-area/content inset behavior
-    // and JS dialogs.
-    crate::infrastructure::ios_webview::configure_main_wkwebview(&window)?;
-
-    #[cfg(target_os = "macos")]
-    // macOS shares the JS dialog delegate path but not the iOS inset policy.
-    crate::infrastructure::macos_webview::configure_main_wkwebview(&window)?;
-
     #[cfg(desktop)]
     {
         use tauri_plugin_window_state::WindowExt;

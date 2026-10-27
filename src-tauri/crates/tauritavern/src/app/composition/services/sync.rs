@@ -15,7 +15,6 @@ use tt_application::services::lan_sync_service::{
 use tt_application::services::sync_automation_service::SyncAutomationService;
 use tt_application::services::sync_job_coordinator::SyncJobCoordinator;
 use tt_application::services::tt_sync_service::TtSyncService;
-use tt_domain::ios_policy::IosPolicyActivationReport;
 use tt_ports::lan_sync::{LanPeerRepository, LanServerControl, LanSyncSettingsRepository};
 use tt_ports::sync::DataChangeReconciler;
 
@@ -31,7 +30,6 @@ pub(super) fn build(
     app_handle: &AppHandle,
     data_directory: &DataDirectory,
     data_change_reconciler: Arc<dyn DataChangeReconciler>,
-    ios_policy: &IosPolicyActivationReport,
     local_mutation_gate: Arc<Semaphore>,
     database: Arc<dyn tt_ports::database::DatabaseFileAccess>,
 ) -> SyncServices {
@@ -100,7 +98,7 @@ pub(super) fn build(
         Arc::new(HttpTtPairingClient::new(product_user_agent)),
         sync_job_coordinator.clone(),
     ));
-    let lan_sync_allowed = ios_policy.capabilities.sync.lan;
+    let lan_sync_allowed = true;
     let sync_automation_service = Arc::new(SyncAutomationService::new(
         adapters::sync_automation_events(app_handle),
         Arc::new(SyncAutomationStore::new(

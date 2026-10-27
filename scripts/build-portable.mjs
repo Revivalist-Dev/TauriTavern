@@ -106,10 +106,8 @@ function resolveReleaseDirectory(repoRoot, target) {
 }
 
 function resolvePortableBinary(releaseDirectory) {
-    const executableSuffix = process.platform === "win32" ? ".exe" : "";
-
     for (const candidate of BINARY_CANDIDATES) {
-        const binaryPath = path.join(releaseDirectory, `${candidate}${executableSuffix}`);
+        const binaryPath = path.join(releaseDirectory, `${candidate}.exe`);
         if (existsSync(binaryPath) && statSync(binaryPath).isFile()) {
             return binaryPath;
         }
@@ -118,12 +116,7 @@ function resolvePortableBinary(releaseDirectory) {
     const fallback = readdirSync(releaseDirectory, { withFileTypes: true })
         .filter((entry) => entry.isFile())
         .map((entry) => entry.name)
-        .find((name) => {
-            if (process.platform === "win32") {
-                return name.toLowerCase().endsWith(".exe");
-            }
-            return !name.includes(".");
-        });
+        .find((name) => name.toLowerCase().endsWith(".exe"));
 
     if (fallback) {
         return path.join(releaseDirectory, fallback);
@@ -132,34 +125,25 @@ function resolvePortableBinary(releaseDirectory) {
     throw new Error(`Unable to locate built portable binary in ${releaseDirectory}`);
 }
 
-function normalizePlatform(platform) {
-    if (platform === "win32") {
-        return "windows";
+function windowsOnlyArch(arch) {
+    if (arch !== "x64") {
+        throw new Error(`TauriTavern is Windows x64 only; got architecture ${arch}`);
     }
-    if (platform === "darwin") {
-        return "macos";
-    }
-    return platform;
-}
-
-function normalizeArch(arch) {
-    if (arch === "x64") {
-        return "x64";
-    }
-    if (arch === "ia32") {
-        return "x86";
-    }
-    return arch;
+    return "x64";
 }
 
 function buildPlatformTag(target) {
     if (target) {
         return target.replace(/[^a-zA-Z0-9._-]/g, "_");
     }
-    return `${normalizePlatform(process.platform)}-${normalizeArch(process.arch)}`;
+    return `windows-${windowsOnlyArch(process.arch)}`;
 }
 
 function main() {
+    if (process.platform !== "win32") {
+        throw new Error("TauriTavern portable builds are Windows-only");
+    }
+
     const repoRoot = process.cwd();
     const options = parseArgs(process.argv.slice(2));
 
@@ -180,7 +164,7 @@ function main() {
     const outputDirectory = path.resolve(repoRoot, options.outputDir);
     mkdirSync(outputDirectory, { recursive: true });
 
-    const extension = process.platform === "win32" ? ".exe" : "";
+    const extension = ".exe";
     const artifactName = `${PRODUCT_NAME}-${buildPlatformTag(options.target)}-portable${extension}`;
     const artifactPath = path.join(outputDirectory, artifactName);
     copyFileSync(binaryPath, artifactPath);

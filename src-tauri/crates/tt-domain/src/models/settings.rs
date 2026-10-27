@@ -346,14 +346,6 @@ pub struct TauriTavernSettings {
     pub models: ModelSettings,
     #[serde(default)]
     pub agent: AgentSettings,
-    /// iOS-only distribution policy (profile + capability overrides).
-    ///
-    /// NOTE: This field is intentionally stored as raw JSON to ensure:
-    /// - desktop builds can load settings exported from iOS even if the policy schema changes
-    /// - iOS builds can validate the schema strictly at runtime (fail-fast) without forcing
-    ///   non-iOS platforms to parse/apply it.
-    #[serde(default)]
-    pub ios_policy: Option<Value>,
 }
 
 impl Default for TauriTavernSettings {
@@ -376,7 +368,6 @@ impl Default for TauriTavernSettings {
             dynamic_theme: DynamicThemeSettings::default(),
             models: default_model_settings(),
             agent: AgentSettings::default(),
-            ios_policy: None,
         }
     }
 }

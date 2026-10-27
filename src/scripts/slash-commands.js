@@ -95,7 +95,6 @@ import { SlashCommand } from './slash-commands/SlashCommand.js';
 import { SlashCommandAbortController } from './slash-commands/SlashCommandAbortController.js';
 import { SlashCommandNamedArgumentAssignment } from './slash-commands/SlashCommandNamedArgumentAssignment.js';
 import { SlashCommandEnumValue, enumTypes } from './slash-commands/SlashCommandEnumValue.js';
-import { getActiveIosPolicyCapabilities } from './tauritavern/ios-policy.js';
 import { getAgentGenerationOptions } from './tauritavern/agent/agent-generation-router.js';
 import { reviseOutput } from './tauritavern/output-revision.js';
 import { agentErrorMessage } from './tauritavern/agent/agent-error-presenter.js';
@@ -308,7 +307,7 @@ export function connectCurrentApi() {
 export function initDefaultSlashCommands() {
     eventSource.on(event_types.CHAT_CHANGED, processChatSlashCommands);
     setupConnectAPIMap();
-    const promptInjectionsAllowed = getActiveIosPolicyCapabilities()?.scripting?.prompt_injections !== false;
+    const promptInjectionsAllowed = true;
 
     async function enableInstructCallback() {
         $('#instruct_enabled').prop('checked', true).trigger('input').trigger('change');
@@ -3752,11 +3751,6 @@ export function initDefaultSlashCommands() {
         name: 'syncpanel',
         aliases: ['lansync'],
         callback: async () => {
-            if (getActiveIosPolicyCapabilities()?.sync?.lan === false) {
-                toastr.error(t`LAN Sync is disabled by the active iOS policy.`);
-                return '';
-            }
-
             return runTauriTavernPanelSlashCommand(async () => {
                 const { openSyncPopup } = await import('./tauri/setting/setting-panel/sync-popup.js');
                 await openSyncPopup();

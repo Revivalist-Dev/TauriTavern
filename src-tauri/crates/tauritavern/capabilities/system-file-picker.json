@@ -1,14 +1,9 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "system-file-picker",
-  "description": "Desktop directory selection for the main window.",
+  "description": "Directory selection for the main window.",
   "windows": [
     "main"
-  ],
-  "platforms": [
-    "macOS",
-    "windows",
-    "linux"
   ],
   "permissions": [
     "dialog:allow-open"

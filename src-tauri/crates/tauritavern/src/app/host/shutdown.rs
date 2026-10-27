@@ -3,8 +3,6 @@
 use std::sync::Arc;
 
 use crate::app::AppState;
-#[cfg(all(desktop, not(windows)))]
-use tauri::WindowEvent;
 use tauri::{Emitter, Manager};
 
 const MAIN_WINDOW_LABEL: &str = "main";
@@ -14,21 +12,6 @@ pub(crate) fn request_frontend_shutdown(
     window: &tauri::webview::WebviewWindow,
 ) -> tauri::Result<()> {
     window.emit(FRONTEND_SHUTDOWN_EVENT, ())
-}
-
-#[cfg(all(desktop, not(windows)))]
-pub(super) fn install_window_close_handler(window: &tauri::webview::WebviewWindow) {
-    let window_for_close = window.clone();
-    window.on_window_event(move |event| {
-        let WindowEvent::CloseRequested { api, .. } = event else {
-            return;
-        };
-
-        match request_frontend_shutdown(&window_for_close) {
-            Ok(()) => api.prevent_close(),
-            Err(error) => tracing::error!("Failed to request graceful shutdown: {error}"),
-        }
-    });
 }
 
 pub(super) fn handle_run_event(app_handle: &tauri::AppHandle, event: tauri::RunEvent) {
@@ -44,24 +27,6 @@ pub(super) fn handle_run_event(app_handle: &tauri::AppHandle, event: tauri::RunE
             }
             Err(error) => tracing::error!("Failed to request graceful shutdown: {error}"),
         }
-    }
-
-    #[cfg(mobile)]
-    if matches!(
-        event,
-        tauri::RunEvent::WindowEvent {
-            event: tauri::WindowEvent::Resumed,
-            ..
-        }
-    ) && let Some(state) = app_handle.try_state::<Arc<AppState>>()
-        && state.ios_policy.capabilities.sync.lan
-    {
-        let service = state.services.lan_sync_service.clone();
-        tauri::async_runtime::spawn(async move {
-            if let Err(error) = service.refresh_discovery_if_started().await {
-                tracing::warn!("Failed to refresh LAN discovery after resume: {error}");
-            }
-        });
     }
 
     // AppState may not exist if startup failed or the user exits during async

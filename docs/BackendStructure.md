@@ -173,7 +173,7 @@ SillyTavern frontend / extension / script
 
 ```text
 src-tauri/crates/tauritavern/src/
-├── lib.rs                 # mobile entry / host lib entry，只转入 app::host::run()
+├── lib.rs                 # host lib entry，只转入 app::host::run()
 ├── main.rs                # desktop entry
 ├── app/
 │   ├── host/              # Tauri builder、plugin、setup、window、resources、shutdown
@@ -183,7 +183,7 @@ src-tauri/crates/tauritavern/src/
 │   └── startup_profile.rs # 启动期 settings / policy snapshot
 ├── presentation/          # Tauri commands、CommandError、web resource adapter
 ├── infrastructure/        # Tauri-bound infrastructure
-└── platform/              # 宿主身份、iOS/UIKit、macOS/WebView、native UI glue
+└── platform/              # 宿主身份与 WebView 传输预算（Windows 固定值）
 ```
 
 ### 6.1 Host shell
@@ -226,14 +226,11 @@ src-tauri/crates/tauritavern/src/
 
 ### 6.4 平台事实
 
-编译目标只在 host crate 读取：`platform/identity.rs` 的 `HOST_IDENTITY`（`HostPlatform` + `HostKind`，类型在 `tt-contracts::host`）是唯一来源，同时注入前端（见 `docs/FrontendHostContract.md` §2.2）。
+本分支只构建 Windows x64 桌面版。`platform/identity.rs` 的 `HOST_IDENTITY` 是唯一来源，固定为 `windows` + `desktop`，并注入前端（见 `docs/FrontendHostContract.md` §2.2）。
 
-- `HostKind` 取 Tauri 的 `desktop` / `mobile` 编译别名，与命令和插件的门控一致。OpenHarmony 的 `target_os` 是 `linux`，以 `target_env = "ohos"` 区分。
-- host 内外壳类别用 `cfg(desktop)` / `cfg(mobile)`，系统 API 用 `target_os` / `target_env`。`Cargo.toml` 的 target 依赖表看不到这两个别名，是唯一需要写完整平台组合的地方。
-- 非 host crate 不读平台（`desktop` / `mobile` 在那里恒为假），cfg 只用于依赖或系统 API 能否编译；行为差异由 composition root 注入事实（如 `HostKind`）或数值（如 IPC 帧预算）。
-- 为每个平台选择实现时，`match` 列出全部平台、不写通配；某个平台独有的处理用正向条件。
-
-`pnpm run check:platform` 检查各 crate 源码是否遵守以上约束，报错指向本节。
+- host crate 内不再保留按 `target_os` / `target_env` 分叉的平台代码；Windows 之外的构建目标不受支持。
+- 非 host crate 不读平台；行为差异由 composition root 注入事实（如 `HostKind`）或数值（如 IPC 帧预算）。
+- 新增平台相关代码时应直接写 Windows 实现，不再引入条件编译。
 
 ## 7. Adapter 边界
 
@@ -350,7 +347,6 @@ TauriTavern 用户数据中的私有状态放在 `_tauritavern` 下，例如 age
 | Sync | `docs/CurrentState/Sync.md` |
 | Agent 总览 | [Agent](Agent/README.md) |
 | Agent 细节 | `docs/Agent/README.md` |
-| iOS policy | `docs/CurrentState/iOSPolicy.md` |
 
 ## 13. 验证
 
@@ -391,4 +387,4 @@ pnpm run test:contracts
 
 ### 移动窗口背景边界
 
-`tt-contracts::window_layout` 定义窗口快照与背景请求。主 WebView 布局、系统栏政策、条带显示与过期结果的丢弃属于 `tauritavern::platform` 的 shell glue。`tt-adapter-media::window_backdrop` 负责 Tauri-free 的资源读取、解码与条带裁切，复用 Host Resource Store。流程见 [CurrentState/MobileStyleAdaptation.md](CurrentState/MobileStyleAdaptation.md)。
+`tt-contracts::window_layout` 定义窗口快照与背景请求。主 WebView 布局与过期结果的丢弃属于 `tauritavern::platform` 的 shell glue。`tt-adapter-media::window_backdrop` 负责 Tauri-free 的资源读取、解码与条带裁切，复用 Host Resource Store。

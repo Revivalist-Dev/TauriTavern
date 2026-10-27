@@ -1,12 +1,9 @@
-//! Native file selection and delivery. Callers own content; this module owns
-//! platform access, dialogs, and the lifetime of a delivered source file.
+//! Native file selection and delivery for the Windows host.
+//!
+//! Callers own content; this module owns dialogs and the lifetime of a delivered
+//! source file.
 
-#[cfg(any(target_os = "android", target_env = "ohos"))]
-mod content_uri;
-#[cfg(desktop)]
 mod desktop;
-#[cfg(target_os = "ios")]
-mod ios;
 
 use std::path::PathBuf;
 
@@ -15,16 +12,7 @@ use tauri::{AppHandle, WebviewWindow};
 use tt_domain::errors::DomainError;
 
 use crate::infrastructure::staging;
-
-#[cfg(any(target_os = "android", target_env = "ohos"))]
-use content_uri as native;
-#[cfg(desktop)]
 use desktop as native;
-#[cfg(target_os = "ios")]
-use ios as native;
-
-#[cfg(target_os = "android")]
-pub use content_uri::plugin;
 
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -50,46 +38,6 @@ impl PickKind {
             Self::DataArchive => &["zip", "tar", "gz", "tgz"],
         }
     }
-
-    #[cfg(target_os = "android")]
-    fn mime_types(self) -> &'static [&'static str] {
-        match self {
-            Self::CharacterCard => &["application/json", "image/png", "application/octet-stream"],
-            Self::SkillArchive => &[
-                "application/zip",
-                "application/x-zip-compressed",
-                "application/octet-stream",
-            ],
-            Self::DataArchive => &[
-                "application/zip",
-                "application/x-zip-compressed",
-                "application/gzip",
-                "application/x-gzip",
-                "application/x-tar",
-                "application/octet-stream",
-            ],
-        }
-    }
-
-    #[cfg(target_os = "ios")]
-    fn content_types(self) -> &'static [&'static str] {
-        match self {
-            Self::CharacterCard => &["public.json", "public.png"],
-            Self::SkillArchive => &[
-                "public.zip-archive",
-                "com.pkware.zip-archive",
-                "public.data",
-            ],
-            Self::DataArchive => &[
-                "public.zip-archive",
-                "com.pkware.zip-archive",
-                "public.tar-archive",
-                "org.gnu.gnu-zip-archive",
-                "com.tauritavern.client.tar-archive",
-                "com.tauritavern.client.gzip-archive",
-            ],
-        }
-    }
 }
 
 pub struct PickedFile {
@@ -98,12 +46,7 @@ pub struct PickedFile {
 }
 
 pub enum PickedSource {
-    #[cfg(desktop)]
     UserPath(PathBuf),
-    #[cfg(target_os = "ios")]
-    AppCopy(PathBuf),
-    #[cfg(any(target_os = "android", target_env = "ohos"))]
-    ContentUri(String),
 }
 
 pub enum Delivery {
@@ -120,40 +63,27 @@ pub async fn pick(
 }
 
 pub async fn materialize(
-    app: &AppHandle,
+    _app: &AppHandle,
     source: PickedSource,
     destination: PathBuf,
 ) -> Result<PathBuf, DomainError> {
-    #[cfg(any(target_os = "android", target_env = "ohos"))]
-    let app = app.clone();
-    #[cfg(not(any(target_os = "android", target_env = "ohos")))]
-    let _ = app;
     let target = destination.clone();
     let result = tauri::async_runtime::spawn_blocking(move || {
-        let result = match source {
-            #[cfg(desktop)]
-            PickedSource::UserPath(path) => std::fs::copy(path, &target).map(|_| ()),
-            #[cfg(target_os = "ios")]
-            PickedSource::AppCopy(path) => std::fs::rename(path, &target),
-            #[cfg(any(target_os = "android", target_env = "ohos"))]
-            PickedSource::ContentUri(uri) => (|| {
-                let mut input = content_uri::open_read(&app, &uri)?;
-                let mut output = std::fs::File::create(&target)?;
-                std::io::copy(&mut input, &mut output)?;
-                Ok(())
-            })(),
-        };
-        result.map_err(|error| {
-            DomainError::file_io("Stage selected file", target.display().to_string(), error)
-        })
+        let PickedSource::UserPath(path) = source;
+        std::fs::copy(path, &target).map(|_| ())
     })
     .await
     .map_err(|error| DomainError::InternalError(format!("File staging task failed: {error}")))?;
+
     if let Err(error) = result {
         if let Err(cleanup_error) = staging::discard_file(&destination).await {
             tracing::warn!(%cleanup_error, "Failed to remove incomplete staged file");
         }
-        return Err(error);
+        return Err(DomainError::file_io(
+            "Stage selected file",
+            destination.display().to_string(),
+            error,
+        ));
     }
     Ok(destination)
 }
@@ -176,8 +106,7 @@ fn sanitize_file_name(name: &str) -> String {
     let name: String = name
         .chars()
         .map(|ch| {
-            if ch.is_control() || matches!(ch, '/' | '\\' | '<' | '>' | ':' | '"' | '|' | '?' | '*')
-            {
+            if ch.is_control() || matches!(ch, '/' | '\\' | '<' | '>' | ':' | '"' | '|' | '?' | '*') {
                 '_'
             } else {
                 ch
@@ -192,16 +121,13 @@ fn sanitize_file_name(name: &str) -> String {
     }
 }
 
-#[cfg(not(target_os = "ios"))]
 fn sync_target(file: &std::fs::File) -> std::io::Result<()> {
-    // A provider may expose a pipe rather than a disk file; it owns persistence.
     if file.metadata()?.is_file() {
         file.sync_all()?;
     }
     Ok(())
 }
 
-#[cfg(not(target_os = "ios"))]
 async fn pick_dialog(
     dialog: tauri_plugin_dialog::FileDialogBuilder<tauri::Wry>,
     multiple: bool,
@@ -221,7 +147,6 @@ async fn pick_dialog(
     })
 }
 
-#[cfg(not(target_os = "ios"))]
 async fn save_dialog(
     dialog: tauri_plugin_dialog::FileDialogBuilder<tauri::Wry>,
 ) -> Result<Option<tauri_plugin_dialog::FilePath>, DomainError> {

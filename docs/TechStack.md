@@ -162,16 +162,10 @@ pnpm run check:rust:dev
 
 ## 9. 平台与分发
 
-桌面：
+本分支只构建 Windows x64：
 
-- Windows：MSI / EXE / portable
-- macOS：DMG / App Bundle
-- Linux：AppImage / DEB / RPM，以及从源码构建的 Nix flake
-
-移动端：
-
-- Android：Tauri Android 工程与原生内容视口，见 `docs/AndroidDevelopment.md`
-- iOS：WKWebView 内容视口、policy 与 native glue，见 `docs/iOSDevelopment.md`
+- Windows：MSI / EXE 安装包与 portable 单文件
+- 要求 Windows 10/11 x64 与 WebView2 运行时
 
 便携模式通过 `TAURITAVERN_RUNTIME_MODE=portable` 或 `portable.flag` 启用。
 
@@ -184,6 +178,6 @@ pnpm run check:rust:dev
 | Host ABI / 请求拦截 / 资源契约 | `docs/FrontendHostContract.md` |
 | 当前实现状态 | `docs/CurrentState/README.md` |
 | First-party UI 工程基线 | `docs/CurrentState/FirstPartyUI.md` |
-| Linux 分发与 Nix | `docs/CurrentState/LinuxRepository.md` |
+| Windows 分发 | `docs/CurrentState/WindowsDistribution.md` |
 | 扩展 API | `docs/API/README.md` |
 | Agent 架构 | [Agent](Agent/README.md) |

@@ -7,9 +7,7 @@ use crate::dto::provider_metadata_dto::{
     WorkersAiModelsRequestDto,
 };
 use crate::errors::ApplicationError;
-use tt_domain::ios_policy::{IosPolicyActivationReport, IosPolicyScope};
 use tt_domain::models::secret::SecretKeys;
-use tt_ports::repositories::chat_completion_repository::ChatCompletionSource;
 use tt_ports::repositories::provider_metadata_repository::{
     NanoGptCredits, NanoGptModelProviders, OpenRouterCredits, ProviderMetadataRepository,
     SiliconFlowEndpoint,
@@ -19,19 +17,16 @@ use tt_ports::repositories::secret_repository::SecretRepository;
 pub struct ProviderMetadataService {
     provider_metadata_repository: Arc<dyn ProviderMetadataRepository>,
     secret_repository: Arc<dyn SecretRepository>,
-    ios_policy: IosPolicyActivationReport,
 }
 
 impl ProviderMetadataService {
     pub fn new(
         provider_metadata_repository: Arc<dyn ProviderMetadataRepository>,
         secret_repository: Arc<dyn SecretRepository>,
-        ios_policy: IosPolicyActivationReport,
     ) -> Self {
         Self {
             provider_metadata_repository,
             secret_repository,
-            ios_policy,
         }
     }
 
@@ -39,7 +34,6 @@ impl ProviderMetadataService {
         &self,
         dto: ProviderModelProvidersRequestDto,
     ) -> Result<Vec<String>, ApplicationError> {
-        self.ensure_chat_completion_source_allowed(ChatCompletionSource::OpenRouter)?;
         let model = required_string(&dto.model, "model")?;
 
         self.provider_metadata_repository
@@ -49,7 +43,6 @@ impl ProviderMetadataService {
     }
 
     pub async fn openrouter_credits(&self) -> Result<OpenRouterCredits, ApplicationError> {
-        self.ensure_chat_completion_source_allowed(ChatCompletionSource::OpenRouter)?;
         let api_key = self
             .read_required_secret(SecretKeys::OPENROUTER, "OpenRouter")
             .await?;
@@ -64,7 +57,6 @@ impl ProviderMetadataService {
         &self,
         dto: ProviderModelProvidersRequestDto,
     ) -> Result<NanoGptModelProviders, ApplicationError> {
-        self.ensure_chat_completion_source_allowed(ChatCompletionSource::NanoGpt)?;
         let model = required_string(&dto.model, "model")?;
 
         self.provider_metadata_repository
@@ -74,7 +66,6 @@ impl ProviderMetadataService {
     }
 
     pub async fn nanogpt_credits(&self) -> Result<NanoGptCredits, ApplicationError> {
-        self.ensure_chat_completion_source_allowed(ChatCompletionSource::NanoGpt)?;
         let api_key = self
             .read_required_secret(SecretKeys::NANOGPT, "NanoGPT")
             .await?;
@@ -89,7 +80,6 @@ impl ProviderMetadataService {
         &self,
         dto: SiliconFlowEmbeddingModelsRequestDto,
     ) -> Result<Vec<Value>, ApplicationError> {
-        self.ensure_chat_completion_source_allowed(ChatCompletionSource::SiliconFlow)?;
         let api_key = self
             .read_required_secret(SecretKeys::SILICONFLOW, "SiliconFlow")
             .await?;
@@ -105,7 +95,6 @@ impl ProviderMetadataService {
         &self,
         dto: WorkersAiModelsRequestDto,
     ) -> Result<Vec<Value>, ApplicationError> {
-        self.ensure_chat_completion_source_allowed(ChatCompletionSource::WorkersAi)?;
         let api_key = self
             .read_required_secret(SecretKeys::WORKERS_AI, "Cloudflare Workers AI")
             .await?;
@@ -121,7 +110,6 @@ impl ProviderMetadataService {
         &self,
         dto: WorkersAiModelsRequestDto,
     ) -> Result<Vec<String>, ApplicationError> {
-        self.ensure_chat_completion_source_allowed(ChatCompletionSource::WorkersAi)?;
         let api_key = self
             .read_required_secret(SecretKeys::WORKERS_AI, "Cloudflare Workers AI")
             .await?;
@@ -131,34 +119,6 @@ impl ProviderMetadataService {
             .workers_ai_multimodal_models(&api_key, &account_id)
             .await
             .map_err(ApplicationError::from)
-    }
-
-    fn ios_policy_is_active(&self) -> bool {
-        self.ios_policy.scope == IosPolicyScope::Ios
-    }
-
-    fn ensure_chat_completion_source_allowed(
-        &self,
-        source: ChatCompletionSource,
-    ) -> Result<(), ApplicationError> {
-        if !self.ios_policy_is_active() {
-            return Ok(());
-        }
-
-        if self
-            .ios_policy
-            .capabilities
-            .llm
-            .chat_completion_sources
-            .allows_source(source)
-        {
-            return Ok(());
-        }
-
-        Err(ApplicationError::PermissionDenied(format!(
-            "iOS policy disabled chat completion source: {}",
-            source.key()
-        )))
     }
 
     async fn read_required_secret(

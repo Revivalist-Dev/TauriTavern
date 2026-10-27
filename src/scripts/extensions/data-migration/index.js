@@ -1,7 +1,6 @@
 import { renderExtensionTemplateAsync } from '../../extensions.js';
-import { t, translate } from '../../i18n.js';
+import { t } from '../../i18n.js';
 import { Popup } from '../../popup.js';
-import { getActiveIosPolicyActivationReport } from '../../tauritavern/ios-policy.js';
 import { flushLifecycleState } from '../../../tauri/main/services/lifecycle/lifecycle-flush-service.js';
 
 const MODULE_NAME = 'data-migration';
@@ -9,7 +8,6 @@ const JOB_POLL_INTERVAL_MS = 1200;
 const TERMINAL_JOB_STATES = new Set(['completed', 'failed', 'cancelled']);
 
 const SILLYTAVERN_MIGRATION_COPY_KEY = 'Import a SillyTavern data archive (zip, tar, tar.gz, or tgz) and migrate it to TauriTavern.';
-const TAURITAVERN_MIGRATION_COPY_KEY = 'Import a TauriTavern data zip archive from another device and migrate it to this TauriTavern.';
 
 const jobState = {
     jobId: '',
@@ -354,17 +352,6 @@ jQuery(async () => {
     const html = await renderExtensionTemplateAsync(MODULE_NAME, 'settings');
     $('#data_migration_container').append(html);
     refreshControls();
-
-    const iosPolicy = getActiveIosPolicyActivationReport();
-    if (iosPolicy?.profile === 'ios_external_beta') {
-        const description = document.querySelector(`#data_migration_settings .extensions_info[data-i18n="${CSS.escape(SILLYTAVERN_MIGRATION_COPY_KEY)}"]`);
-        if (!(description instanceof HTMLElement)) {
-            throw new Error('[TauriTavern][iOSPolicy] Data migration description element not found');
-        }
-
-        description.dataset.i18n = TAURITAVERN_MIGRATION_COPY_KEY;
-        description.textContent = translate(TAURITAVERN_MIGRATION_COPY_KEY);
-    }
 
     $('#data_migration_import_button').on('click', onImportButtonClick);
     $('#data_migration_export_button').on('click', onExportClick);

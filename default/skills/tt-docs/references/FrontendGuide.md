@@ -25,36 +25,31 @@
    - 注册前端路由（`router + routes/*`）
    - 安装请求拦截器（`fetch` 与 `jQuery.ajax`）
    - 安装平台 ABI：`window.__TAURITAVERN__`（小而稳定的宿主对外接口）
-   - 安装同源窗口下载桥（所有宿主的浏览器式导出 → 原生交付）
-   - 安装 Tauri mobile 兼容层（runtime polyfills，仅移动端）
+   - 安装同源窗口下载桥（所有宿主窗口中的浏览器式导出 → 原生交付）
    - 为宿主接管的路由响应注入追踪 header：`x-tauritavern-trace-id`
    - 安装后端错误桥并等待 `BackendReadiness`
-   - Tauri 就绪后安装窗口快照与窗口背景发布（仅移动端）
 
 ### 2.1 宿主身份
 
-宿主身份 `{ platform, kind }` 由 Rust 按编译目标生成（契约见 `docs/FrontendHostContract.md` §2.2）。前端只通过 `src/scripts/util/host-identity.js` 读取：`hostPlatform()` 返回平台，`isMobileHost()` / `isDesktopHost()` 返回宿主类别。测试由 harness 安装身份。
+宿主身份 `{ platform, kind }` 由 Rust 硬编码为 `{ platform: 'windows', kind: 'desktop' }`（契约见 `docs/FrontendHostContract.md` §2.2）。前端只通过 `src/scripts/util/host-identity.js` 读取：`hostPlatform()` 返回 `'windows'`，`isDesktopHost()` 恒为真，`isMobileHost()` 恒为假。测试由 harness 安装身份。
 
 与平台有关的判断，先分清在问什么：
 
 | 问题 | 依据 | 例子 |
 | --- | --- | --- |
-| 宿主属于哪一类外壳 | `isMobileHost()` / `isDesktopHost()` | 移动端兼容层、F11 全屏、数据目录选择、软键盘相关的自动聚焦 |
-| 选用哪个平台的实现，或某个平台独有的问题 | `hostPlatform()` | Windows 托盘、Android WebView 的剪贴板与 IME |
-| 可选能力是否存在 | 插件、原生桥或 DOM API 本身 | 扫码插件、Android 原生桥 |
-| 屏幕与交互形态 | 上游 Bowser `isMobile()`、CSS 媒体查询 | select2、MovingUI、`{{isMobile}}` |
+| 宿主属于哪一类外壳 | `isDesktopHost()` | F11 全屏、数据目录选择 |
+| Windows 特有的实现 | `hostPlatform()` | 系统托盘 |
+| 可选能力是否存在 | 插件、原生桥或 DOM API 本身 | 系统文件选择器 |
+| 屏幕与交互形态 | 上游 Bowser `isMobile()`、CSS 媒体查询 | 上游响应式布局 |
 
 约束：
 
-- 不用 UA、`navigator.platform` 或 `maxTouchPoints` 推断宿主：iPadOS 报告为 Macintosh，OpenHarmony 的 UA 不含 Android。
-- 用正向条件表达类别，不用 `!android && !ios` 代表桌面。为每个平台选择实现时，`switch` 列出全部平台，`default` 抛错；某个平台独有的处理用正向判断即可。
-- 上游 Bowser `isMobile()` 与 CSS 媒体查询属于上游布局语义，保持不变。规则同时取决于宿主类别与窗口方向时（如聊天宽度），组合 `isMobileHost()` 与 `util/window-layout.js` 的 `isWindowPortrait()`。
-
-`pnpm run check:platform`（已接入 `pnpm run check`）检查以上约束，报错指向本节。
+- 不用 UA、`navigator.platform` 或 `maxTouchPoints` 推断宿主。
+- 本分支只支持 Windows 桌面；新增代码不需要为其他平台预留分支。
 
 ### 2.2 原生能力
 
-TT 前端总是运行在宿主之上，代码中不判断“是否在 Tauri 中”。应用模块只通过 `tauri-bridge.js` 使用原生能力，能力缺失时由 bridge 在调用处报错。可选插件由对应 service 判断是否可用，例如扫码的 `canScanQrCode()`。唯一例外是 Rust 在 document-start 注入的 Android 语音脚本，见[系统 TTS](CurrentState/TTS.md#接入位置)。`__TAURI_RUNNING__` 只是对外标记，内部不读取。`check:frontend` 检查这条边界。
+TT 前端总是运行在宿主之上，代码中不判断“是否在 Tauri 中”。应用模块只通过 `tauri-bridge.js` 使用原生能力，能力缺失时由 bridge 在调用处报错。可选插件由对应 service 判断是否可用，例如系统文件选择器的可用性检查。`__TAURI_RUNNING__` 只是对外标记，内部不读取。`check:frontend` 检查这条边界。
 
 ## 3. 目录结构（前端集成相关）
 
@@ -68,7 +63,7 @@ src/
 │       ├── context.js         # 兼容 shim（re-export `context/index`）
 │       ├── context/           # Host Kernel facade + types（对外契约保持稳定）
 │       ├── kernel/            # 纯逻辑（策略/计算/键生成/追踪等）
-│       ├── services/          # 有状态能力（assets/thumbnails/characters/android…）
+│       ├── services/          # 有状态能力（assets/thumbnails/characters/settings…）
 │       ├── adapters/          # 触碰 window/DOM/上游 ST 的适配层
 │       ├── download-bridge.js # 同源窗口下载桥接
 │       ├── http-utils.js      # URL/Body/Response 工具
@@ -121,7 +116,6 @@ src/
 ### 4.4 `download-bridge.js`
 
 - 处理所有宿主同源窗口中的浏览器式下载（如 `blob:` / `data:` / 同源 URL + `a[download]`）。
-- Android 上为同源窗口中的 `<img>` 补上 `contextmenu` 默认行为（保存图片）：用户确认后，图片进入同一条导出链路。
 - 页面可读的内容交给 `deliverBlob()`；远程图片交给 `deliverRemoteFile()`，由宿主下载。两者都先暂存再交付，见[文件传输](CurrentState/FileTransfer.md)。
 - 不参与 API 路由判断，避免与请求拦截职责混合。
 
@@ -216,8 +210,8 @@ src/
 
 - `src/scripts/extensions.js`：插件激活编排层（发现、排序、依赖/版本检查、触发加载）。
 - `src/scripts/browser-fixes.js`：上游浏览器补丁（保持与 SillyTavern 同步）。
-- `src/tauri/main/compat/mobile/mobile-runtime-compat.js`：Tauri mobile 运行时 polyfills（补齐旧 WebView 缺失 JS API）。
-- `src/scripts/util/window-layout.js`：移动端原生窗口快照；`src/scripts/window-backdrop.js`：第一方背景唯一写入与条带发布入口。
+- `src/tauri/main/compat/dialog/dialog-polyfill-coverage.js`：`<dialog>.showModal()` 在统一事件循环中的同步语义补齐。
+- `src/scripts/util/window-layout.js`：窗口尺寸快照；`src/scripts/window-backdrop.js`：第一方背景唯一写入与条带发布入口。
 - `src/scripts/extensions/runtime/resource-paths.js`：扩展资源路径规范化与 third-party 判定。
 - `src/scripts/extensions/runtime/third-party-runtime.js`：第三方扩展样式兼容层（legacy WebView 下为样式 URL 附加 `ttCompat=layer`，触发 Rust 端点做 `@layer` 展平；不再走前端预取/Blob 注入）。
 - `src/scripts/extensions/runtime/asset-loader.js`：脚本与样式注入、超时保护、重复注入幂等控制。
@@ -277,55 +271,11 @@ TauriTavern 自有的状态型 UI 作为 SillyTavern first-party extension 挂�
 - 新增插件 API 时，优先在 `src/tauri/main/routes/extensions-routes.js` 封装，再通过 `context.safeInvoke()` 调 Rust 命令。
 - 若调整 third-party 静态资源路径约定，必须同时更新 `resource-paths.js` 与 Rust 协议层端点的前缀解析逻辑。
 
-### 7.7 移动端插件兼容（新增）
+### 7.7 Windows 桌面兼容说明
 
-#### 7.7.1 JS 运行时兼容（Android 旧 WebView）
+本分支只构建 Windows x64 桌面版，移动端运行时 polyfill、移动布局变量与安全区契约均已删除。第一方代码直接使用 `src/tauri-bridge.js` 的原生写入器；宿主只授予 `clipboard-manager:allow-write-text`，不授予剪贴板读取能力。
 
-- 实现位置：`src/tauri/main/compat/mobile/mobile-runtime-compat.js`。
-- 入口：`src/tauri/main/bootstrap.js` 中安装（仅 Tauri mobile）。
-- 行为：基础 API 仅在缺失时补齐；Android 的 Web Clipboard 写入统一映射到原生写入器；整体只执行一次。
-- 当前按需补齐：
-  - `Array.prototype.at`
-  - `String.prototype.at`
-  - `Array.prototype.findLast`
-  - `Array.prototype.findLastIndex`
-  - `Array.prototype.toSorted`
-  - `Array.prototype.toReversed`
-  - `Object.hasOwn`
-  - `navigator.clipboard.writeText`（仅 Android；保留 Clipboard 对象上的其他方法）
-
-该策略用于修复移动端第三方插件在初始化阶段出现的 `TypeError: *.at is not a function`，以及 Android WebView 拒绝 Web Clipboard 写入的问题。TauriTavern 第一方代码在所有平台直接使用 `src/tauri-bridge.js` 的原生写入器；宿主只授予 `clipboard-manager:allow-write-text`，不授予剪贴板读取能力，也不需要申请操作系统运行时权限。
-
-#### 7.7.2 CSS `@layer` 降级（Android 旧 WebView）
-
-- 实现位置：`src/scripts/extensions/runtime/third-party-runtime.js`（样式加载链路）。
-- 触发条件：
-  - 样式内容包含 `@layer`；
-  - 当前 WebView 不支持 CSS Cascade Layers。
-- 处理方式：
-  - runtime 将样式 URL 改写为 `...?ttCompat=layer`；
-  - Rust 协议层端点识别该 query 并移除 `@layer` 包裹（展平层级），返回可被旧 WebView 直接应用的 CSS。
-
-该策略用于修复移动端插件面板（如 `TH-custom-tailwind`）样式大面积失效导致的布局错乱。
-
-#### 7.7.3 原生内容视口与窗口背景
-
-原生宿主拥有主 WebView 的矩形，系统栏、刘海和停靠键盘在原生层消费一次，网页按普通视口排版。前端只做两件事：`util/window-layout.js` 接收窗口快照并设置 `#bg1` 的窗口矩形；`window-backdrop.js` 的 `applyWindowBackdrop()` 是第一方背景的唯一写入点，新增背景来源接入它。只有高度变化的 resize 不触发与宽度相关的工作。
-
-细节见 [CurrentState/MobileStyleAdaptation.md](CurrentState/MobileStyleAdaptation.md)，扩展可见的契约见 [API/Layout.md](API/Layout.md)。
-
-#### 7.7.4 调试建议
-
-- 若看到 `*.at is not a function`：
-  - 检查是否为 Tauri mobile 会话，并确认 `window.__TAURITAVERN_MOBILE_RUNTIME_COMPAT__ === true`。
-- 若 Android 复制失败：
-  - 检查 `plugin:clipboard-manager|write_text` invoke 的拒绝原因；该链路不会静默回退到 Web Clipboard。
-- 若插件样式错乱但 CSS 已成功请求：
-  - 优先检查是否命中 `@layer` 降级分支；
-  - 关注 `resolveStylesheetUrl()` 是否返回带 `ttCompat=layer` 的 URL。
-- 若脚本弹窗贴顶到状态栏：
-  - 所有内容一起偏移时，检查原生 WebView 矩形是否与政策避让一致；
-  - 只有某个面板溢出时，检查其硬编码尺寸、负坐标或内部滚动边界。
+窗口背景仍由 `src/scripts/window-backdrop.js` 的 `applyWindowBackdrop()` 统一写入；`util/window-layout.js` 不再接收移动端窗口快照。
 
 ### 7.8 嵌入式运行时（Embedded Runtime，消息内 iframe）
 

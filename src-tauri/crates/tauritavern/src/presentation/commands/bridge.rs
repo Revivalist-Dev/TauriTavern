@@ -255,7 +255,7 @@ pub fn show_system_notification(
             ))
         })?;
 
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "windows")]
     app.notification()
         .builder()
         .title(title)

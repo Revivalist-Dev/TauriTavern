@@ -1,6 +1,6 @@
 # `window.__TAURITAVERN__.api.layout` — 内容视口
 
-在移动端，宿主让内容视口只占据可交互区域：系统栏、刘海和停靠键盘已经从视口尺寸中扣除。扩展按普通浏览器规则排版即可，不需要识别宿主或扣除 inset。浮动与分离键盘不缩小视口。
+Windows 桌面版中，内容视口就是 WebView2 客户区，没有系统栏或键盘避让需要扣除。扩展按普通浏览器规则排版即可，不需要识别宿主或处理 inset。
 
 ```css
 .my-panel {
@@ -47,7 +47,7 @@ await unsubscribe();
 
 `await layout.capture()` 返回当前内容视口的 `image/png` Blob，属于第一方使用的 Project Contract。图像左上角对应内容视口 `(0, 0)`，宽度对应 `window.innerWidth`；分辨率由平台决定，调用方用图片宽度除以视口宽度换算 CSS 坐标。系统栏不在图中，不滚动页面或拼接视口外内容。
 
-调用方负责等待重绘，原生接口只读取像素。macOS 使用 ScreenCaptureKit 捕获本进程窗口并裁至内容视口，无需屏幕录制授权；iOS 使用 WK snapshot，其他平台使用各自的原生截图接口。失败直接拒绝 Promise，Web Host 以 `Unsupported` 拒绝。
+调用方负责等待重绘，原生接口只读取像素。Windows 使用窗口截图并裁至内容视口。失败直接拒绝 Promise，Web Host 以 `Unsupported` 拒绝。
 
 ## 旧契约
 

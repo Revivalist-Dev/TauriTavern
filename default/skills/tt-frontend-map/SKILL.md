@@ -36,10 +36,10 @@ The code you read from the page is the code the user is running.
   - `routes/` answers the page's `/api/*` requests by calling the Rust backend, one `<domain>-routes.js` file per area;
   - `api/` holds the page API modules;
   - `services/`, `adapters/` and `kernel/` hold chat rendering (ChatSurface), the embedded runtime, logging and the rest;
-  - `compat/` holds the mobile compatibility code.
+  - `compat/` holds the dialog polyfill coverage shim.
 - **TauriTavern frontend.**
   - `/scripts/tauri/`: TauriTavern settings, log viewers, sync, and chat and regex helpers.
-  - `/scripts/tauritavern/`: the Agent integration, iOS policy and custom endpoints.
+  - `/scripts/tauritavern/`: the Agent integration and custom endpoints.
   - TauriTavern files among the upstream ones, such as `/scripts/world-info-persistence.js`.
 - **First-party extensions**:
   - `/scripts/extensions/in-app-agent/` (this assistant);

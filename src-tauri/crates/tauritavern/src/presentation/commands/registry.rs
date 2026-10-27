@@ -213,7 +213,6 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         super::data_archive_commands::cancel_data_archive_job,
         super::data_archive_commands::save_export_data_archive,
         super::data_archive_commands::export_user_backup_archive,
-        // iOS file bridge commands
         // Extension commands
         super::extension_commands::get_extensions,
         super::extension_commands::install_extension,

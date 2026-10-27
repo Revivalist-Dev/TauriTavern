@@ -17,13 +17,6 @@
     "fs:allow-fstat",
     "fs:allow-read-text-file",
     "fs:allow-resource-read-recursive",
-    "fs:default",
-    {
-      "identifier": "fs:scope",
-      "allow": [
-        "/storage/emulated/0/Android/data/com.tauritavern.client/**",
-        "/sdcard/Android/data/com.tauritavern.client/**"
-      ]
-    }
+    "fs:default"
   ]
 }

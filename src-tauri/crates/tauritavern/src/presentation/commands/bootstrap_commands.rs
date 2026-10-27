@@ -71,7 +71,6 @@ pub async fn get_bootstrap_metadata(
     let secret_state = secret_state.unwrap_or_default();
 
     Ok(BootstrapMetadataDto {
-        ios_policy: app_state.ios_policy.clone(),
         characters,
         groups,
         avatars,

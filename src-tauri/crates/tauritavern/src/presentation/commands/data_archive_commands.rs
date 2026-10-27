@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
 use serde::Serialize;
-#[cfg(mobile)]
-use tauri::Manager;
 use tauri::{State, WebviewWindow};
 
 use crate::app::AppState;
@@ -40,25 +38,9 @@ pub async fn import_data_archive_from_picker(
         .ok_or_else(|| CommandError::BadRequest("No archive was selected".into()))?;
     let service = app_state.services.data_archive_service.clone();
 
-    #[cfg(desktop)]
     let (archive_path, temporary) = {
         let file_transfer::PickedSource::UserPath(path) = picked.source;
         (path, false)
-    };
-    #[cfg(mobile)]
-    let (archive_path, temporary) = {
-        let staging_service = service.clone();
-        let target = tauri::async_runtime::spawn_blocking(move || {
-            staging_service.prepare_incoming_import_archive_path()
-        })
-        .await
-        .map_err(|error| {
-            CommandError::InternalServerError(format!("Import staging task failed: {error}"))
-        })??;
-        (
-            file_transfer::materialize(window.app_handle(), picked.source, target).await?,
-            true,
-        )
     };
 
     let job_id = tauri::async_runtime::spawn_blocking(move || {

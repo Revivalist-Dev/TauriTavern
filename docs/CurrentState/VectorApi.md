@@ -14,7 +14,7 @@
 - `/api/vector/purge`
 - `/api/vector/purge-all`
 
-前端请求经 `src/tauri/main/routes/vector-routes.js` 汇入一个 typed Tauri command，presentation 只转交 DTO，输入校验、provider 选择、secret 与 iOS policy 均由 `VectorService` 编排。
+前端请求经 `src/tauri/main/routes/vector-routes.js` 汇入一个 typed Tauri command，presentation 只转交 DTO，输入校验、provider 选择与 secret 均由 `VectorService` 编排。
 
 ## 2. 边界与存储
 
@@ -50,7 +50,7 @@ same-origin route
 - `koboldcpp`：兼容 `/api/backends/kobold/embed`，并把服务端报告的实际 embedding model 带入 Vector scope，避免同一 endpoint 换模型后混合向量空间。
 - OpenAI-compatible、Cohere、Nomic、Google AI Studio、Vertex AI、Extras、Ollama、llama.cpp、vLLM：由 provider HTTP adapter 按各自协议发送。
 
-远端 source 在调用前读取 active secret，并遵守 iOS source allowlist 与 endpoint override policy。未知 source、缺失凭据、非法 URL、provider 数量或维度不一致都会显式失败，不创建或部分写入索引。
+远端 source 在调用前读取 active secret。未知 source、缺失凭据、非法 URL、provider 数量或维度不一致都会显式失败，不创建或部分写入索引。
 
 与上游一致，Vector 兼容层不区分交互式与批量请求，也不额外施加生成期或 embedding 专属超时；调用会等待本地推理或远端请求完成并正常传播错误。
 

@@ -1,6 +1,6 @@
 ---
 name: tauritavern-release-humanizer
-description: Polish TauriTavern release or TestFlight notes into natural user-facing prose without changing facts, language, or required structure. Use only as the final editing pass for generated release notes.
+description: Polish TauriTavern release notes into natural user-facing prose without changing facts, language, or required structure. Use only as the final editing pass for generated release notes.
 ---
 
 # TauriTavern release humanizer

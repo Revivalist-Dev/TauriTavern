@@ -9,9 +9,6 @@ use crate::dto::vector_dto::{
     VectorRouteRequestDto, VectorRouteResponseDto, VectorRouteResponseKindDto,
 };
 use crate::errors::ApplicationError;
-use tt_domain::ios_policy::{
-    AllowlistMode, AllowlistSetting, IosPolicyActivationReport, IosPolicyScope,
-};
 use tt_domain::models::chat_completion_source::ChatCompletionSource;
 use tt_domain::models::secret::SecretKeys;
 use tt_ports::repositories::secret_repository::SecretRepository;
@@ -30,7 +27,6 @@ pub struct VectorService {
     remote_embedding_repository: Arc<dyn RemoteEmbeddingRepository>,
     local_embedding_repository: Arc<dyn LocalEmbeddingRepository>,
     secret_repository: Arc<dyn SecretRepository>,
-    ios_policy: IosPolicyActivationReport,
 }
 
 impl VectorService {
@@ -39,14 +35,12 @@ impl VectorService {
         remote_embedding_repository: Arc<dyn RemoteEmbeddingRepository>,
         local_embedding_repository: Arc<dyn LocalEmbeddingRepository>,
         secret_repository: Arc<dyn SecretRepository>,
-        ios_policy: IosPolicyActivationReport,
     ) -> Self {
         Self {
             vector_repository,
             remote_embedding_repository,
             local_embedding_repository,
             secret_repository,
-            ios_policy,
         }
     }
 
@@ -239,7 +233,6 @@ impl VectorService {
             profile: String::new(),
             local_model: None,
         };
-        self.ensure_remote_source_allowed(context.source)?;
         let batch = self
             .remote_embedding_repository
             .embed(RemoteEmbeddingRequest {
@@ -288,7 +281,6 @@ impl VectorService {
                 ));
             }
             _ => {
-                self.ensure_remote_source_allowed(context.source)?;
                 let protocol = self.remote_protocol(context, request).await?;
                 let mut embeddings = Vec::with_capacity(texts.len());
                 for batch in texts.chunks(EMBEDDING_BATCH_SIZE) {
@@ -465,42 +457,6 @@ impl VectorService {
             }
         };
         Ok(protocol)
-    }
-
-    fn ensure_remote_source_allowed(&self, source: VectorSource) -> Result<(), ApplicationError> {
-        if self.ios_policy.scope != IosPolicyScope::Ios {
-            return Ok(());
-        }
-
-        let allowlist = &self
-            .ios_policy
-            .capabilities
-            .llm
-            .chat_completion_sources
-            .allowlist;
-        let allowed = match allowlist {
-            AllowlistSetting::Mode(AllowlistMode::All) => true,
-            AllowlistSetting::List(_) => source.policy_source().is_some_and(|source| {
-                self.ios_policy
-                    .capabilities
-                    .llm
-                    .chat_completion_sources
-                    .allows_source(source)
-            }),
-        };
-        if !allowed {
-            return Err(ApplicationError::PermissionDenied(format!(
-                "iOS policy disabled vector source: {}",
-                source.key()
-            )));
-        }
-
-        if source.uses_custom_endpoint() && !self.ios_policy.capabilities.llm.endpoint_overrides {
-            return Err(ApplicationError::PermissionDenied(
-                "iOS policy disabled capability: llm.endpoint_overrides".to_string(),
-            ));
-        }
-        Ok(())
     }
 
     async fn required_secret(&self, key: &str, provider: &str) -> Result<String, ApplicationError> {

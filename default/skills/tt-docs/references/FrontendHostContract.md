@@ -51,7 +51,7 @@
   - 由 `src/init.js` 写入，作为 TT 前端的对外识别标记；内部代码不读取它，新代码使用 `__TAURITAVERN__` 提供的 API。
 - `window.__TAURITAVERN_HOST__ : { platform, kind }`（Project）
   - 宿主身份：宿主在页面脚本运行前写入 TT 页面的 `window`，对象冻结。原生应用中由 Rust 按编译目标生成。
-  - `platform`：`'windows' | 'macos' | 'linux' | 'android' | 'ios' | 'ohos'`；`kind`：`'desktop' | 'mobile'`，与 Rust 的 `desktop` / `mobile` 编译条件同源。
+  - `platform`：固定为 `'windows'`；`kind`：固定为 `'desktop'`。本分支只构建 Windows x64 桌面版，宿主在 Rust 侧硬编码这两个值。
   - 第一方代码只通过 `src/scripts/util/host-identity.js` 读取，见 `docs/FrontendGuide.md` §2.1。
 
 ---
@@ -111,13 +111,12 @@ ESM `/scripts/secrets.js` 的 `writeSecret`、`deleteSecret`、`readSecretState`
 
 为避免未来继续扩散 `window.__TAURITAVERN_*` 零散符号，宿主层额外提供一个**统一出口**：
 
-- `window.__TAURITAVERN__ : { abiVersion, traceHeader, ready, invoke, assets, api, iosPolicy }`
+- `window.__TAURITAVERN__ : { abiVersion, traceHeader, ready, invoke, assets, api }`
   - `abiVersion: 2`：已发布扩展契约发生破坏性语义变化时递增。
   - `traceHeader: string`：请求追踪 header 名（见 4.4）。
   - `ready: Promise<void> | null`：与 `__TAURITAVERN_MAIN_READY__` 语义一致。
   - `invoke.safeInvoke(...)` / `invoke.flushAll()`：对 `context` invoke 能力的稳定包装。
   - `assets.thumbnailUrl` / `assets.backgroundPath`：对 3.1 中稳定 Host Resource URL helper 的统一引用。
-  - `iosPolicy`（Project）：iOS 分发策略的启动快照，见 `docs/CurrentState/iOSPolicy.md`。
   - `api.layout`：读取与订阅已排除原生遮挡的内容视口；`capture()` 属于第一方使用的 Project Contract，见 [API/Layout.md](API/Layout.md)。
   - `api.chat`：TauriTavern 独有的聊天/记忆类扩展 API（聊天摘要、元数据、历史分页、稳定存储、后端定位、纯文本检索）。
     - 详细签名与示例见：`docs/API/Chat.md`。
@@ -330,27 +329,9 @@ header 名也可从 `window.__TAURITAVERN__?.traceHeader` 获取（用于避免�
 
 `window.__TAURITAVERN_PERF__` 是性能观测入口；启用与报告导出见 [FrontendGuide §10.1](FrontendGuide.md#101-轻量性能仪表perf-hud)。
 
-### 5.2 移动端运行时兼容（Public in practice）
+### 5.2 移动端运行时兼容（已移除）
 
-移动端旧 WebView 的 polyfills 属于运行环境兼容能力：
-
-- `window.__TAURITAVERN_MOBILE_RUNTIME_COMPAT__`
-  - 覆盖移动端旧 WebView 的基础 polyfills（例如 `requestIdleCallback` / `cancelIdleCallback`）。
-  - Android 的 `navigator.clipboard.writeText()` 映射到宿主原生写入器，same-origin iframe 同样适用；Clipboard 对象上的其他方法保持不变。
-- `window.__TAURITAVERN_MOBILE_WINDOW_OPEN_COMPAT__`：移动端外链 `window.open()` 通过系统浏览器打开（不创建应用内新窗口）
-
-移动布局：移动端原生宿主消费系统栏、刘海与停靠键盘，网页侧契约见 [API/Layout.md](API/Layout.md)。相关名称的当前状态：
-
-| 名称 | 状态 |
-| --- | --- |
-| `--doc-height` | 静态别名：`100dvh`，不支持时 `100vh` |
-| `--tt-inset-*` | `env(safe-area-inset-*, 0px)` 的别名 |
-| `--tt-viewport-bottom-inset` | `--tt-inset-bottom` 的别名 |
-| `--tt-window-x/-y/-width/-height` | Project：只写在 `#bg1` 上，供第一方窗口背景使用 |
-| `data-tt-mobile-surface`；`layout-kit.js` 的 `SURFACE`/`applySurface()` | 保留，无布局作用 |
-| `--tt-ime-bottom`、`--tt-base-viewport-height`、`__TAURITAVERN_INSETS__`、`__TAURITAVERN_MOBILE_OVERLAY_COMPAT__`、`__TAURITAVERN_MOBILE_IFRAME_VIEWPORT_CONTRACT_BRIDGE__`、`__TAURITAVERN_ANDROID_IME_LAYOUT_HOST__` | 已移除 |
-
-TauriTavern 第一方功能在所有平台直接使用同一个原生剪贴板写入器。该契约只授予 `clipboard-manager:allow-write-text`，不包含读取/清空/图片等权限；写入失败必须向调用方传播。
+本分支只构建 Windows x64 桌面版，移动端运行时 polyfill（`__TAURITAVERN_MOBILE_RUNTIME_COMPAT__`、`__TAURITAVERN_MOBILE_WINDOW_OPEN_COMPAT__`）、移动布局变量（`--doc-height`、`--tt-inset-*`、`--tt-window-*`）与安全区契约已全部删除，不再对外提供。
 
 ---
 
@@ -358,53 +339,41 @@ TauriTavern 第一方功能在所有平台直接使用同一个原生剪贴板�
 
 > 目的：保持脚本生态依赖的浏览器内置弹窗语义，用户作出选择后脚本才继续执行。
 
-- 所有平台的 `window.alert/confirm/prompt` 由 WebView 原生实现，保持同步语义。宿主不安装 JS 替代实现：dialog 插件注册时不带它替换 `alert/confirm` 的脚本，因此也不授予 `dialog:allow-message`。
-- iOS/macOS 由 [WKUIDelegate 桥](../src-tauri/crates/tauritavern/src/infrastructure/apple_webview_js_dialogs.rs) 展示；无法展示 UI 时返回 Cancel/默认值并记录错误，不能挂死或 silent noop。
+- Windows 上 `window.alert/confirm/prompt` 由 WebView2 原生实现，保持同步语义。宿主不安装 JS 替代实现：dialog 插件注册时不带它替换 `alert/confirm` 的脚本，因此也不授予 `dialog:allow-message`。
 - 若运行环境缺失 `HTMLDialogElement.prototype.showModal`：宿主会安装 `dialog-polyfill` 并覆盖主窗口 + same-origin iframe/window（仅在缺失时启用）
 
 ### 5.4 外链打开与 `window.open()`（Public in practice）
 
-桌面端（Windows/macOS/Linux）：
+桌面端（Windows）：
 
 - `window.open(url, name, features)`：
   - 若 `features` 指定了 `size/position`（典型 OAuth popup），宿主会在 App 内创建新 WebView 窗口，保持 `window.opener` / `postMessage` 回调语义可用。
   - 其余外链（`http/https/mailto/tel`）默认使用系统浏览器打开（避免在 App 内打开文档/升级链接）。
 
-移动宿主（`kind: 'mobile'`）：
-
-- `window.open()` 不创建应用内新窗口；对外链（`http/https/mailto/tel`）通过系统浏览器打开，并返回 `null`（等价“弹窗被阻止”的可观察语义）。
-
 工程约定（Project）：
 
 - 显式外链打开统一使用 `src/tauri-bridge.js` 的 `openExternalUrl()`；例如 `tauritavern-version` 扩展与自动更新弹窗。
 
-### 5.5 桌面全屏快捷键（Project）
+### 5.5 Windows 全屏快捷键（Project）
 
-- Windows/macOS/Linux 主窗口使用无修饰键 `F11` 切换原生窗口全屏；按键长按只响应首次 `keydown`。
-- 宿主在主文档及其同源 iframe 中捕获该快捷键；独立 popup、移动端和带修饰键的 `F11` 不属于此契约。
+- 主窗口使用无修饰键 `F11` 切换原生窗口全屏；按键长按只响应首次 `keydown`。
+- 宿主在主文档及其同源 iframe 中捕获该快捷键；独立 popup 与带修饰键的 `F11` 不属于此契约。
 - 原生窗口状态是唯一真值；全屏不写入 SillyTavern 设置，也不纳入窗口几何持久化。切换失败会记录错误，后续按键仍可重试。
 
-### 5.6 桌面文件拖放（Public in practice）
+### 5.6 Windows 文件拖放（Public in practice）
 
-- Windows/macOS/Linux 主窗口在创建时关闭 Tauri 原生拖放处理，将文件拖放交给 WebView 的 HTML5 `DataTransfer` / `drop`。
+- 主窗口在创建时关闭 Tauri 原生拖放处理，将文件拖放交给 WebView 的 HTML5 `DataTransfer` / `drop`。
 - 由实际落点的前端处理器执行角色卡导入、聊天导入或附件/图库上传；不新增原生文件读取或第二条导入链路。
 - 此入口不再产生 Tauri 原生 `tauri://drag-*` 事件；扩展应使用 DOM 拖放事件。
 - 文件格式校验、导入提示和持久化继续由原有前端/后端导入流程负责；普通文件选择器入口不变。
-- 移动端与独立 popup WebView 的拖放策略不变；主页面内的 HTML 弹窗仍由各自的 DOM 拖放处理器负责。
-
-### 5.7 Android 图片长按保存（Public in practice）
-
-- Android WebView 没有图片上下文菜单。宿主在主文档与同源 iframe 中补上 `<img>` 的 `contextmenu` 默认行为：用户确认后，把这张图片交给系统保存面板，由用户选择保存位置。
-- 与浏览器一致，只有 `preventDefault()` 会取消这一默认行为，`stopPropagation()` 不影响。自行处理图片长按的扩展应在 `contextmenu` 上调用 `preventDefault()`。
-- 图片按 `currentSrc` 取得原始字节，不重新编码，失败直接提示。`blob:`、`data:` 与同源图片在其所在窗口读取；其他 http(s) 图片与浏览器的“保存图片”一样不受页面 CORS 限制，由宿主重新请求该地址，不带页面的 Cookie 与 Referer。
-- 宿主不注册原生长按菜单，长按产生的 `contextmenu` 始终先交给页面处理。
+- 独立 popup WebView 的拖放策略不变；主页面内的 HTML 弹窗仍由各自的 DOM 拖放处理器负责。
 
 ## 6. Smoke Tests（Public 回归用例）
 
 这些用例是“最小但真实”的兼容回归集（来源：你提供的 `.cache` 样本）：
 
 1. **JS-Slash-Runner**
-   - 能加载、UI 能打开、至少一条命令可执行（iOS/macOS：`confirm/prompt` 与 `<dialog>.showModal()` 不应 silent noop）。
+   - 能加载、UI 能打开、至少一条命令可执行。
 2. **database_script**
    - 能注入运行（至少不崩），其 UI/入口可打开。
 3. **V1.72（重型角色卡）**
@@ -416,8 +385,6 @@ TauriTavern 第一方功能在所有平台直接使用同一个原生剪贴板�
    - `/characters/*`、`/User Avatars/*`、`/backgrounds/*`、`/assets/*`、`/user/images/*`、`/user/files/*` 作为子资源可直接加载
    - `/scripts/extensions/third-party/*` 的 ESM/CSS/图片/字体均可加载，未命中返回 `404`；无秘密 fixture 的 `.git/HEAD` / `.git/config` 采用同一文件级路径语义
    - 媒体 Range 契约：`/backgrounds/<file>.mp4` 的 `Range: bytes=0-1` 返回 `206` 且包含 `Content-Range`
-5. **Android 图片长按保存**
-   - 长按聊天图片出现保存确认，确认后出现系统保存面板。
    - 没有 CORS 的跨域图片也能保存；地址没有扩展名时，按响应类型补上扩展名。
    - 同源 iframe（包括 srcdoc）中的图片和 `a[download]` 都能保存。
    - 页面对该次 `contextmenu` 调用 `preventDefault()` 时，不出现确认框。

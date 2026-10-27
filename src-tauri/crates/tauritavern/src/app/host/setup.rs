@@ -13,7 +13,6 @@ use tauri::Manager;
 use tt_adapter_http::HttpClientPool;
 use tt_adapter_storage_core::commit_stage::PageGeneration;
 use tt_domain::errors::DomainError;
-use tt_domain::ios_policy::IosPolicyScope;
 
 pub(super) fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let app_handle = app.handle().clone();
@@ -70,9 +69,6 @@ pub(super) fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Erro
     )?;
     let _main_window = super::window::create_main_window(app, host_resource_service)?;
 
-    #[cfg(all(desktop, not(windows)))]
-    super::shutdown::install_window_close_handler(&_main_window);
-
     #[cfg(target_os = "windows")]
     // Windows tray owns close-to-tray window behavior and keeps its managed state
     // alive for runtime settings updates.
@@ -102,17 +98,8 @@ fn apply_startup_profile(
     llm_api_log_store: &LlmApiLogStore,
 ) {
     let tauritavern_settings = &startup_profile.tauritavern_settings;
-    let ios_policy = &startup_profile.ios_policy;
 
-    if ios_policy.scope == IosPolicyScope::Ios
-        && tauritavern_settings.request_proxy.enabled
-        && !ios_policy.capabilities.network.request_proxy
-    {
-        http_client_pool.block_requests_for_invalid_proxy();
-        tracing::error!(
-            "iOS policy disables the configured request proxy; outbound HTTP is blocked until the proxy is disabled in TauriTavern Settings"
-        );
-    } else if let Err(error) =
+    if let Err(error) =
         http_client_pool.apply_persisted_request_proxy_settings(&tauritavern_settings.request_proxy)
     {
         tracing::error!(

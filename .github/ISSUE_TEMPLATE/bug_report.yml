@@ -24,11 +24,6 @@ body:
       label: 运行平台 / Platform
       options:
         - Windows
-        - macOS
-        - Linux
-        - Android
-        - iOS
-        - HarmonyOS
     validations:
       required: true
 
@@ -45,8 +40,8 @@ body:
     id: system
     attributes:
       label: 系统与设备 / System and device
-      description: 请包括操作系统版本；移动端请提供设备型号。WebView 版本已知时也请附上。 / Include the OS version and, on mobile, the device model. Add the WebView version if known.
-      placeholder: Android 15, Pixel 7, Android System WebView 138
+      description: 请包括 Windows 版本与版本号。WebView 版本已知时也请附上。 / Include the Windows version and build. Add the WebView version if known.
+      placeholder: Windows 11 23H2 (22631), WebView2 138
     validations:
       required: true
 

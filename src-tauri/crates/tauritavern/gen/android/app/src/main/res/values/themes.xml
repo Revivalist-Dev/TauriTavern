@@ -1,6 +1,0 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Theme.tauritavern" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
-    </style>
-</resources>

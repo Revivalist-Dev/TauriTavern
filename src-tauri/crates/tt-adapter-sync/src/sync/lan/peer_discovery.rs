@@ -12,10 +12,6 @@ use tt_domain::models::lan_sync::validate_device_name;
 use tt_ports::lan_discovery::{LanDeviceDiscovery, LanDiscoveryHost};
 use ttsync_contract::peer::DeviceId;
 
-#[cfg(any(target_os = "macos", target_os = "ios"))]
-#[path = "peer_discovery/apple.rs"]
-mod backend;
-#[cfg(any(target_os = "windows", target_os = "linux", target_os = "android"))]
 #[path = "peer_discovery/mdns.rs"]
 mod backend;
 

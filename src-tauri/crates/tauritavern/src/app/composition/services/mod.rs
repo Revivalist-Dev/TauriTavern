@@ -69,7 +69,6 @@ pub(super) async fn build(
         tauritavern_settings.chat_backups,
     )
     .await?;
-    let ios_policy = startup_profile.ios_policy.clone();
 
     let http_client_pool = app_handle.state::<Arc<HttpClientPool>>().inner().clone();
     let external_import_downloader: Arc<dyn ExternalImportDownloader> =
@@ -127,19 +126,17 @@ pub(super) async fn build(
         repositories.mcp_server_repository.clone(),
         mcp_gateway,
     ));
-    let generation_background_runtime = crate::platform::generation_background::runtime(app_handle);
+    let generation_background_runtime = None;
     let chat_completion_service = Arc::new(ChatCompletionService::new(
         repositories.chat_completion_repository.clone(),
         repositories.secret_repository.clone(),
         repositories.settings_repository.clone(),
         repositories.prompt_cache_repository.clone(),
         generation_background_runtime,
-        ios_policy.clone(),
     ));
     let provider_metadata_service = Arc::new(ProviderMetadataService::new(
         repositories.provider_metadata_repository.clone(),
         repositories.secret_repository.clone(),
-        ios_policy.clone(),
     ));
     let searxng_search_service = Arc::new(SearxngSearchService::new(
         repositories.searxng_search_repository.clone(),
@@ -149,7 +146,6 @@ pub(super) async fn build(
         repositories.remote_embedding_repository.clone(),
         repositories.local_embedding_repository.clone(),
         repositories.secret_repository.clone(),
-        ios_policy.clone(),
     ));
     let tokenization_service = Arc::new(TokenizationService::new(
         repositories.tokenizer_repository.clone(),
@@ -259,7 +255,6 @@ pub(super) async fn build(
         app_handle,
         data_directory,
         data_change_reconciler,
-        &ios_policy,
         local_mutation_gate,
         database_service.clone(),
     );

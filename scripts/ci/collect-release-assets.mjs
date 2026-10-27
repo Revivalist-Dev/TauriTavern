@@ -8,45 +8,17 @@ import { pathToFileURL } from 'node:url';
 // tauri-action exposes platform-specific artifact tokens. Keep that vocabulary
 // at the CI boundary and publish a stable, project-owned naming contract.
 const RELEASE_ASSETS = new Map([
-    ['ohos-aarch64-hap', ['ohos-arm64-v8a.hap', '.hap']],
-    ['android-arm-apk', ['android-armeabi-v7a.apk', '.apk']],
-    ['android-arm64-apk', ['android-arm64-v8a.apk', '.apk']],
-    ['darwin-aarch64-dmg', ['macos-arm64.dmg', '.dmg']],
-    ['darwin-x64-dmg', ['macos-x64.dmg', '.dmg']],
-    ['debug-darwin-aarch64-dmg', ['macos-arm64-DEBUG.dmg', '.dmg']],
-    ['debug-darwin-x64-dmg', ['macos-x64-DEBUG.dmg', '.dmg']],
     ['debug-windows-x64-nsis', ['windows-x64-setup-DEBUG.exe', '.exe']],
-    ['ios-arm64-ipa', ['ios-arm64.ipa', '.ipa']],
-    ['ios-arm64-TestFlight-ipa', ['ios-arm64-TestFlight.ipa', '.ipa']],
-    ['linux-aarch64-rpm', ['linux-arm64.rpm', '.rpm']],
-    ['linux-amd64-appimage', ['linux-x64.AppImage', '.AppImage']],
-    ['linux-amd64-deb', ['linux-x64.deb', '.deb']],
-    ['linux-arm64-deb', ['linux-arm64.deb', '.deb']],
-    ['linux-arm64-portable', ['linux-arm64-portable', '']],
-    ['linux-x64-portable', ['linux-x64-portable', '']],
-    ['linux-x86_64-rpm', ['linux-x64.rpm', '.rpm']],
-    ['web', ['web.zip', '.zip']],
     ['windows-x64-msi', ['windows-x64.msi', '.msi']],
     ['windows-x64-nsis', ['windows-x64-setup.exe', '.exe']],
     ['windows-x64-portable', ['windows-x64-portable.exe', '.exe']],
 ]);
 
-const IGNORED_ARTIFACTS = new Set([
-    'darwin-aarch64-app',
-    'darwin-x64-app',
-    'debug-darwin-aarch64-app',
-    'debug-darwin-x64-app',
-]);
+const IGNORED_ARTIFACTS = new Set();
 
-const DEBUG_ARTIFACTS = new Set([
-    'debug-darwin-aarch64-dmg',
-    'debug-darwin-x64-dmg',
-    'debug-windows-x64-nsis',
-]);
+const DEBUG_ARTIFACTS = new Set(['debug-windows-x64-nsis']);
 
-const OPTIONAL_ARTIFACTS = new Set([
-    'ohos-aarch64-hap',
-]);
+const OPTIONAL_ARTIFACTS = new Set();
 
 async function listFiles(directory) {
     const entries = await readdir(directory, { withFileTypes: true });

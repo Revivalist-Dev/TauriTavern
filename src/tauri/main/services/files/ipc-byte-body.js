@@ -1,20 +1,12 @@
-// @ts-check
-import { encodeBytesToBase64 } from '../../binary-utils.js';
-import { hostPlatform } from '../../../../scripts/util/host-identity.js';
 import { BYTE_HEADERS } from '../../kernel/byte-protocol.js';
 
-/** Encode the byte body shared by upload and commit commands. @param {Uint8Array} bytes */
+/**
+ * Encode the byte body shared by upload and commit commands.
+ * Windows WebView2 carries the bytes as a plain Uint8Array over the IPC bridge.
+ * @param {Uint8Array} bytes
+ */
 export function encodeIpcByteBody(bytes) {
-    switch (hostPlatform()) {
-        case 'android':
-            return { body: { data: encodeBytesToBase64(bytes) }, headers: { [BYTE_HEADERS.encoding]: 'base64' } };
-        case 'windows':
-        case 'macos':
-        case 'linux':
-        case 'ios':
-        case 'ohos':
-            return { body: bytes, headers: {} };
-        default:
-            throw new Error(`Unsupported byte transport platform: ${hostPlatform()}`);
-    }
+    return { body: bytes, headers: /** @type {Record<string, string>} */ ({}) };
 }
+
+export { BYTE_HEADERS };

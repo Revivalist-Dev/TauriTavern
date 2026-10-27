@@ -6,20 +6,15 @@ use tauri::State;
 use ttsync_contract::sync::{OverwritePolicy, SyncMode};
 
 use crate::app::AppState;
-use crate::presentation::commands::helpers::{
-    ensure_ios_policy_allows, log_command, map_command_error,
+use crate::presentation::commands::helpers::{ log_command, map_command_error,
 };
 use crate::presentation::errors::CommandError;
 use tt_contracts::lan_discovery::LanDiscoveredDevice;
 use tt_contracts::sync::{SyncJobReport, SyncOperationOptions};
 use tt_domain::models::lan_sync::{LanSyncPairedDeviceSummary, LanSyncStatus};
 
-fn ensure_lan_sync_allowed(app_state: &AppState) -> Result<(), CommandError> {
-    ensure_ios_policy_allows(
-        &app_state.ios_policy,
-        app_state.ios_policy.capabilities.sync.lan,
-        "sync.lan",
-    )
+fn ensure_lan_sync_allowed(_app_state: &AppState) -> Result<(), CommandError> {
+    Ok(())
 }
 
 #[tauri::command]
@@ -27,7 +22,6 @@ pub async fn lan_sync_get_status(
     app_state: State<'_, Arc<AppState>>,
 ) -> Result<LanSyncStatus, CommandError> {
     log_command("lan_sync_get_status");
-    ensure_lan_sync_allowed(&app_state)?;
 
     app_state
         .services

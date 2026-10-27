@@ -51,14 +51,12 @@ use tt_application::services::user_service::UserService;
 use tt_application::services::vector_service::VectorService;
 use tt_application::services::world_info_service::WorldInfoService;
 use tt_domain::errors::DomainError;
-use tt_domain::ios_policy::IosPolicyActivationReport;
 
 use super::{StartupProfile, composition};
 
 pub struct AppState {
     pub(crate) services: AppServices,
     pub(crate) lifecycle: AppLifecycle,
-    pub(crate) ios_policy: IosPolicyActivationReport,
 }
 
 pub(crate) struct AppLifecycle {
@@ -148,7 +146,6 @@ impl AppState {
         Ok(Self {
             services,
             lifecycle: AppLifecycle::new(),
-            ios_policy: startup_profile.ios_policy,
         })
     }
 }

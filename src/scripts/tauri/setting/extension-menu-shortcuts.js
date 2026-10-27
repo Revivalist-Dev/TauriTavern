@@ -1,7 +1,5 @@
 // @ts-check
 
-import { getActiveIosPolicyCapabilities } from '../../tauritavern/ios-policy.js';
-
 const STORAGE_KEY = 'tauritavern:extensions_menu_shortcuts';
 const CONTAINER_ID = 'tauritavern_extensions_menu_shortcuts';
 const DEFAULT_SHORTCUT_IDS = ['sync'];
@@ -11,7 +9,6 @@ const SHORTCUTS = [
         id: 'sync',
         label: 'Sync Panel',
         icon: 'fa-rotate',
-        available: () => getActiveIosPolicyCapabilities()?.sync?.lan !== false,
         open: async () => {
             const { openSyncPopup } = await import('./setting-panel/sync-popup.js');
             await openSyncPopup();

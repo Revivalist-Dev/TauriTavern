@@ -11,7 +11,7 @@ use crate::app::AppState;
 use crate::infrastructure::staging::{create_staged_file, discard_file, validate_staged_path};
 use crate::platform::ipc::{SMALL_ASSET_UPLOAD_CHUNK_BYTES, UPLOAD_CHUNK_BYTES};
 use crate::presentation::commands::chunk_body::chunk_bytes_from_request;
-use crate::presentation::commands::helpers::{ensure_ios_policy_allows, log_command};
+use crate::presentation::commands::helpers::log_command;
 use crate::presentation::errors::CommandError;
 
 const DEFAULT_KIND: &str = "generic";
@@ -184,11 +184,6 @@ pub async fn stage_file_from_url(
     app_state: State<'_, Arc<AppState>>,
 ) -> Result<StageFileFromUrlResult, CommandError> {
     log_command("stage_file_from_url");
-    ensure_ios_policy_allows(
-        &app_state.ios_policy,
-        app_state.ios_policy.capabilities.content.external_import,
-        "content.external_import",
-    )?;
     let path = create_staged_file(&app, "remote", "bin").await?;
     match app_state
         .services

@@ -3,8 +3,7 @@ use std::sync::Arc;
 use tauri::State;
 
 use crate::app::AppState;
-use crate::presentation::commands::helpers::{
-    ensure_ios_policy_allows, log_command, map_command_error,
+use crate::presentation::commands::helpers::{ log_command, map_command_error,
 };
 use crate::presentation::errors::CommandError;
 use tt_domain::models::update::{UpdateChannel, UpdateCheckResult};
@@ -15,12 +14,6 @@ pub async fn check_for_update(
     app_state: State<'_, Arc<AppState>>,
 ) -> Result<UpdateCheckResult, CommandError> {
     log_command("check_for_update");
-
-    ensure_ios_policy_allows(
-        &app_state.ios_policy,
-        app_state.ios_policy.capabilities.updates.manual_check,
-        "updates.manual_check",
-    )?;
 
     app_state
         .services

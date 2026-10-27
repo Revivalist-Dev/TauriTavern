@@ -11,7 +11,7 @@ permissions:
 jobs:
   check-target:
     if: github.event.pull_request.base.ref != 'dev'
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: Explain the contribution policy and close the PR
         uses: actions/github-script@v9

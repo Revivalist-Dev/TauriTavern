@@ -1,26 +1,17 @@
 use std::error::Error;
-#[cfg(any(desktop, target_os = "android"))]
 use std::io;
-#[cfg(any(desktop, target_os = "android"))]
-use std::path::Path;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-#[cfg(desktop)]
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
 
-#[cfg(desktop)]
 const RUNTIME_MODE_ENV: &str = "TAURITAVERN_RUNTIME_MODE";
-#[cfg(desktop)]
 const PORTABLE_MARKER_FILE: &str = "portable.flag";
-#[cfg(desktop)]
 const RUNTIME_CONFIG_FILE: &str = "tauritavern-runtime.json";
 const DATA_ARCHIVE_ROOT_DIR: &str = ".data-archive";
 const DATA_ARCHIVE_IMPORTS_DIR: &str = "imports";
 const DATA_ARCHIVE_EXPORTS_DIR: &str = "exports";
-#[cfg(desktop)]
 const DEFAULT_USER_DIR_NAME: &str = "default-user";
-#[cfg(desktop)]
 const EFFECTIVELY_EMPTY_DIRECTORY_ENTRIES: &[&str] = &[
     ".ds_store",
     ".localized",
@@ -32,7 +23,6 @@ const EFFECTIVELY_EMPTY_DIRECTORY_ENTRIES: &[&str] = &[
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RuntimeMode {
     Standard,
-    #[cfg(desktop)]
     Portable,
 }
 
@@ -77,12 +67,6 @@ pub fn resolve_runtime_paths(app_handle: &AppHandle) -> Result<RuntimePaths, Box
     Ok(paths)
 }
 
-#[cfg(mobile)]
-fn resolve_runtime_paths_inner(app_handle: &AppHandle) -> Result<RuntimePaths, Box<dyn Error>> {
-    resolve_standard_runtime_paths(app_handle)
-}
-
-#[cfg(desktop)]
 fn resolve_runtime_paths_inner(app_handle: &AppHandle) -> Result<RuntimePaths, Box<dyn Error>> {
     let mode = detect_desktop_runtime_mode();
     let paths = match mode {
@@ -286,103 +270,7 @@ fn resolve_executable_directory() -> Result<PathBuf, Box<dyn Error>> {
 }
 
 pub fn resolve_app_data_dir(app_handle: &AppHandle) -> Result<PathBuf, Box<dyn Error>> {
-    #[cfg(target_os = "android")]
-    {
-        resolve_android_app_data_dir(app_handle)
-    }
-
-    #[cfg(not(target_os = "android"))]
-    {
-        Ok(app_handle.path().app_data_dir()?)
-    }
-}
-
-#[cfg(target_os = "android")]
-fn resolve_android_app_data_dir(app_handle: &AppHandle) -> Result<PathBuf, Box<dyn Error>> {
-    let reported_app_data_dir = app_handle.path().app_data_dir().ok();
-
-    if let Some(path) = reported_app_data_dir.as_ref() {
-        if is_android_external_app_data_dir(path) {
-            tracing::debug!(
-                "Using Android app_data_dir from Tauri path resolver: {:?}",
-                path
-            );
-            return Ok(path.clone());
-        }
-
-        if !is_android_internal_app_data_dir(path) {
-            tracing::debug!(
-                "Using Android app_data_dir from Tauri path resolver (non-internal path): {:?}",
-                path
-            );
-            return Ok(path.clone());
-        }
-    }
-
-    if let Ok(document_dir) = app_handle.path().document_dir()
-        && let Some(derived_external_dir) = derive_android_external_app_data_dir(&document_dir)
-    {
-        tracing::debug!(
-            "Using Android external app data directory derived from document_dir: {:?}",
-            derived_external_dir
-        );
-        return Ok(derived_external_dir);
-    }
-
-    if let Some(path) = reported_app_data_dir {
-        tracing::warn!(
-            "Falling back to Android app_data_dir reported by Tauri path resolver: {:?}",
-            path
-        );
-        return Ok(path);
-    }
-
-    Err(Box::new(io::Error::new(
-        io::ErrorKind::NotFound,
-        "Unable to resolve Android app data directory",
-    )))
-}
-
-#[cfg(target_os = "android")]
-fn derive_android_external_app_data_dir(document_dir: &Path) -> Option<PathBuf> {
-    let leaf = document_dir.file_name()?.to_str()?;
-
-    let candidate = if leaf.eq_ignore_ascii_case("documents") {
-        let parent = document_dir.parent()?;
-        let parent_leaf = parent.file_name().and_then(|s| s.to_str()).unwrap_or("");
-        if parent_leaf.eq_ignore_ascii_case("files") {
-            parent.parent()?.to_path_buf()
-        } else {
-            parent.to_path_buf()
-        }
-    } else if leaf.eq_ignore_ascii_case("files") {
-        document_dir.parent()?.to_path_buf()
-    } else {
-        return None;
-    };
-
-    if is_android_external_app_data_dir(&candidate) {
-        Some(candidate)
-    } else {
-        None
-    }
-}
-
-#[cfg(target_os = "android")]
-fn is_android_external_app_data_dir(path: &Path) -> bool {
-    let normalized = normalize_android_path(path);
-    normalized.contains("/android/data/")
-}
-
-#[cfg(target_os = "android")]
-fn is_android_internal_app_data_dir(path: &Path) -> bool {
-    let normalized = normalize_android_path(path);
-    normalized.starts_with("/data/user/") || normalized.starts_with("/data/data/")
-}
-
-#[cfg(target_os = "android")]
-fn normalize_android_path(path: &Path) -> String {
-    path.to_string_lossy().replace('\\', "/").to_lowercase()
+    Ok(app_handle.path().app_data_dir()?)
 }
 
 #[cfg(desktop)]
@@ -716,15 +604,6 @@ fn copy_dir_recursive(from: &std::path::Path, to: &std::path::Path) -> Result<()
         )));
     }
 
-    Ok(())
-}
-
-#[cfg(all(desktop, unix))]
-fn copy_symlink(from: &std::path::Path, to: &std::path::Path) -> Result<(), Box<dyn Error>> {
-    use std::os::unix::fs::symlink;
-
-    let target = std::fs::read_link(from)?;
-    symlink(&target, to)?;
     Ok(())
 }
 
