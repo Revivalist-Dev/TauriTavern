@@ -586,7 +586,7 @@ mod tests {
         let default_user_dir = temp_default_user_dir();
         let store = LanPeerStore::new(
             default_user_dir.clone(),
-            tt_contracts::host::HostPlatform::Linux,
+            tt_contracts::host::HostPlatform::Windows,
         );
         let handle = spawn_lan_sync_server(
             "127.0.0.1:0".parse().unwrap(),
@@ -650,7 +650,7 @@ mod tests {
         store.set_device_name("书房 Mac").await.unwrap();
         let reloaded = LanPeerStore::new(
             default_user_dir.clone(),
-            tt_contracts::host::HostPlatform::Linux,
+            tt_contracts::host::HostPlatform::Windows,
         )
         .load_or_create_identity()
         .await
@@ -665,7 +665,7 @@ mod tests {
             let device = pairing.probe_device(&base_url, pin).await.unwrap();
             assert_eq!(device.device_name, "书房 Mac");
             assert_eq!(device.device_id, before.device_id);
-            assert_eq!(device.platform.as_deref(), Some("linux"));
+            assert_eq!(device.platform.as_deref(), Some("windows"));
             assert_eq!(device.spki_sha256, handle.spki_sha256);
         }
         assert!(
@@ -684,7 +684,7 @@ mod tests {
         let default_user_dir = temp_default_user_dir();
         let store = LanPeerStore::new(
             default_user_dir.clone(),
-            tt_contracts::host::HostPlatform::Linux,
+            tt_contracts::host::HostPlatform::Windows,
         );
         let identity = store
             .load_or_create_identity()
@@ -721,7 +721,7 @@ mod tests {
         let local_device = LanDiscoveryAnnouncement {
             device_id: peer_device_id.clone(),
             device_name: "Peer".to_string(),
-            platform: Some("android".to_string()),
+            platform: Some("windows".to_string()),
             port: 60000,
             spki_sha256: "client-spki".to_string(),
         };
@@ -754,13 +754,13 @@ mod tests {
         assert!(response.granted_permissions.mirror_delete);
         assert!(!response.granted_permissions.write);
         assert_eq!(response.server_device_name, identity.device_name);
-        assert_eq!(response.server_device_platform.as_deref(), Some("linux"));
+        assert_eq!(response.server_device_platform.as_deref(), Some("windows"));
 
         {
             let requests = inbound.requests.lock().expect("pairing request lock");
             assert_eq!(requests.len(), 1);
             assert_eq!(requests[0].device_id, peer_device_id);
-            assert_eq!(requests[0].device_platform.as_deref(), Some("android"));
+            assert_eq!(requests[0].device_platform.as_deref(), Some("windows"));
             assert_eq!(requests[0].device_pubkey, device_pubkey);
             assert_eq!(requests[0].client_base_url, "https://127.0.0.1:60000");
             assert_eq!(requests[0].client_spki_sha256, "client-spki");
@@ -828,7 +828,7 @@ mod tests {
         .await
         .expect("write source file");
 
-        let store = LanPeerStore::new(sync_root.clone(), tt_contracts::host::HostPlatform::Linux);
+        let store = LanPeerStore::new(sync_root.clone(), tt_contracts::host::HostPlatform::Windows);
         let peer_device_id =
             DeviceId::new("550e8400-e29b-41d4-a716-446655440001".to_string()).unwrap();
         let peer_seed = URL_SAFE_NO_PAD.encode([3u8; 32]);

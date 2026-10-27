@@ -284,8 +284,8 @@ async fn copy_file_no_replace(
 /// Move a file without replacing an existing target.
 ///
 /// The operation uses `rename` first and falls back to copy/remove when the
-/// storage backend cannot provide reliable rename semantics, which is common on
-/// Android external app storage. Ambiguous post-error states fail fast.
+/// storage backend cannot provide reliable rename semantics. Ambiguous
+/// post-error states fail fast.
 pub async fn move_file_no_replace_with_fallback(
     source_path: &Path,
     target_path: &Path,

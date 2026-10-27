@@ -105,7 +105,7 @@ pub(super) fn serve_user_data_asset(
                         range.byte_len(),
                     );
                     tracing::debug!(
-                        "User data asset Android video range workaround hit: {}",
+                        "User data asset video range workaround hit: {}",
                         parsed.relative_path_display
                     );
                     response::with_accept_ranges(response)
@@ -252,7 +252,7 @@ mod tests {
     }
 
     #[test]
-    fn android_background_video_range_returns_full_body_with_range_headers() {
+    fn background_video_range_returns_full_body_with_range_headers() {
         let mut request = test_support::request(Method::GET, "/backgrounds/a.mp4");
         request
             .headers_mut()

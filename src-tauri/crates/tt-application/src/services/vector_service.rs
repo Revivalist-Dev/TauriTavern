@@ -9,7 +9,6 @@ use crate::dto::vector_dto::{
     VectorRouteRequestDto, VectorRouteResponseDto, VectorRouteResponseKindDto,
 };
 use crate::errors::ApplicationError;
-use tt_domain::models::chat_completion_source::ChatCompletionSource;
 use tt_domain::models::secret::SecretKeys;
 use tt_ports::repositories::secret_repository::SecretRepository;
 use tt_ports::repositories::vector_repository::{
@@ -553,36 +552,6 @@ impl VectorSource {
             Self::SiliconFlow => "siliconflow",
             Self::WorkersAi => "workers_ai",
         }
-    }
-
-    const fn policy_source(self) -> Option<ChatCompletionSource> {
-        match self {
-            Self::OpenAi => Some(ChatCompletionSource::OpenAi),
-            Self::Palm => Some(ChatCompletionSource::Makersuite),
-            Self::VertexAi => Some(ChatCompletionSource::VertexAi),
-            Self::Cohere => Some(ChatCompletionSource::Cohere),
-            Self::OpenRouter => Some(ChatCompletionSource::OpenRouter),
-            Self::Chutes => Some(ChatCompletionSource::Chutes),
-            Self::NanoGpt => Some(ChatCompletionSource::NanoGpt),
-            Self::SiliconFlow => Some(ChatCompletionSource::SiliconFlow),
-            Self::WorkersAi => Some(ChatCompletionSource::WorkersAi),
-            Self::Extras | Self::Ollama | Self::LlamaCpp | Self::Vllm | Self::KoboldCpp => {
-                Some(ChatCompletionSource::Custom)
-            }
-            Self::Transformers
-            | Self::Mistral
-            | Self::TogetherAi
-            | Self::NomicAi
-            | Self::WebLlm
-            | Self::ElectronHub => None,
-        }
-    }
-
-    const fn uses_custom_endpoint(self) -> bool {
-        matches!(
-            self,
-            Self::Extras | Self::Ollama | Self::LlamaCpp | Self::Vllm | Self::KoboldCpp
-        )
     }
 }
 

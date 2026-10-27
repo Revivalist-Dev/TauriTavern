@@ -1,9 +1,8 @@
 //! CSS compatibility utilities for legacy WebViews.
 //!
 //! **Purpose**
-//! - Provide a lightweight, dependency-free fallback for CSS Cascade Layers (`@layer`) on older
-//!   WebViews (most commonly older Android WebView) that would otherwise ignore rules wrapped in
-//!   `@layer` blocks.
+//! - Provide a lightweight, dependency-free fallback for CSS Cascade Layers (`@layer`) in
+//!   WebViews that would otherwise ignore rules wrapped in `@layer` blocks.
 //!
 //! **Linkage / Data Flow**
 //! - Frontend runtime (`src/scripts/extensions/runtime/third-party-runtime.js`) detects missing
