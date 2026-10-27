@@ -65,6 +65,9 @@ export async function installSillyBunnyShell() {
     document.body.classList.add(SHELL_CLASS);
     ensureConversationDrawer();
 
+    const { installPanelHost } = await import('./panels.js');
+    installPanelHost();
+
     if (conversationInstalled) {
         return;
     }

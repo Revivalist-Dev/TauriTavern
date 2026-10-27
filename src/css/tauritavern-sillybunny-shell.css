@@ -8,12 +8,20 @@
 
 body.sb-shell {
     --sb-rail-width: 58px;
-    --sb-panel-width: 440px;
+    --sb-panel-width: 460px;
     --sb-surface: color-mix(in srgb, var(--SmartThemeBlurTintColor, #171b24) 88%, transparent);
     --sb-surface-strong: color-mix(in srgb, var(--SmartThemeBlurTintColor, #171b24) 96%, #000 4%);
     --sb-border: color-mix(in srgb, var(--SmartThemeBorderColor, #ffffff) 16%, transparent);
     --sb-accent: var(--SmartThemeQuoteColor, #7fb7ff);
     --sb-muted: color-mix(in srgb, var(--SmartThemeBodyColor, #e8ecf2) 62%, transparent);
+
+    /* Panel API tokens: extensions style against these, not against a theme. */
+    --sb-foreground: var(--SmartThemeBodyColor, #e8ecf2);
+    --sb-panel-bg: var(--sb-surface);
+    --sb-panel-border: var(--sb-border);
+    --sb-hover: color-mix(in srgb, var(--sb-accent) 16%, transparent);
+    --sb-error: #ff8f8f;
+    --sb-success: #8fe0a6;
 }
 
 @media (min-width: 1000px) {
@@ -126,6 +134,40 @@ body.sb-shell {
         letter-spacing: 0.01em;
         margin: 0;
     }
+}
+
+/* Extension panels -------------------------------------------------------- */
+
+body.sb-shell .sb-panel-content {
+    padding: 0;
+}
+
+body.sb-shell .sb-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--sb-border);
+}
+
+body.sb-shell .sb-panel-heading {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+body.sb-shell .sb-panel-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 14px 16px 20px;
+}
+
+body.sb-shell .sb-panel-error {
+    margin: 0;
+    color: var(--sb-error);
+    font-size: 0.86rem;
 }
 
 /* Conversation Mode ------------------------------------------------------ */
