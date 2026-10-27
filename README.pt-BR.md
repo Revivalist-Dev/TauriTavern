@@ -8,12 +8,14 @@
 
 [简体中文](README.md) · [English](README.en.md) · [日本語](README.ja.md) · [Русский](README.ru.md) · **Português (Brasil)**
 
+> **Fork note:** this branch builds Windows 10/11 x64 only. Any macOS, Linux, Android, iOS or HarmonyOS instructions below are inherited from upstream and do not apply.
+
 [Downloads](https://tauritavern.github.io/en/downloads/) · [Documentação](https://tauritavern.github.io/en/) · [Releases](https://github.com/Darkatse/TauriTavern/releases) · [Issues](https://github.com/Darkatse/TauriTavern/issues)
 
 [![Release](https://img.shields.io/github/v/release/Darkatse/TauriTavern?style=flat-square&color=1f9d96)](https://github.com/Darkatse/TauriTavern/releases/latest)
 [![License](https://img.shields.io/github/license/Darkatse/TauriTavern?style=flat-square)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/Darkatse/TauriTavern?style=flat-square&labelColor=black&color=ffcb47)](https://github.com/Darkatse/TauriTavern/stargazers)
-[![Platforms](https://img.shields.io/badge/platforms-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux%20%C2%B7%20Android%20%C2%B7%20iOS-1f9d96?style=flat-square)](https://tauritavern.github.io/en/downloads/)
+[![Platforms](https://img.shields.io/badge/platforms-Windows%2010%2F11%20x64-1f9d96?style=flat-square)](https://github.com/Darkatse/TauriTavern/releases/latest)
 <br/>
 [![Telegram](https://img.shields.io/badge/Telegram-Group-26A5E4?style=flat-square&logo=telegram&logoColor=white)](https://t.me/TauriTavern)
 [![Discord](https://img.shields.io/badge/Discord-Community-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.gg/hn57aFGe8h)
@@ -33,18 +35,13 @@
 **Detecta seu dispositivo automaticamente · baixe a versão estável mais recente com um clique**
 
 [![Windows](https://custom-icon-badges.demolab.com/badge/Windows-0078D6?logo=windows11&logoColor=white&style=flat-square)](https://tauritavern.github.io/en/downloads/platforms/)
-[![macOS](https://img.shields.io/badge/macOS-000000?style=flat-square&logo=apple&logoColor=white)](https://tauritavern.github.io/en/downloads/platforms/)
-[![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black&style=flat-square)](https://tauritavern.github.io/en/downloads/platforms/)
-[![Android](https://img.shields.io/badge/Android-3DDC84?logo=android&logoColor=white&style=flat-square)](https://tauritavern.github.io/en/downloads/platforms/)
-[![iOS TestFlight](https://img.shields.io/badge/iOS-TestFlight-0D96F6?logo=apple&logoColor=white&style=flat-square)](https://testflight.apple.com/join/gpqAdeTm)
-[![HarmonyOS Beta](https://img.shields.io/badge/HarmonyOS-Beta-000000?logo=harmonyos&logoColor=white&style=flat-square)](https://github.com/Darkatse/TauriTavern/releases/latest)
 
 [Todas as plataformas](https://tauritavern.github.io/en/downloads/platforms/) · [Versões no GitHub](https://github.com/Darkatse/TauriTavern/releases)
 
 </div>
 
 <details>
-<summary><b>📦 Instalação com um gerenciador de pacotes</b> (Windows · macOS · Linux)</summary>
+<summary><b>📦 Instalação com um gerenciador de pacotes</b> (Windows)</summary>
 
 ### Windows · WinGet
 
