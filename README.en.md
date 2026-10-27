@@ -4,7 +4,7 @@
 
 # TauriTavern
 
-**SillyTavern, as a native app — desktop & mobile, out of the box**
+**SillyTavern, as a native Windows app — ready out of the box**
 
 [简体中文](README.md) · **English** · [日本語](README.ja.md) · [Русский](README.ru.md) · [Português (Brasil)](README.pt-BR.md)
 
