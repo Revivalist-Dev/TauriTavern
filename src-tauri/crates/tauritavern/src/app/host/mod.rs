@@ -5,6 +5,8 @@
 //! in `app::composition`; frontend-visible behavior is still owned by presentation
 //! commands and web resource adapters.
 
+#[cfg(feature = "control-api")]
+pub(crate) mod control;
 mod observability;
 mod plugins;
 mod resources;
@@ -30,6 +32,10 @@ pub(crate) fn run() {
                 crate::presentation::commands::chat_swipe_commands::close_page_chat_resources(
                     webview,
                 );
+            }
+            #[cfg(feature = "control-api")]
+            if payload.event() == tauri::webview::PageLoadEvent::Finished {
+                control::install_bridge(webview);
             }
         })
         .build(tauri::generate_context!())

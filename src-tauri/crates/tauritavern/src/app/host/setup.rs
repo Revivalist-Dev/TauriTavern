@@ -78,6 +78,9 @@ pub(super) fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Erro
         startup_profile.tauritavern_settings.close_to_tray_on_close,
     )?;
 
+    #[cfg(feature = "control-api")]
+    super::control::start(&app_handle);
+
     // 6. Heavy AppState construction stays off the shell critical path. The
     // initializer manages AppState and emits app-ready/app-error as before.
     spawn_initialization(

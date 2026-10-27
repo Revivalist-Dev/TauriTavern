@@ -1,5 +1,7 @@
 pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
+        #[cfg(feature = "control-api")]
+        super::super::super::app::host::control::control_respond,
         // TriviumDB commands
         super::database_commands::database_handle,
         // Character commands

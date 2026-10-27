@@ -51,6 +51,7 @@ tt-domain = { path = "../tt-domain" }
 tt-contracts = { path = "../tt-contracts" }
 tt-ports = { path = "../tt-ports" }
 tt-application = { path = "../tt-application" }
+tt-adapter-control = { path = "../tt-adapter-control", optional = true }
 tt-adapter-http = { path = "../tt-adapter-http" }
 tt-adapter-mcp = { path = "../tt-adapter-mcp" }
 tt-adapter-tokenization = { path = "../tt-adapter-tokenization" }
@@ -101,7 +102,8 @@ block2 = "0.6.2"
 objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSArray", "NSError", "NSString", "NSGeometry", "objc2-core-foundation"] }
 
 [features]
-default = ["custom-protocol"]
+default = ["custom-protocol", "control-api"]
 custom-protocol = ["tauri/custom-protocol"]
+control-api = ["dep:tt-adapter-control"]
 devtools-pilot = ["dep:tauri-plugin-pilot"]
 portable = []

@@ -1,0 +1,19 @@
+[package]
+name = "tt-adapter-control"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+async-trait = "0.1"
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "query", "tokio"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { version = "1", default-features = false, features = ["fs", "macros", "net", "rt-multi-thread", "sync", "time"] }
+tracing = "0.1"
+uuid = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
+tower = { version = "0.5", features = ["util"] }

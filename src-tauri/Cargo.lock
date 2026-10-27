@@ -7815,6 +7815,7 @@ dependencies = [
  "tracing-appender",
  "tracing-subscriber",
  "tt-adapter-archive",
+ "tt-adapter-control",
  "tt-adapter-extension",
  "tt-adapter-http",
  "tt-adapter-mcp",
@@ -8424,6 +8425,22 @@ dependencies = [
  "typed-path",
  "uuid",
  "zip",
+]
+
+[[package]]
+name = "tt-adapter-control"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "axum",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.20",
+ "tokio",
+ "tower",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]
