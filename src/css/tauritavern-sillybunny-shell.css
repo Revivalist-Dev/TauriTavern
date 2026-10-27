@@ -1,0 +1,279 @@
+/*
+ * SillyBunny desktop shell (Windows only).
+ *
+ * A left rail built from SillyTavern's existing top-bar drawers, with one
+ * side panel at a time. Everything here is desktop layout: there is no phone
+ * breakpoint, no mobile shell and no platform-specific window chrome.
+ */
+
+body.sb-shell {
+    --sb-rail-width: 58px;
+    --sb-panel-width: 440px;
+    --sb-surface: color-mix(in srgb, var(--SmartThemeBlurTintColor, #171b24) 88%, transparent);
+    --sb-surface-strong: color-mix(in srgb, var(--SmartThemeBlurTintColor, #171b24) 96%, #000 4%);
+    --sb-border: color-mix(in srgb, var(--SmartThemeBorderColor, #ffffff) 16%, transparent);
+    --sb-accent: var(--SmartThemeQuoteColor, #7fb7ff);
+    --sb-muted: color-mix(in srgb, var(--SmartThemeBodyColor, #e8ecf2) 62%, transparent);
+}
+
+@media (min-width: 1000px) {
+    body.sb-shell #top-bar {
+        display: none;
+    }
+
+    body.sb-shell #top-settings-holder {
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: var(--sb-rail-width);
+        height: 100dvh;
+        margin: 0;
+        padding: 8px 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 2px;
+        border-right: 1px solid var(--sb-border);
+        background: var(--sb-surface-strong);
+        backdrop-filter: blur(var(--SmartThemeBlurStrength, 10px));
+        z-index: 3005;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scrollbar-width: none;
+    }
+
+    body.sb-shell #top-settings-holder::-webkit-scrollbar {
+        width: 0;
+    }
+
+    body.sb-shell #top-settings-holder .drawer {
+        width: 100%;
+        flex: none;
+    }
+
+    body.sb-shell #top-settings-holder .drawer-toggle {
+        width: 44px;
+        height: 44px;
+        margin: 2px auto;
+        padding: 0;
+        display: grid;
+        place-items: center;
+        border-radius: 12px;
+        color: var(--sb-muted);
+    }
+
+    body.sb-shell #top-settings-holder .drawer-toggle:hover,
+    body.sb-shell #top-settings-holder .drawer-toggle.openIcon {
+        background: color-mix(in srgb, var(--sb-accent) 18%, transparent);
+        color: var(--SmartThemeBodyColor, #e8ecf2);
+    }
+
+    body.sb-shell #top-settings-holder .drawer-icon {
+        width: 20px;
+        height: 20px;
+        margin: 0;
+        font-size: 18px;
+        line-height: 20px;
+        text-align: center;
+    }
+
+    body.sb-shell #top-settings-holder .drawer-icon svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    /* Regular drawers become one side panel next to the rail. Editor-style
+       drawers (World Info, prompt manager, character popup) keep their own
+       stock geometry so their wide layouts are not squeezed. */
+    body.sb-shell #top-settings-holder .drawer-content:not(#WorldInfo):not(#floatingPrompt) {
+        position: fixed;
+        top: 0;
+        left: var(--sb-rail-width);
+        right: auto;
+        bottom: 0;
+        width: min(var(--sb-panel-width), calc(100vw - var(--sb-rail-width)));
+        min-width: 0;
+        max-width: none;
+        max-height: 100dvh;
+        margin: 0;
+        border-radius: 0 14px 14px 0;
+        border: 1px solid var(--sb-border);
+        border-left: none;
+        background: var(--sb-surface);
+        backdrop-filter: blur(var(--SmartThemeBlurStrength, 10px));
+        overflow: hidden auto;
+        transform: none;
+        z-index: 3004;
+    }
+
+    body.sb-shell #top-settings-holder .drawer-content.openDrawer {
+        display: flex;
+        flex-direction: column;
+    }
+
+    body.sb-shell #sheld {
+        top: 6px;
+        height: calc(100dvh - 12px);
+        width: min(var(--sheldWidth), calc(100vw - var(--sb-rail-width) - 16px));
+        margin-left: var(--sb-rail-width);
+        margin-right: 8px;
+    }
+
+    body.sb-shell .sb-panel-heading,
+    body.sb-shell .sb-conversation-title {
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        margin: 0;
+    }
+}
+
+/* Conversation Mode ------------------------------------------------------ */
+
+body.sb-shell .sb-conversation-content {
+    padding: 0;
+}
+
+body.sb-shell .sb-conversation {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+body.sb-shell .sb-conversation-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px 12px;
+    border-bottom: 1px solid var(--sb-border);
+}
+
+body.sb-shell .sb-conversation-subtitle {
+    margin: 2px 0 0;
+    font-size: 0.78rem;
+    color: var(--sb-muted);
+}
+
+body.sb-shell .sb-icon-button {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--sb-border);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--sb-muted);
+    cursor: pointer;
+}
+
+body.sb-shell .sb-icon-button:hover {
+    color: var(--SmartThemeBodyColor, #e8ecf2);
+    border-color: var(--sb-accent);
+}
+
+body.sb-shell .sb-conversation-timeline {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 14px 14px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+body.sb-shell .sb-message {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: 96%;
+    padding: 10px 12px;
+    border: 1px solid var(--sb-border);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--SmartThemeBlurTintColor, #1b202b) 72%, transparent);
+}
+
+body.sb-shell .sb-message--user {
+    align-self: flex-end;
+    border-color: color-mix(in srgb, var(--sb-accent) 36%, transparent);
+}
+
+body.sb-shell .sb-message--system {
+    align-self: center;
+    border-style: dashed;
+    opacity: 0.86;
+}
+
+body.sb-shell .sb-message-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+body.sb-shell .sb-message-name {
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--sb-accent);
+}
+
+body.sb-shell .sb-message-body {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+body.sb-shell .sb-message-body img {
+    max-width: 100%;
+    height: auto;
+}
+
+body.sb-shell .sb-conversation-empty {
+    margin: auto;
+    color: var(--sb-muted);
+    font-size: 0.86rem;
+}
+
+body.sb-shell .sb-composer {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 10px 14px 14px;
+    border-top: 1px solid var(--sb-border);
+}
+
+body.sb-shell .sb-composer-input {
+    flex: 1 1 auto;
+    min-height: 44px;
+    max-height: 160px;
+    resize: vertical;
+    padding: 10px 12px;
+    border: 1px solid var(--sb-border);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--SmartThemeBlurTintColor, #10141c) 88%, transparent);
+    color: var(--SmartThemeBodyColor, #e8ecf2);
+    font: inherit;
+    font-size: 0.9rem;
+}
+
+body.sb-shell .sb-composer-input:focus {
+    outline: none;
+    border-color: var(--sb-accent);
+}
+
+body.sb-shell .sb-composer-send {
+    width: 44px;
+    height: 44px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border: none;
+    border-radius: 12px;
+    background: var(--sb-accent);
+    color: #10141c;
+    cursor: pointer;
+}
+
+body.sb-shell .sb-composer-send:hover {
+    filter: brightness(1.08);
+}

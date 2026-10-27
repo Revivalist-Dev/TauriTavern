@@ -10,16 +10,13 @@ import { installBackNavigationBridge } from './back-navigation.js';
 import { installNativeShareBridge } from './share-target-bridge.js';
 import { deliverBlob, deliverRemoteFile } from '../../scripts/file-export.js';
 import { showExportFailureToast, showExportSuccessToast } from '../../scripts/download-feedback.js';
-import { hostPlatform, isDesktopHost, isMobileHost } from '../../scripts/util/host-identity.js';
-import { installMobileRuntimeCompat } from './compat/mobile/mobile-runtime-compat.js';
-import { installMobileWindowOpenCompat } from './compat/mobile/mobile-window-open-compat.js';
+import { isDesktopHost } from '../../scripts/util/host-identity.js';
 import { installDialogPolyfillCoverage } from './compat/dialog/dialog-polyfill-coverage.js';
 import { createTraceIdFactory, DEFAULT_TRACE_HEADER } from './kernel/tracing/trace.js';
 import { extractErrorText, resolveHostErrorResponse } from './kernel/host-error-response.js';
 import { isAbortError } from './kernel/abort-error.js';
 import { installMainApiOptionParking } from './adapters/st/main-api-selector-option-parking.js';
 import { installWorldInfoGlobalSelectorSelect2Enforcer } from './adapters/st/world-info-global-selector-select2-enforcer.js';
-import { confirmImageDownload } from './adapters/st/image-download-popup.js';
 import {
     installDesktopFullscreenShortcut,
     leaveDesktopFullscreenForShutdown,
@@ -241,8 +238,6 @@ export function bootstrapTauriMain() {
     if (perfEnabled) {
         safePerfMark('tt:tauri:bootstrap:start');
     }
-    const isMobile = isMobileHost();
-    if (isMobile) installMobileRuntimeCompat();
 
     installFrontendLogCapture();
     installDialogPolyfillCoverage();
@@ -338,8 +333,7 @@ export function bootstrapTauriMain() {
         deliverRemoteFile,
         notifyDownloadResult: showExportSuccessToast,
         notifyDownloadError: showExportFailureToast,
-        // Android WebView has no image context menu, so the bridge supplies that default action.
-        confirmImageDownload: hostPlatform() === 'android' ? confirmImageDownload : null,
+        confirmImageDownload: null,
     });
 
     interceptors.patchFetch();
@@ -347,16 +341,11 @@ export function bootstrapTauriMain() {
     downloadBridge.patchWindow();
     const runtimeCompat = (targetWindow) => {
         installDialogPolyfillCoverage(targetWindow);
-        if (isMobile) {
-            installMobileRuntimeCompat(targetWindow);
-        } else {
-            installDesktopFullscreenShortcut(targetWindow);
-        }
+        installDesktopFullscreenShortcut(targetWindow);
     };
     installSameOriginWindowPatches(interceptors, downloadBridge, {
         runtimeCompat,
     });
-    if (isMobile) installMobileWindowOpenCompat();
     preinstallPanelRuntime();
     const readyPromise = initializeTauriIntegration(
         context,
@@ -396,6 +385,11 @@ export function bootstrapTauriMain() {
     }
     runAfterTauriReady(() => import('./services/panel-runtime/install.js')
         .then(({ installPanelRuntime }) => installPanelRuntime()));
+    eventSource.once(event_types.APP_READY, () => {
+        void import('./ui/sillybunny-shell/index.js')
+            .then(({ installSillyBunnyShell }) => installSillyBunnyShell())
+            .catch((error) => { console.error('TauriTavern: Failed to install the SillyBunny shell:', error); });
+    });
 
     if (perfEnabled) {
         readyPromise
