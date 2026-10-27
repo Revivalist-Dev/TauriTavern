@@ -32,9 +32,11 @@ FasTools.exe
 
 # Build artifacts
 release
-.flatpak-build/
-.flatpak-builder/
-packaging/flatpak/build-identity.env
+
+# Local command output
+cargo-test.txt
+tauri-build.txt
+test-out.txt
 
 # Local upstream checkout (junction/symlink)
 sillytavern-*
