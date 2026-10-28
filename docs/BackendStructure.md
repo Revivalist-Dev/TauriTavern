@@ -209,6 +209,10 @@ Maintenance rules:
 - Adapters do not call application services.
 - `AppState` holds only the long-lived service bundle, lifecycle handles, and the startup policy snapshot; it does not sink into application or adapters as a global service locator.
 
+The composition input is `HostEnvironment` (`app/host/environment.rs`): the HTTP client pool, agent extension tools, and the optional generation background runtime. `app/composition/services/mod.rs` receives that environment plus the app root and data directory. The Windows fork passes `None` for the generation background runtime because that surface is out of scope; constructors accept the option instead of reaching into Tauri state.
+
+Perf instrumentation is behind the `perf` feature. `tests/perf/backend.mjs` replays the frontend suite's host-call trace through `tt-perf` and compares the working tree with HEAD using Windows process I/O counters. The Linux callgrind and macOS instruction-counter paths are not carried in this fork.
+
 ### 6.3 Host-bound infrastructure
 
 Only code that genuinely depends on `AppHandle`, the WebView, Tauri plugins, bundled resources, runtime paths, platform APIs, or the host lifecycle stays in `tauritavern/src/infrastructure` or `platform`.

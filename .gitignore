@@ -43,3 +43,4 @@ sillytavern-*
 
 # Layout test output
 tests/layout/artifacts/
+tests/perf/out/

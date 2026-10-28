@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use tauri::AppHandle;
 use tokio::sync::Semaphore;
 
 use tt_adapter_storage_core::file_system::DataDirectory;
@@ -18,7 +17,7 @@ use tt_application::services::tt_sync_service::TtSyncService;
 use tt_ports::lan_sync::{LanPeerRepository, LanServerControl, LanSyncSettingsRepository};
 use tt_ports::sync::DataChangeReconciler;
 
-use super::super::adapters;
+use super::super::{HostEnvironment, adapters};
 
 pub(super) struct SyncServices {
     pub(super) lan_sync_service: Arc<LanSyncService>,
@@ -27,7 +26,7 @@ pub(super) struct SyncServices {
 }
 
 pub(super) fn build(
-    app_handle: &AppHandle,
+    environment: &HostEnvironment,
     data_directory: &DataDirectory,
     data_change_reconciler: Arc<dyn DataChangeReconciler>,
     local_mutation_gate: Arc<Semaphore>,
@@ -44,9 +43,9 @@ pub(super) fn build(
     );
     let lan_settings_repository: Arc<dyn LanSyncSettingsRepository> = lan_settings_store.clone();
     let lan_peer_repository: Arc<dyn LanPeerRepository> = Arc::new(lan_peer_store.clone());
-    let sync_job_events = adapters::sync_job_events(app_handle);
-    let pairing_approval = adapters::pairing_approval(app_handle);
-    let lan_discovery = LanPeerDiscovery::new(adapters::lan_discovery_host(app_handle));
+    let sync_job_events = environment.sync_job_events.clone();
+    let pairing_approval = environment.pairing_approval.clone();
+    let lan_discovery = LanPeerDiscovery::new(environment.lan_discovery_host.clone());
     let tt_runtime = Arc::new(TtSyncRuntime::new(
         data_directory.root().to_path_buf(),
         data_directory.default_user().to_path_buf(),
@@ -78,7 +77,7 @@ pub(super) fn build(
         data_directory.root().to_path_buf(),
         lan_peer_store.clone(),
         lan_inbound_service.clone(),
-        adapters::lan_server_events(app_handle),
+        environment.lan_server_events.clone(),
         lan_discovery.clone(),
         database,
     ));
@@ -100,7 +99,7 @@ pub(super) fn build(
     ));
     let lan_sync_allowed = true;
     let sync_automation_service = Arc::new(SyncAutomationService::new(
-        adapters::sync_automation_events(app_handle),
+        environment.sync_automation_events.clone(),
         Arc::new(SyncAutomationStore::new(
             data_directory.default_user().to_path_buf(),
         )),

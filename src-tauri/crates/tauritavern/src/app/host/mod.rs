@@ -7,6 +7,7 @@
 
 #[cfg(feature = "control-api")]
 pub(crate) mod control;
+mod environment;
 mod observability;
 mod plugins;
 mod resources;
@@ -23,6 +24,7 @@ use tt_adapter_storage_core::commit_stage::PageGeneration;
 use crate::infrastructure::agent_extension_tools::AgentExtensionTools;
 use crate::presentation::commands::registry::invoke_handler;
 
+pub(crate) use environment::host_environment;
 #[cfg(target_os = "windows")]
 pub(crate) use shutdown::request_frontend_shutdown;
 
@@ -47,10 +49,8 @@ pub(crate) fn run() {
                 crate::presentation::commands::chat_swipe_commands::close_page_chat_resources(
                     webview,
                 );
-            }
-            #[cfg(feature = "control-api")]
-            if payload.event() == tauri::webview::PageLoadEvent::Finished {
-                control::install_bridge(webview);
+                #[cfg(feature = "control-api")]
+                crate::app::host::control::install_bridge(webview);
             }
         })
         .build(tauri::generate_context!())

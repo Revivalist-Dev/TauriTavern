@@ -39,6 +39,7 @@ import {
     getMethod,
     getMethodHint,
     jsonResponse,
+    ownedJsonResponse,
     readRequestBody,
     textResponse,
     toUrl,
@@ -273,7 +274,7 @@ export function bootstrapTauriMain() {
         window.__TAURITAVERN_PERF_READY__ = perfReadyPromise;
     }
     const router = createRouteRegistry();
-    registerRoutes(router, context, { jsonResponse, textResponse });
+    registerRoutes(router, context, { jsonResponse, ownedJsonResponse, textResponse });
 
     const nextTraceId = createTraceIdFactory('req');
 

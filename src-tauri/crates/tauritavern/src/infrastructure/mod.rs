@@ -8,7 +8,10 @@ pub mod logging;
 pub mod paths;
 pub mod persistence;
 pub mod repositories;
+#[cfg(desktop)]
 pub mod runtime_paths_config_store;
 pub mod staging;
+pub mod sync_host;
+#[cfg(target_os = "windows")]
 pub mod webview2_capture;
 pub mod zipkit;
