@@ -64,7 +64,7 @@ function isOrphanedThRender(host) {
 function restoreThRenderFallbackUi(host) {
     const button = host.querySelector(':scope > .TH-collapse-code-block-button');
     if (button instanceof HTMLElement) {
-        button.textContent = '显示前端代码块';
+        button.textContent = 'Show frontend code block';
         button.classList.remove(HIDDEN_CLASS);
         return;
     }

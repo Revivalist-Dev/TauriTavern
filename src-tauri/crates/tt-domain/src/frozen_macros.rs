@@ -347,8 +347,8 @@ mod tests {
     fn replays_values_once_with_aliases_and_literal_expressions() {
         let macros = FrozenMacros::from_context(
             &json!({
-                "names": { "char": "小明" },
-                "character": { "description": "{{char}}\n第二行", "personaPosition": 0 }
+                "names": { "char": "Alex" },
+                "character": { "description": "{{char}}\nA second line of text", "personaPosition": 0 }
             }),
             None,
         )
@@ -357,7 +357,7 @@ mod tests {
             macros
                 .render("{{CHAR}}: {{charDescription}} / {{personaPosition}}", 100)
                 .unwrap(),
-            "小明: {{char}}\n第二行 / 0"
+            "Alex: {{char}}\nA second line of text / 0"
         );
         for text in [
             "{{unknown}}",
@@ -369,7 +369,7 @@ mod tests {
         }
         assert_eq!(
             macros.render(r"\{{char}} \\{{char}}", 100).unwrap(),
-            r"{{char}} \小明"
+            r"{{char}} \Alex"
         );
         assert!(macros.render("{{description}}", 17).is_err());
     }

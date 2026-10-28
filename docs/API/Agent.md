@@ -1,8 +1,8 @@
 # Agent API
 
-`window.__TAURITAVERN__.api.agent` 提供 Chat 与 Session 运行、历史读取和 Profile 管理。框架说明从 [Agent](../Agent/README.md) 开始，完整 TypeScript 类型见 [src/types.d.ts](../../src/types.d.ts)。
+`window.__TAURITAVERN__.api.agent` runs chats and sessions, reads their history and manages profiles. For the framework itself start at [Agent](../Agent/README.md); for the full TypeScript types see [src/types.d.ts](../../src/types.d.ts).
 
-## 启动一次运行
+## Starting a run
 
 ```js
 await (window.__TAURITAVERN__?.ready ?? window.__TAURITAVERN_MAIN_READY__);
@@ -13,106 +13,106 @@ const unsubscribe = agent.subscribe(run.runId, event => {
   console.log(event.seq, event.type, event.payload);
 }, { onError: console.error });
 
-// 离开当前视图时调用 unsubscribe()。
+// Call unsubscribe() when you leave this view.
 ```
 
-该入口从当前聊天捕获生成输入，适用于 OpenAI/chat-completion 路径。普通发送、`/trigger`、regenerate 和生成新 swipe 在 Agent Mode 开启时使用同一套运行机制。
+This entry point captures generation inputs from the current chat and is meant for the OpenAI/chat-completion path. Ordinary sends, `/trigger`, regenerate and new swipe generation all use the same run machinery while Agent Mode is on.
 
-| 启动方法 | 输入 |
+| Start method | Input |
 | --- | --- |
-| `startRunFromLegacyGenerate(input?)` | 当前聊天与 Legacy Generate 选项 |
-| `startRunWithPromptSnapshot(input)` | 调用方已经组装好的 `promptSnapshot` 与 `chatRef` |
+| `startRunFromLegacyGenerate(input?)` | The current chat and the Legacy Generate options |
+| `startRunWithPromptSnapshot(input)` | A `promptSnapshot` and `chatRef` the caller has already assembled |
 
-共同选项有 `profileId`、`generationType`、`stableChatId`、`presentation` 和 `options.stream`。稳定聊天 ID 省略时由 Host API 解析。`options.stream` 省略时使用各 Invocation 的 Profile 设置，显式值覆盖整次 Run。
+The shared options are `profileId`, `generationType`, `stableChatId`, `presentation` and `options.stream`. When the stable chat ID is omitted, the Host API resolves it. When `options.stream` is omitted, each invocation uses its profile setting, and an explicit value overrides the entire run.
 
-两种 Chat 方法返回 `{ runId, status, workspaceId, stableChatId, generationType }`。Snapshot 使用 `{ contextPolicy, messages, generationParameters, acceptsImages? }`，消息为 `AgentModelMessage[]`；Legacy `chatCompletionPayload` 在入口适配，Chat 输入不能注入外部工具回合。冻结输入与组装规则见 [Prompt assembly](../Agent/PromptAssembly.md)。
+Both chat methods return `{ runId, status, workspaceId, stableChatId, generationType }`. A snapshot uses `{ contextPolicy, messages, generationParameters, acceptsImages? }`, with messages as `AgentModelMessage[]`; a Legacy `chatCompletionPayload` is adapted at the entry point, and chat inputs cannot inject external tool turns. For frozen inputs and assembly rules, see [Prompt assembly](../Agent/PromptAssembly.md).
 
-`acceptsImages` 的公开默认值为 false；判定与 Invocation 生命周期见 [Prompt assembly](../Agent/PromptAssembly.md#一种组装一个-live-例外)。
+The public default for `acceptsImages` is false; for how it is decided and for its invocation lifecycle, see [Prompt assembly](../Agent/PromptAssembly.md#one-assembly-one-live-exception).
 
-canonical snapshot 的指令消息以 Text part 保存正文，并携带 `providerMetadata.promptComponent: "agentSystemPrompt"`，供 runtime 追加目录。旧 Chat 输入仍接受字符串 `content` 与 `_tauritavern_prompt_component: "agentSystemPrompt"`。共同 PromptManager 自动提供标记，标记不会发送给模型。
+In a canonical snapshot the instruction message stores its body as a Text part and carries `providerMetadata.promptComponent: "agentSystemPrompt"` so that the runtime can append the catalog. Legacy chat input still accepts a string `content` and `_tauritavern_prompt_component: "agentSystemPrompt"`. The shared PromptManager supplies the marker automatically, and the marker is never sent to the model.
 
-手工 snapshot 需要委派或交接时须携带 `frozenRunInputSnapshot`，当前预设及其 Skill 作用域都从中取得。
+A hand-built snapshot that needs delegation or handoff must carry `frozenRunInputSnapshot`, from which both the current preset and its skill scopes are taken.
 
-## 持续 Session
+## Persistent sessions
 
-Session 独立于角色聊天和写作 Agent Mode。使用前通过 `sessions.profile.save()` 保存[共享配置](../Agent/ProfilesAndPreset.md#session-配置)，此后每次发送读取最新配置。
+A session is independent of character chat and of the writing Agent Mode. Before using one, save the [shared configuration](../Agent/ProfilesAndPreset.md#session-configuration) with `sessions.profile.save()`; every send after that reads the latest configuration.
 
-| 方法 | 返回内容 |
+| Method | Returns |
 | --- | --- |
-| `sessions.profile.load()` | `{ profile }`；尚未配置时为 `{ profile: null }` |
-| `sessions.profile.save(profile)` | 保存共享的 `AgentProfileDefinition` |
-| `sessions.create()` | `{ session }`；元数据为 `{ id, createdAt, title, lastUsedAt }` |
-| `sessions.list()` | `{ sessions, activeRuns }`；仅会话元数据目录与活动 Run handles |
-| `sessions.rename({ sessionId, title })` | `{ session }`；标题 trim 后为 1–120 字符 |
-| `sessions.delete({ sessionId })` | 删除会话数据；活动会话拒绝删除，目标已不存在时成功 |
+| `sessions.profile.load()` | `{ profile }`; `{ profile: null }` before anything is configured |
+| `sessions.profile.save(profile)` | Saves the shared `AgentProfileDefinition` |
+| `sessions.create()` | `{ session }`; the metadata is `{ id, createdAt, title, lastUsedAt }` |
+| `sessions.list()` | `{ sessions, activeRuns }`; the session metadata catalog and active run handles only |
+| `sessions.rename({ sessionId, title })` | `{ session }`; the trimmed title must be 1-120 characters |
+| `sessions.delete({ sessionId })` | Deletes the session data; an active session refuses deletion, and a target that no longer exists succeeds |
 | `sessions.read({ sessionId, beforeSeq?, limit? })` | `{ session, messages, lastSeq, nextBeforeSeq, activeRun }` |
-| `sessions.send({ sessionId, text, variables? })` | `{ sessionId, runId, status, createdAt }`；执行在原生端继续 |
-| `sessions.compact({ sessionId })` | 同上；这次 Run 只压缩上下文，不回复 |
+| `sessions.send({ sessionId, text, variables? })` | `{ sessionId, runId, status, createdAt }`; execution continues natively |
+| `sessions.compact({ sessionId })` | As above; this run only compacts context and does not reply |
 
 ```js
-// 已配置 Session Profile；agent 的取得方式同上。
+// Session profile already configured; the agent is obtained as above.
 const { session } = await agent.sessions.create();
-const run = await agent.sessions.send({ sessionId: session.id, text: '查看 work/ 中的文件。' });
+const run = await agent.sessions.send({ sessionId: session.id, text: 'Look at the files in work/.' });
 ```
 
-`variables.local` 是本次宏求值的局部变量，省略时为空；全局变量在 `send` 开始时复制。宏写入只影响本次工作副本，详见[宏求值 API](Macros.md)。
+`variables.local` holds local variables for this macro evaluation and is empty when omitted; global variables are copied when `send` begins. Macro writes affect only that working copy, as described in the [macro evaluation API](Macros.md).
 
-保存 `session.id` 供后续读取和发送。`send` 返回后执行仍在继续，通过 `subscribe(run.runId, ...)` 观察终态，再发送下一条。忙碌或准备输入过期时 reject，不自动重试。
+Keep `session.id` for later reads and sends. Execution continues after `send` returns, so observe the terminal state through `subscribe(run.runId, ...)` before sending the next message. A busy session, or inputs prepared too long ago, reject instead of retrying automatically.
 
-`title`、`lastUsedAt` 未设置或旧数据缺字段时为 null。用户消息落盘时更新 `lastUsedAt`，未命名时生成短标题。目录按 `lastUsedAt ?? createdAt` 降序排列；改名不改变排序。
+`title` and `lastUsedAt` are null when unset or when older data is missing the field. `lastUsedAt` is updated when a user message is written, and an unnamed session is given a short title. The catalog is sorted by `lastUsedAt ?? createdAt` in descending order; renaming does not change the order.
 
-历史由后端保存；收到 `session_message_appended` 后可调用 `sessions.read()` 更新界面，实时进度沿用 `subscribeLiveProjection()`。历史页按 seq 升序返回，每项为 `{ seq, runId, createdAt, message, origin?, compaction? }`；`nextBeforeSeq` 用于向前翻页，`activeRun` 为活动 handle 或 null。
+History is stored by the backend; after `session_message_appended` arrives you can call `sessions.read()` to update the UI, and live progress continues through `subscribeLiveProjection()`. A history page comes back in ascending seq order, each item as `{ seq, runId, createdAt, message, origin?, compaction? }`; `nextBeforeSeq` pages backwards, and `activeRun` is an active handle or null.
 
-`origin: { invocationId, round }` 关联 assistant/tool 消息及压缩记录所属的回合，不进入模型消息；用户自己的消息没有 origin，旧历史也可缺少它。Session seq 标识持久消息。压缩记录为 user 角色，两个 Text part 分别保存说明和摘要，并带 `compaction: { keptFromSeq: number | null, tokensBefore: number, tokensAfter: number }`；它不是用户发言，不更新标题或 `lastUsedAt`，也不替代同 origin 的模型回复。`keptFromSeq` 指向保留的完整组起点，null 表示没有保留组。
+`origin: { invocationId, round }` associates assistant and tool messages, and compaction records, with the round they belong to; it never enters model messages. A user's own messages have no origin, and older history may lack it too. A session seq identifies a persisted message. A compaction record has the user role, with two Text parts holding the explanation and the summary respectively, plus `compaction: { keptFromSeq: number | null, tokensBefore: number, tokensAfter: number }`; it is not a user utterance, does not update the title or `lastUsedAt`, and does not replace the model reply with the same origin. `keptFromSeq` points at the start of the retained whole group, and null means no group was retained.
 
-Session 的 snapshot 另带 `contextLimits: { context, response, tokenizerModel }`，由组装时的有效模型设置提供。压缩的规则见[运行循环](../Agent/Runtime.md#session-上下文压缩)，状态与事件见[运行日志](../Agent/RunEventJournal.md#一条事件)。常见失败码：
+A session snapshot additionally carries `contextLimits: { context, response, tokenizerModel }`, supplied by the effective model settings at assembly time. For compaction rules see [the run loop](../Agent/Runtime.md#session-context-compaction), and for states and events see [the run journal](../Agent/RunEventJournal.md#one-event). Common failure codes:
 
-| 错误码 | 含义 |
+| Error code | Meaning |
 | --- | --- |
-| `agent.session_history_window_unsupported` | Session Profile 的历史窗口不是 `-1` |
-| `agent.session_context_limits_missing` | 快照缺少有效的 `contextLimits` |
-| `agent.session_context_limits_invalid` | `contextLimits.context` 不大于 `contextLimits.response` |
-| `agent.context_full` | 上下文无法通过压缩降到压缩点以下 |
-| `agent.nothing_to_compact` | 手动压缩时，较早部分都在保留范围内 |
-| `agent.compaction_failed` | 模型未按要求产出摘要、回复截断或输入无法缩小到可摘要的范围 |
-| `model.context_overflow` | 服务商报告超窗；本轮压缩恢复后仍失败时传播 |
+| `agent.session_history_window_unsupported` | The session profile's history window is not `-1` |
+| `agent.session_context_limits_missing` | The snapshot has no valid `contextLimits` |
+| `agent.session_context_limits_invalid` | `contextLimits.context` is not greater than `contextLimits.response` |
+| `agent.context_full` | Compaction cannot bring the context below the compaction point |
+| `agent.nothing_to_compact` | On a manual compaction, the earlier part is entirely inside the kept range |
+| `agent.compaction_failed` | The model did not produce a summary as required, the reply was truncated, or the input could not be reduced to a summarizable range |
+| `model.context_overflow` | The provider reported an overflow; propagated when this round still fails after compaction recovery |
 
-Session 的结束与恢复边界见 [运行循环](../Agent/Runtime.md)，文件保留规则见 [Workspace](../Agent/Workspace.md#session-的持续工作区)。
+For where a session ends and how it is recovered, see [the run loop](../Agent/Runtime.md); for file retention rules see [Workspace](../Agent/Workspace.md#the-persistent-session-workspace).
 
-## 控制与订阅
+## Control and subscription
 
-| 方法 | 行为 |
+| Method | Behavior |
 | --- | --- |
-| `cancel(runId)` | 请求取消，返回 Chat handle 或 `{ sessionId, runId, status, createdAt }`；终态通过事件观察 |
-| `readCheckpoint(runId)` | 读取保存状态及可恢复性信息 |
-| `resume({ runId, revisionGuidance? })` | 续接同一 Run，或根据新要求修订已完成输出；返回含订阅游标 `afterSeq` 的 Run handle |
-| `submitGuidance({ runId, text, clientGuidanceId? })` | 向活跃 Run 补充指令，返回 `guidanceId` 与 `status: 'queued'` |
-| `subscribe(runId, handler, options?)` | 订阅持久事件，返回可重复调用的 unsubscribe |
-| `subscribeLiveProjection(runId, handler, options?)` | 订阅当前正文、推理文字及文件工具参数预览，返回 unsubscribe |
+| `cancel(runId)` | Requests cancellation and returns the chat handle or `{ sessionId, runId, status, createdAt }`; observe the terminal state through events |
+| `readCheckpoint(runId)` | Reads the saved state and the recoverability information |
+| `resume({ runId, revisionGuidance? })` | Continues the same run, or revises a completed output against new instructions; returns a run handle that carries the subscription cursor `afterSeq` |
+| `submitGuidance({ runId, text, clientGuidanceId? })` | Adds instructions to an active run and returns `guidanceId` with `status: 'queued'` |
+| `subscribe(runId, handler, options?)` | Subscribes to persisted events and returns an unsubscribe that may be called repeatedly |
+| `subscribeLiveProjection(runId, handler, options?)` | Subscribes to the current body text, reasoning text and file tool argument previews; returns an unsubscribe |
 
-Chat 补充指令在下一次前台模型请求前加入上下文，已经发出的请求保持原样。尚未消费的指令随续接保留。该接口不创建聊天消息。
+A chat guidance message enters the context before the next foreground model request; requests already sent are left as they are. Guidance that has not been consumed survives a resume. This interface does not create chat messages.
 
-`subscribe` 的选项是 `afterSeq`、`limit`、`intervalMs`、`onError`，默认从起点读取。实时预览只接受 `onError`；历史过程从持久事件读取。退订后不再交付回调，包括在途请求的结果与错误。
+`subscribe` takes `afterSeq`, `limit`, `intervalMs` and `onError`, and reads from the start by default. The live preview accepts only `onError`; past progress is read from persisted events. Once unsubscribed, no further callbacks are delivered, including results and errors from in-flight requests.
 
-实时通道使用以下共同协议（不写入持久 journal）：
+The live channel uses the following shared protocol, which is not written to the persistent journal:
 
-| update.type | 内容 |
+| `update.type` | Contents |
 | --- | --- |
-| `snapshot` | `{ calls, responses }`，替换当前投影 |
-| `responseReplace` | `{ response }`，新的模型回合或重试 |
-| `responseAppend` | `{ invocationId, text, reasoning, toolIds }`，三个字段分别追加 |
-| `responseRemove` | `{ invocationId }`，移除本次临时响应 |
-| `replace` / `append` / `remove` | 既有文件工具参数投影 |
+| `snapshot` | `{ calls, responses }`, replacing the current projection |
+| `responseReplace` | `{ response }`, a new model round or a retry |
+| `responseAppend` | `{ invocationId, text, reasoning, toolIds }`, appending the three fields separately |
+| `responseRemove` | `{ invocationId }`, removing this transient response |
+| `replace` / `append` / `remove` | The existing file tool argument projections |
 
-`response` 包含 `invocationId`、`invocationExitPolicy`、`round`、`attempt`、`text`、`reasoning`、`toolIds`。正文与思考共用回合/尝试身份，完成快照不重复发送增量。正式 assistant 按 `runId + invocationId + round` 接替对应 attempt 的预览，须处理事件与 Channel 的任意到达顺序。失败、取消及终态清除预览，不将其写入历史。写作 Timeline 只消费 reasoning，Chat 正文仍走文件提交。
+`response` contains `invocationId`, `invocationExitPolicy`, `round`, `attempt`, `text`, `reasoning` and `toolIds`. Body text and reasoning share the round and attempt identity, and a completed snapshot does not resend increments. The real assistant message takes over the matching attempt's preview keyed by `runId + invocationId + round`, so handle events and Channel updates that arrive in any order. Failure, cancellation and terminal states clear the preview without writing it to history. The writing Timeline consumes reasoning only, while chat body text still goes through file commits.
 
-`resume` 保留原始输入与已确认结果，要求当前聊天及消息仍属于原 Run；普通重新生成仍创建新 Run。续接订阅使用返回的 `afterSeq`，恢复条件见 [运行循环](../Agent/Runtime.md#checkpoint-与恢复)。
+`resume` keeps the original inputs and confirmed results and requires that the current chat and messages still belong to the original run; an ordinary regenerate still creates a new run. Subscribe to a resumed run with the returned `afterSeq`; for recovery conditions see [the run loop](../Agent/Runtime.md#checkpoints-and-recovery).
 
-传入 `revisionGuidance` 时，从已完成的 checkpoint 开始新的前台 Invocation，继承上下文与原 Profile。聊天命令 `/fix 修改要求` 使用这一入口，原地修改最后一条 Agent 回复的当前 swipe，以当前已保存的正文为基准。
+With `revisionGuidance`, a new foreground invocation starts from the completed checkpoint and inherits the context and the original profile. The chat command `/fix <change request>` uses this entry point to revise the current swipe of the last agent reply in place, working from the saved body text.
 
-v1 checkpoint 仅支持查看状态和修订已完成的 Run；首次修订时转换，范围见 [运行循环](../Agent/Runtime.md#checkpoint-与恢复)。
+A v1 checkpoint supports only reading state and revising a completed run; it is converted on the first revision, and the scope is set out in [the run loop](../Agent/Runtime.md#checkpoints-and-recovery).
 
-## 历史与详情
+## History and details
 
 ```js
 const page = await agent.listRuns({ stableChatId, limit: 20 });
@@ -128,57 +128,57 @@ const { events, timelineProjection } = await agent.readEvents({
 });
 ```
 
-| 方法 | 返回内容 |
+| Method | Returns |
 | --- | --- |
-| `listRuns({ chatRef?, stableChatId?, statuses?, before?, limit? })` | `{ runs, nextCursor? }`，按创建时间倒序；`before` 为 `{ createdAt, runId }`，最多 200 条 |
-| `readEvents({ runId, afterSeq?, beforeSeq?, limit?, invocationId?, includeTimelineProjection? })` | `{ events, timelineProjection? }`，事件按序号升序，单页最多 500 条 |
+| `listRuns({ chatRef?, stableChatId?, statuses?, before?, limit? })` | `{ runs, nextCursor? }` in reverse creation order; `before` is `{ createdAt, runId }`, at most 200 items |
+| `readEvents({ runId, afterSeq?, beforeSeq?, limit?, invocationId?, includeTimelineProjection? })` | `{ events, timelineProjection? }`, events in ascending sequence order, at most 500 per page |
 | `readWorkspaceFile({ runId, path })` | `{ path, text, chars, words, sha256 }` |
-| `readWorkspaceBytes({ runId, path })` | `Uint8Array`；上限 1,000,000 字节，用于读取工具结果图片 |
-| `readModelTurn({ runId, invocationId?, round, maxChars? })` | assistant 文本、可见 reasoning、工具调用与 provider 摘要 |
-| `readTaskDetail({ runId, taskId, includeResult? })` | 任务说明、当前状态及按需读取的结果 |
+| `readWorkspaceBytes({ runId, path })` | `Uint8Array`; capped at 1,000,000 bytes, for reading tool result images |
+| `readModelTurn({ runId, invocationId?, round, maxChars? })` | Assistant text, visible reasoning, tool calls and the provider summary |
+| `readTaskDetail({ runId, taskId, includeResult? })` | The task description, its current state and, on request, the result |
 
-`listRuns` 保持 Chat 历史范围；Session 对话使用 `sessions.read`，按 runId 的事件、模型回合及工作区详情读取可用于两种 Run。`beforeSeq` 读取该序号之前最近的一页，`afterSeq` 用于向前追新。`invocationId` 先筛选归属再分页，适合子 Agent 的局部 Timeline。`timelineProjection` 包含整个 Run 的 Invocation 和委派关系，独立于当前事件页。
+`listRuns` stays within chat history scope; session conversations use `sessions.read`, while events, model turns and workspace details read by runId work for both kinds of run. `beforeSeq` reads the most recent page before that sequence number, and `afterSeq` is for catching up forwards. `invocationId` filters by ownership before paging, which suits a sub-agent's local Timeline. `timelineProjection` covers the invocations and delegation relations of the whole run and is independent of the current event page.
 
-`readModelTurn` 的 `round` 从 1 开始，省略 `invocationId` 时读取根 Agent。`maxChars` 限制展示文本，字词总数仍对应完整内容。
+`readModelTurn`'s `round` starts at 1, and omitting `invocationId` reads the root agent. `maxChars` limits the displayed text, while the character and word totals still describe the full content.
 
-`readTaskDetail` 把委派的 `task` 和交接的 `handoff` 统一放在返回值的 `task` 字段，保留自定义字段。状态是读取时的状态。`includeResult` 默认 `false`；设为 `true` 时，若有结果则返回 `{ summary, summaryRef, output }`，否则 `result` 为 `null`。
+`readTaskDetail` puts both a delegated `task` and a handoff under the return value's `task` field and preserves custom fields. The state is the state at read time. `includeResult` defaults to `false`; when it is `true`, the result is `{ summary, summaryRef, output }` if one exists, and `result` is `null` otherwise.
 
-模型回合、任务详情、工具目录与 Timeline 关系属于随项目演进的 UI 投影（Project Contract）。界面通过这些 API 读取内容，具体类型集中在 `src/types.d.ts`。日志语义见 [运行日志](../Agent/RunEventJournal.md)。
+Model turns, task details, the tool catalog and Timeline relations are UI projections that evolve with the project (a Project Contract). The UI reads its content through these APIs, and the concrete types live in `src/types.d.ts`. For log semantics see [the run journal](../Agent/RunEventJournal.md).
 
-## Profile、提示词与工具目录
+## Profiles, prompts and the tool catalog
 
-| 方法 | 用途 |
+| Method | Purpose |
 | --- | --- |
-| `profiles.list()` | 返回 Profile 列表及文件诊断 |
-| `profiles.load(profileId)` | 返回 `{ profile }` |
-| `profiles.save(profile)` / `delete(profileId)` | 保存或删除配置 |
-| `profiles.diagnose(profileId)` | 检查预设、模型、工具等引用 |
-| `profiles.resolveSystemPrompt({ profileId? })` | 返回 `{ agentSystemPrompt }` |
-| `profiles.repairFile({ profileId, action })` | 删除损坏配置或规范化身份；action 为 `delete`、`normalizeIdentity` |
-| `profiles.retargetPresetRefs({ from, to })` | 预设重命名后更新普通 Profile 和共享 Session Profile 的匹配引用；两端都是 `{ apiId, name }` |
-| `promptAssembly.prepare(input)` | 解析 Profile 与冻结输入，返回组装模式及请求 |
-| `promptAssembly.buildSnapshot(request)` | 在前端运行 PromptManager，生成 snapshot |
-| `promptAssembly.buildCurrentModelConnectionSnapshot(input)` | 根据当前设置生成连接快照 |
-| `promptAssembly.applyCurrentModelConnectionSnapshot(input)` | 把连接快照应用到组装设置 |
-| `tools.list({ context? }?)` | 返回 `{ tools, diagnostics }`，包含内置、可用 MCP 及已注册扩展工具；context 可为 `chat` 或 `session` |
-| `tools.register(definition, execute)` | 注册普通 JS 工具函数，返回 `Promise<void>` |
-| `tools.setEnabled(toolId, enabled)` | 启用或关闭已注册的扩展工具，不删除函数或改写 Profile |
+| `profiles.list()` | Returns the profile list and file diagnostics |
+| `profiles.load(profileId)` | Returns `{ profile }` |
+| `profiles.save(profile)` / `delete(profileId)` | Saves or deletes a configuration |
+| `profiles.diagnose(profileId)` | Checks references to presets, models, tools and so on |
+| `profiles.resolveSystemPrompt({ profileId? })` | Returns `{ agentSystemPrompt }` |
+| `profiles.repairFile({ profileId, action })` | Deletes a broken configuration or normalizes its identity; action is `delete` or `normalizeIdentity` |
+| `profiles.retargetPresetRefs({ from, to })` | After a preset is renamed, updates matching references in ordinary profiles and in the shared session profile; both ends are `{ apiId, name }` |
+| `promptAssembly.prepare(input)` | Resolves the profile and the frozen inputs, and returns the assembly mode and the requests |
+| `promptAssembly.buildSnapshot(request)` | Runs PromptManager in the frontend and produces the snapshot |
+| `promptAssembly.buildCurrentModelConnectionSnapshot(input)` | Produces a connection snapshot from the current settings |
+| `promptAssembly.applyCurrentModelConnectionSnapshot(input)` | Applies a connection snapshot to the assembly settings |
+| `tools.list({ context? }?)` | Returns `{ tools, diagnostics }` covering built-in tools, available MCP tools and registered extension tools; context is `chat` or `session` |
+| `tools.register(definition, execute)` | Registers a plain JS tool function and returns `Promise<void>` |
+| `tools.setEnabled(toolId, enabled)` | Enables or disables a registered extension tool without deleting the function or rewriting the profile |
 
-Profile 的用法见 [配置指南](../Agent/ProfilesAndPreset.md)。`tools.list()` 返回稳定工具 ID、描述和参数 schema；模型调用名称属于 Invocation 快照。
+For how to use profiles, see the [configuration guide](../Agent/ProfilesAndPreset.md). `tools.list()` returns stable tool IDs, descriptions and argument schemas; the names the model calls belong to the invocation snapshot.
 
-`profiles.retargetPresetRefs` 返回 `{ updated, profileIds, sessionProfileUpdated }`；总数 `updated` 包含共享配置，`profileIds` 只列普通 Profile。
+`profiles.retargetPresetRefs` returns `{ updated, profileIds, sessionProfileUpdated }`; the total `updated` includes the shared configuration, while `profileIds` lists ordinary profiles only.
 
-`profiles.resolveSystemPrompt` 返回 Profile 指令正文；运行时目录的追加规则见 [Prompt assembly](../Agent/PromptAssembly.md#skill-与-agent-目录)。
+`profiles.resolveSystemPrompt` returns the profile's instruction body; for how the runtime appends its catalog see [Prompt assembly](../Agent/PromptAssembly.md#skill-and-agent-catalogs).
 
-## 注册扩展工具
+## Registering extension tools
 
-在扩展启动入口注册普通 JS 函数，可直接使用模块引用和闭包。稳定 ID 为 `extension/<extensionId>:<name>`，重复注册报错；注册持续到主页面 reload，与面板开关无关。
+Register a plain JS function in the extension's startup entry point; module references and closures are available directly. The stable ID is `extension/<extensionId>:<name>`, and a duplicate registration reports an error. Registration persists until the main page reloads and is independent of the panel switch.
 
 ```js
 await agent.tools.register({
     extensionId: 'my-extension',
     name: 'read_auto_reply_settings',
-    description: '读取自动回复的启用状态。',
+    description: 'Reads whether automatic replies are enabled.',
     inputSchema: { type: 'object', properties: {} },
     contexts: ['chat', 'session'],
     enabled: true,
@@ -189,50 +189,50 @@ await agent.tools.register({
 await agent.tools.setEnabled('extension/my-extension:read_auto_reply_settings', false);
 ```
 
-模型以 `name` 为调用名称基础，命名与结果表达遵循 [工具契约](../Agent/ToolSystem.md)。`description` 说明用途与必要限制，返回值和错误说明实际结果或具体问题。
+The model uses `name` as the basis for its call name, and naming and result expression follow the [tool contract](../Agent/ToolSystem.md). `description` states the purpose and any necessary limits, while return values and errors state the actual outcome or the specific problem.
 
-`contexts` 必填且非空，`enabled` 默认 true；注册后仍需在 [Profile](../Agent/ProfilesAndPreset.md#调整工作方式) 中选择工具。关闭后不再接受新调用，已开始的调用继续执行，`list()` 仍包含关闭条目。开关持久化由扩展自己的设置或 `api.extension.store` 负责，页面 reload 后按保存的值重新注册。
+`contexts` is required and must be non-empty, and `enabled` defaults to true; after registering, the tool still has to be selected in a [profile](../Agent/ProfilesAndPreset.md#adjusting-how-the-agent-works). A disabled tool accepts no new calls, calls already under way continue, and `list()` still includes the disabled entry. Persisting the switch is the extension's own responsibility, through its settings or `api.extension.store`, and it re-registers according to the saved value after a page reload.
 
-回调接收 JSON 对象参数与执行上下文，其中 `target` 指向本次 Run 所属的 Chat 或 Session，与当前 UI 无关；`signal: AbortSignal` 提供合作式取消，不回滚已发生的操作。完整字段见 [类型定义](../../src/types.d.ts)。
+The callback receives JSON object arguments and an execution context in which `target` points at the chat or session the run belongs to, independent of the current UI, and `signal: AbortSignal` offers cooperative cancellation that does not roll back operations already performed. For the full fields see the [type definitions](../../src/types.d.ts).
 
-图片通过 `context.attachImage(blob)` 附加，函数的 JSON 返回值描述结果。规范化、存储和上下文留存见 [工具结果](../Agent/ToolSystem.md#结果如何进入下一轮)。
+Attach images with `context.attachImage(blob)`, and describe the result in the function's JSON return value. For normalization, storage and context retention see [tool results](../Agent/ToolSystem.md#how-results-enter-the-next-round).
 
-`returnsImages` 默认 false；声明和绑定规则见 [扩展工具](../Agent/ToolSystem.md#扩展工具)。
+`returnsImages` defaults to false; for the declaration and binding rules see [extension tools](../Agent/ToolSystem.md#extension-tools).
 
-函数可异步返回 JSON 值，顶层 `undefined` 按 `null` 返回；抛错或无法通过 JSON IPC 传输时报告工具错误。60 秒无回执时请求取消该调用，将“执行结果未知”作为工具错误交给模型继续处理，不自动重发；脚本可能仍在运行，后续操作应先核查状态。用户主动取消仍结束 Run。
+A function may return a JSON value asynchronously, and a top-level `undefined` comes back as `null`; a thrown error, or a value that cannot cross the JSON IPC boundary, reports a tool error. If there is no acknowledgement for 60 seconds, the call is asked to cancel and "execution result unknown" is handed to the model as a tool error so that it can continue, with no automatic resend; the script may still be running, so later operations should check the state first. A user-initiated cancellation still ends the run.
 
-## 保留策略
+## Retention policy
 
 ```js
 const settings = await agent.retention.readSettings();
 const plan = await agent.retention.planPrune({ detailLimit: 20 });
 ```
 
-| 方法 | 行为 |
+| Method | Behavior |
 | --- | --- |
-| `retention.readSettings()` | 返回自动清理开关及两个保留数量 |
-| `retention.updateSettings(patch)` | 保存部分设置 |
-| `retention.planPrune({ retention?, detailLimit? })` | 预览清理范围和统计 |
-| `retention.applyPrune({ retention?, detailLimit? })` | 重新计算并执行清理，返回结果和 `afterPlan` |
+| `retention.readSettings()` | Returns the auto-prune switch and the two retention counts |
+| `retention.updateSettings(patch)` | Saves a partial update |
+| `retention.planPrune({ retention?, detailLimit? })` | Previews the prune range and the statistics |
+| `retention.applyPrune({ retention?, detailLimit? })` | Recomputes and performs the cleanup, returning the result and `afterPlan` |
 
-此清理范围为 Chat Run，不包含 Session。设置包括 `autoPruneEnabled`、`keepRecentTerminalRuns`、`keepFullRecentRuns`。完整保留数量不得大于核心历史数量；自动清理默认关闭。一次性 `retention` 参数只覆盖本次操作的保留数量。
+Pruning covers chat runs and never sessions. The settings are `autoPruneEnabled`, `keepRecentTerminalRuns` and `keepFullRecentRuns`. The full-retention count must not exceed the core history count, and auto-prune is off by default. A one-off `retention` argument overrides the retention counts for that operation only.
 
-预览区分缩减材料和整次删除，并返回不能清理的 Run。执行结果中的 `failedRuns` 表示未完成的项目。`detailLimit` 只控制返回明细数量，不改变执行范围或总计。
+A preview distinguishes reducing material from deleting a whole run, and returns the runs that cannot be pruned. `failedRuns` in the result holds the items that did not finish. `detailLimit` only controls how many details come back; it changes neither the scope nor the totals.
 
-## 宿主生命周期
+## Host lifecycle
 
-聊天提交由 runtime 与宿主协作完成；模型用 `workspace.commit` 请求提交。宿主调用 `settleChatPresentation({ runId })` 等待消息呈现与 checkpoint 保存；失败后可重试，已完成的消息写入不会重复执行。
+Committing a chat is a joint effort between the runtime and the host; the model requests a commit with `workspace.commit`. The host calls `settleChatPresentation({ runId })` and waits for the message to be presented and the checkpoint saved; a failure can be retried, and message writes that already completed are not repeated.
 
-聊天分叉时，`copyChatPersistentStates({ sourceChatRef, sourceStableChatId, targetChatRef, targetStableChatId })` 复制持久版本。删除消息或 swipe 后，`pruneChatPersistentStates({ chatRef?, stableChatId?, candidateStateIds })` 清理明确列出的、已不再被当前聊天引用的版本；该清理入口目前支持角色聊天。
+When a chat is forked, `copyChatPersistentStates({ sourceChatRef, sourceStableChatId, targetChatRef, targetStableChatId })` copies the persistent versions. After messages or swipes are deleted, `pruneChatPersistentStates({ chatRef?, stableChatId?, candidateStateIds })` clears the explicitly listed versions that the current chat no longer references; this pruning entry point currently supports character chats only.
 
-`approveToolCall()` 是未实现的预留入口，调用会抛错。当前没有通用 rollback API。
+`approveToolCall()` is a reserved entry point that is not implemented and throws when called. There is no general rollback API today.
 
-## 错误与实现
+## Errors and implementation
 
-异步方法失败时 reject；订阅错误通过 `onError` 传递。运行失败原因保存在日志，错误发生在已有确认提交之后时，Run 会保留输出并以 `partial_success` 结束。
+Asynchronous methods reject on failure; subscription errors travel through `onError`. The reason a run failed is kept in the log, and when the failure comes after a confirmed commit the run keeps its output and ends as `partial_success`.
 
-- [types.d.ts](../../src/types.d.ts)：接口参数与返回类型。
-- [agent.js](../../src/tauri/main/api/agent.js)：API 安装、启动与宿主桥接。
-- [agent-run-runtime.js](../../src/tauri/main/api/agent-run-runtime.js)：控制、订阅和读取。
-- [agent-sessions.js](../../src/tauri/main/api/agent-sessions.js)：Session SDK 与共享 Profile。
-- [agent_commands.rs](../../src-tauri/crates/tauritavern/src/presentation/commands/agent_commands.rs)：Rust command 边界。
+- [types.d.ts](../../src/types.d.ts): interface parameters and return types.
+- [agent.js](../../src/tauri/main/api/agent.js): API installation, startup and host bridging.
+- [agent-run-runtime.js](../../src/tauri/main/api/agent-run-runtime.js): control, subscription and reads.
+- [agent-sessions.js](../../src/tauri/main/api/agent-sessions.js): the session SDK and the shared profile.
+- [agent_commands.rs](../../src-tauri/crates/tauritavern/src/presentation/commands/agent_commands.rs): the Rust command boundary.

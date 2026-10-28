@@ -1,12 +1,12 @@
 # `window.__TAURITAVERN__.api.mcp` — MCP Manager API
 
-本文档描述已经落地的 MCP Manager Host ABI，以及 Agent 与 Legacy generation 的消费契约。MCP 是独立平台能力；当前提供 registration、persistent tool catalog、model-facing tool description override、显式 refresh、第一方 Manager test call，并由 Agent 与 Legacy generation 消费 cached tools。
+This document describes the MCP Manager host ABI as shipped, together with the consumption contracts for Agent and Legacy generation. MCP is a standalone platform capability: it provides registration, a persistent tool catalog, model-facing tool description overrides, explicit refresh and a first-party Manager test call, and both Agent and Legacy generation consume the cached tools.
 
-状态：Manager、Agent 与 Legacy generation 集成已实现，Project Contract（实验性）。
+Status: the Manager, Agent and Legacy generation integrations are implemented. This is a Project Contract (experimental).
 
-第一方管理 UI 位于 Extensions 抽屉的 MCP 内置扩展中。该扩展只是 `api.mcp` 的 React/strict TSX presentation；TauriTavern Settings 不再提供平行入口。
+The first-party management UI lives in the built-in MCP extension in the Extensions drawer. That extension is only a React/strict TSX presentation of `api.mcp`; TauriTavern Settings no longer offers a parallel entry point.
 
-## 1. 入口
+## 1. Entry point
 
 ```js
 await (window.__TAURITAVERN__?.ready ?? window.__TAURITAVERN_MAIN_READY__);
@@ -57,7 +57,7 @@ type TauriTavernMcpApi = {
 };
 ```
 
-没有 `connect`、`disconnect` 或 `connected`。只有 cold discovery、显式 refresh 和 test call 才建立短生命周期 RMCP client；memory/disk catalog hit 不连接 server。`active` 表示允许读取该 registration 的 snapshot，并在需要时向其 endpoint 发起 discovery 或用户 test call。
+There is no `connect`, `disconnect` or `connected`. Only cold discovery, explicit refresh and test calls create a short-lived RMCP client; a memory or disk catalog hit does not connect to the server. `active` means the registration's snapshot may be read and, when needed, discovery or a user test call may be sent to its endpoint.
 
 ## 3. DTO
 
@@ -129,87 +129,87 @@ type McpTestCallOutcome =
   | { outcome: 'outcome_unknown'; code: string; message: string };
 ```
 
-`storageIssues` 显式报告已经定位到具体文件的读取失败、损坏、未知 schema/kind、非 canonical 文件名或文件内 ID 不匹配；健康 registration 仍正常返回。registration 目录本身无法枚举时，`list()` 仍 reject。
+`storageIssues` explicitly reports read failures that have been pinned to a specific file, along with corruption, an unknown schema or kind, a non-canonical file name, or an ID inside the file that does not match. Healthy registrations are still returned. If the registration directory itself cannot be enumerated, `list()` still rejects.
 
-## 4. Registration 契约
+## 4. Registration contract
 
-- `create()` 总是创建 `paused` registration；Manager 在切换为 Active 前展示并确认 exact endpoint。
-- Manager 首次加载时会通过现有 `create()` 契约添加一次 Paused 的 Exa Search 推荐项；处理标记保存在扩展 store 中。删除该普通 registration 不会清除标记，因此同一 data root 中不会自动恢复。
-- display name、endpoint、custom request headers 与 protocol version 由 `update()` 原子修改，不影响 UUID、ToolId、Active/Paused 或已保存权限。endpoint/headers/protocol 实际变化会删除该 registration 的 memory/disk catalog；仅改名称不清 catalog，也不会联网。
-- headers 的名称和值原样保存；registration 不维护 reserved-header 列表或数量/总量上限，HTTP transport 无法接受的配置（非法 header，或 RMCP 保留的 `Accept`、`Mcp-Session-Id`、`Last-Event-Id`）在发送前返回 `not_sent`。endpoint credentials 与 header values 明文保存在 registration 文件中、由 `servers.list()` 回传给同一 WebView 的编辑器，并随包含该 data root 的备份流转。
-- protocol version 缺省为 `auto`。固定 `2026-07-28` 只走 `server/discover` lifecycle，不回退 legacy；固定 2025 版本直接以该版本 `initialize`，不发 discover 探测。server 最终协商出的版本不在该偏好的接受范围内时，连接作为启动失败处理。当前选项与 Streamable HTTP transport 实际支持集一致。
-- `off` 是缺省值，不写入 `toolPermissions`；`setPermission(..., 'off')` 删除对应持久设置。
-- `setDescriptionOverride()` 按 native name 保存 model-facing description/property-description 覆盖；字符串原样保存，不做 trim 或改写。`override: null` 是唯一删除语义，空对象显式拒绝。值不写入或改写 discovery catalog，也不改变 ToolId、schema 结构、permission 或执行目标。
-- 模型描述优先级固定为 server catalog → registration override → Agent Profile `tools.toolDescriptions`。Legacy 消费前两层；Agent Profile 同一字段存在时覆盖 registration 值。
-- discovery 消失的 Ask/Allow 设置作为 `staleTools` 返回，但不会成为可用工具。
-- registration 保存为 `_tauritavern/mcp/registrations/<uuid>.json` 的严格 v1 单文件记录；persistent catalog 保存为 `_tauritavern/mcp/catalogs/<uuid>.json` 的独立严格 v1 记录。两者都没有旧 schema reader 或 revision graph。
-- Manager 的 Add 弹窗提供手动与 JSON 两种输入；JSON 每次只接受一个 Streamable HTTP server，支持 `{ "name": { "url": "...", "headers": {...}, "protocolVersion": "auto" } }` 和标准 `mcpServers` 包装。已保存 server 的 Edit 弹窗复用同一手动表单编辑名称、endpoint、headers 与 protocol version。无效 JSON、多个 server、非字符串 header、未知协议版本或不支持的 transport 会整体拒绝，不做 partial import。
+- `create()` always creates a `paused` registration; the Manager shows and confirms the exact endpoint before switching it to Active.
+- On first load the Manager adds a paused Exa Search recommendation once through the existing `create()` contract; the handled flag is kept in the extension store. Deleting that ordinary registration does not clear the flag, so it is not restored automatically within the same data root.
+- `update()` changes the display name, endpoint, custom request headers and protocol version atomically, without affecting the UUID, ToolId, Active/Paused state or saved permissions. A real change to endpoint, headers or protocol deletes that registration's memory and disk catalog; renaming alone neither clears the catalog nor touches the network.
+- Header names and values are stored verbatim. A registration keeps no reserved-header list and no count or size limit; configuration the HTTP transport cannot accept (an invalid header, or the RMCP-reserved `Accept`, `Mcp-Session-Id` and `Last-Event-Id`) returns `not_sent` before sending. Endpoint credentials and header values are stored in plaintext in the registration file, handed back by `servers.list()` to the editor in the same WebView, and travel with any backup that includes that data root.
+- The protocol version defaults to `auto`. A pinned `2026-07-28` uses the `server/discover` lifecycle only and does not fall back to legacy; a pinned 2025 version initializes directly at that version without a discover probe. If the version the server finally negotiates falls outside that preference's accepted range, the connection is treated as a startup failure. The available options match what the Streamable HTTP transport actually supports.
+- `off` is the default and is not written to `toolPermissions`; `setPermission(..., 'off')` deletes the corresponding persisted setting.
+- `setDescriptionOverride()` stores model-facing description and property-description overrides by native name; strings are stored verbatim, with no trimming or rewriting. `override: null` is the only deletion semantics, and an empty object is rejected explicitly. The values neither write to nor rewrite the discovery catalog, and they do not change the ToolId, schema structure, permission or execution target.
+- Model description precedence is fixed: server catalog → registration override → Agent profile `tools.toolDescriptions`. Legacy consumes the first two layers; an Agent profile overrides the registration value when the same field is present.
+- Ask/Allow settings for tools that have disappeared from discovery come back as `staleTools`, but those tools never become available.
+- A registration is stored as a strict v1 single-file record at `_tauritavern/mcp/registrations/<uuid>.json`, and the persistent catalog as a separate strict v1 record at `_tauritavern/mcp/catalogs/<uuid>.json`. Neither has a legacy schema reader or a revision graph.
+- The Manager's Add dialog accepts manual input and JSON. JSON accepts exactly one Streamable HTTP server per import and supports both `{ "name": { "url": "...", "headers": {...}, "protocolVersion": "auto" } }` and the standard `mcpServers` wrapper. The Edit dialog for a saved server reuses the same manual form to edit the name, endpoint, headers and protocol version. Invalid JSON, multiple servers, non-string headers, an unknown protocol version or an unsupported transport are rejected as a whole; there is no partial import.
 
-## 5. Discovery 契约
+## 5. Discovery contract
 
-- transport 仅支持 Streamable HTTP；不实现 OAuth 流程，认证可由 registration custom headers 提供。
-- registration headers 会应用到 initialize、discovery、session 与 tool call 的全部 HTTP 请求；系统不在不同消费路径复制或重建认证状态。
-- endpoint 接受任意带 host 的 HTTP(S) URL，包括公网 HTTP、userinfo 与 query；未加密 HTTP 的风险由 Manager 在激活前提示。fragment 不会进入 HTTP 请求，因此仍作为无效 endpoint 显式报错；redirect 仍由 transport 禁止。
-- `protocolVersion: 'auto'` 使用 RMCP `ClientLifecycleMode::Auto`，以 `2026-07-28` 发起 `server/discover`。`-32022` 版本协商由 RMCP 处理；server 以其他非 modern JSON-RPC error 或无 session 的 4xx（401/403 除外）拒绝时，RMCP 在同一 transport 上回退到 `2025-11-25` initialize。RMCP 目前把启动阶段 SSE 响应中的 JSON-RPC error 当作连接关闭，因此 Auto 启动以 `ConnectionClosed` 失败时，adapter 用新 Peer 单次尝试 `2025-11-25` initialize，两次失败原因都保留在错误中；该额外路径不匹配其他错误。固定值见第 4 节。启动后协商版本不在接受范围内时，本次 discovery 失败。
-- `tools/list` 必须完整分页；cursor 循环、页数/工具数/catalog 总量超限或分页失败会使该 server 的本次 discovery 失败，不返回 partial catalog。
-- duplicate native name 隔离整个同名组；无效 input schema、单工具超限或名称无效只隔离该工具并返回 diagnostic。无效的可选 output schema 只移除该字段并返回 diagnostic，不阻止工具使用。
-- input/output schema 按 JSON Schema 2020-12 编译验证；不会读取远端 `$ref`。
-- annotations 只原样展示，不授予权限。
-- `servers.discover()` 按 application memory、persistent file、真实 discovery 的顺序读取。磁盘 snapshot 绑定 registration UUID 与规范化 endpoint，载入后重新执行 application canonical validation。
-- `servers.refresh()` 始终使用新的 RMCP Peer，绕过 memory/disk snapshot。cold discovery/refresh 在完整分页和全部 validation 成功后发布；写盘失败返回可用的 memory-only catalog 与 `mcp.catalog_persistence_failed` diagnostic，并保留旧磁盘 snapshot。网络或 validation 失败仍 reject，旧 snapshot 保留但不作为该请求的返回值。
-- permission 与 `staleTools` 每次按当前 registration 投影，不写入 catalog snapshot。Paused gate 先于 snapshot lookup；registration 删除不受派生 catalog 清理失败影响，清理失败只记录 warning。
-- catalog 跨应用重启保留，由用户手动 refresh 决定何时更新；没有 TTL、后台 refresh、list-changed subscription、自动 retry、source/age 字段或 migration reader。损坏/未知 schema/UUID/endpoint mismatch 显式报错，refresh 可绕过并修复。
+- The only supported transport is Streamable HTTP. No OAuth flow is implemented; authentication can be supplied through registration custom headers.
+- Registration headers apply to every HTTP request for initialize, discovery, session and tool calls; the system does not copy or rebuild authentication state across consumption paths.
+- An endpoint accepts any HTTP(S) URL that carries a host, including public HTTP, userinfo and a query; the Manager warns about unencrypted HTTP before activation. A fragment never reaches the HTTP request, so it is still reported explicitly as an invalid endpoint. Redirects remain forbidden by the transport.
+- `protocolVersion: 'auto'` uses RMCP `ClientLifecycleMode::Auto` and starts `server/discover` at `2026-07-28`. `-32022` version negotiation is handled by RMCP; when a server rejects with another non-modern JSON-RPC error, or with a 4xx response that carries no session (other than 401/403), RMCP falls back to a `2025-11-25` initialize on the same transport. RMCP currently treats a JSON-RPC error inside a startup SSE response as a closed connection, so when an Auto startup fails with `ConnectionClosed`, the adapter makes one `2025-11-25` initialize attempt with a new peer, keeping both failure reasons in the error; that extra path matches no other error. For pinned values see section 4. If the version negotiated after startup falls outside the accepted range, this discovery fails.
+- `tools/list` must page to completion; a cursor loop, exceeding the page, tool or total catalog limit, or a paging failure fails that server's discovery without returning a partial catalog.
+- A duplicate native name quarantines the whole group sharing that name; an invalid input schema, a single tool over the limit, or an invalid name quarantines only that tool and returns a diagnostic. An invalid optional output schema drops only that field and returns a diagnostic, without preventing use of the tool.
+- Input and output schemas are compiled and validated against JSON Schema 2020-12; remote `$ref` is never fetched.
+- Annotations are shown verbatim and grant no permission.
+- `servers.discover()` reads in the order application memory, persistent file, then a real discovery. A disk snapshot is bound to the registration UUID and the normalized endpoint, and application canonical validation runs again after it is loaded.
+- `servers.refresh()` always uses a new RMCP peer and bypasses the memory and disk snapshots. A cold discovery or refresh is published only after complete paging and all validation succeed; if writing to disk fails it returns a usable memory-only catalog with an `mcp.catalog_persistence_failed` diagnostic and keeps the old disk snapshot. A network or validation failure still rejects; the old snapshot is kept but is not returned for that request.
+- Permissions and `staleTools` are projected from the current registration every time and are not written into the catalog snapshot. The paused gate runs before the snapshot lookup; deleting a registration is not affected by a failure to clean up the derived catalog, and such a failure only logs a warning.
+- The catalog survives application restarts and only a user-initiated refresh decides when it updates; there is no TTL, background refresh, list-changed subscription, automatic retry, source or age field, or migration reader. Corruption, an unknown schema, a UUID or endpoint mismatch is reported explicitly, and a refresh can bypass and repair it.
 
-## 6. User test call 契约
+## 6. User test call contract
 
-`tools.testCall()` 是第一方 Manager 的显式用户动作，不是面向任意扩展的通用 raw RPC：
+`tools.testCall()` is an explicit user action of the first-party Manager, not a general raw RPC for arbitrary extensions:
 
-- frontend 只提交 registration ID、native tool name 与原始 `argumentsJson`；endpoint、header、RMCP session 均由 backend registration 与 transport 决定。
-- server 必须为 Active。Off/Ask/Allow 不阻止用户 test call，调用也不会修改保存的 permission。
-- `argumentsJson` 上限为 256 KiB，backend 权威解析为 JSON object；不按 input schema 补默认值、转换类型、删除字段或在 server 之前做业务校验。字符串 Host 边界与 Rust `serde_json` 解析共同保留 `i64/u64` 范围内的 JavaScript 不安全整数。
-- 每次点击只发送一次 `tools/call`，没有自动 retry。协商到 `2026-07-28` 时会在同一 Peer 上分页 `tools/list` 直到找到目标工具，仅用于让 RMCP 生成 SEP-2243 `Mcp-Param-*` header（RMCP 只从同一 transport 的 `tools/list` 响应取得 tool schema，缺失时会静默省略这些 header）；目标始终未出现时才遍历完整目录。它不成为 application catalog cache，也不改变调用参数。
-- 使用一次响应的低层 request handle，不自动驱动 `input_required`、Tasks 或其他 MRTR 后续轮次；这些 server 响应以 `unsupported_response` 明确展示。
-- `AbortSignal` 表示停止本地等待，不能撤销远端副作用。Host 在调用前使用私有 start acknowledgement 建立取消事实，避免 cancel-before-register 竞态；该命令不属于公共 API。
+- The frontend submits only the registration ID, the native tool name and the raw `argumentsJson`; the endpoint, headers and RMCP session are all determined by the backend registration and transport.
+- The server must be Active. Off/Ask/Allow does not block a user test call, and the call does not modify the saved permission.
+- `argumentsJson` is capped at 256 KiB and the backend authoritatively parses it as a JSON object; it does not fill defaults from the input schema, convert types, drop fields or run business validation before the server. The string host boundary together with Rust's `serde_json` parsing preserves JavaScript-unsafe integers in the `i64/u64` range.
+- Each click sends exactly one `tools/call`, with no automatic retry. When `2026-07-28` is negotiated it pages `tools/list` on the same peer until it finds the target tool, purely so that RMCP can generate the SEP-2243 `Mcp-Param-*` headers (RMCP takes the tool schema only from a `tools/list` response on the same transport and silently omits those headers when it is missing); it walks the whole catalog only when the target never appears. That listing does not become the application catalog cache and does not change the call arguments.
+- It uses a low-level request handle with a single response and never drives `input_required`, Tasks or other MRTR follow-up rounds automatically; such server responses are shown explicitly as `unsupported_response`.
+- `AbortSignal` means stop waiting locally; it cannot undo remote side effects. Before the call, the host establishes the fact of cancellation with a private start acknowledgement to avoid a cancel-before-register race; that command is not part of the public API.
 
-顶层 outcome 是远端事实，而非 UI loading 状态：
+The top-level outcome states a remote fact rather than a UI loading state:
 
-- `known_response`：server 已明确响应。`isError: true` 仍是 tool result；JSON-RPC error 是 `server_error`，都不变成 command rejection。
-- `not_sent`：backend 能证明目标 `tools/call` 尚未交给 transport，例如 registration 暂时无法读取、Paused、JSON 不合法、HTTP client/header 配置失败、协商版本不在接受范围内、metadata hydration 失败或发送前取消。
-- `outcome_unknown`：request handle 已建立后发生 cancel、timeout、disconnect 或无法确认响应；调用可能已经执行，系统绝不自动重试。
+- `known_response`: the server responded definitively. `isError: true` is still a tool result, and a JSON-RPC error becomes `server_error`; neither turns into a command rejection.
+- `not_sent`: the backend can prove the target `tools/call` never reached the transport, because the registration could not be read at that moment, was paused, the JSON was invalid, the HTTP client or header configuration failed, the negotiated version was outside the accepted range, metadata hydration failed, or the call was cancelled before sending.
+- `outcome_unknown`: a cancel, timeout, disconnect or unconfirmable response occurred after the request handle had been established; the call may already have run, and the system never retries automatically.
 
-已知 tool result 按原顺序投影 text、确定性 structured JSON、`isError` 与 diagnostic。Manager 测试调用与 Legacy 聊天不显示 image，image/audio/resource block 与 metadata 会产生可见 diagnostic，不会抹掉“server 已响应”的事实。text 与 structured 原样投影、不截断；server 显式返回 `structuredContent: null` 时 `structuredJson` 为 `"null"`（`2026-07-28` 允许任意 JSON 值），字段缺失时省略。adapter 不设自有响应体上限；transport 无法读取或解析已发送 call 的响应（包括超过 RMCP SSE 单事件上限）时为 `outcome_unknown`。取得已知响应后的 client close/join 失败只记录日志，不会改写 outcome。
+A known tool result projects text, deterministic structured JSON, `isError` and diagnostics in their original order. The Manager test call and Legacy chat do not display images; image, audio and resource blocks and metadata produce visible diagnostics, and never erase the fact that the server responded. Text and structured data are projected verbatim and are not truncated; when a server explicitly returns `structuredContent: null`, `structuredJson` is `"null"` (`2026-07-28` allows any JSON value), and the field is omitted when absent. The adapter sets no response body limit of its own; when the transport cannot read or parse the response to a call it has already sent (including a response over the RMCP per-event SSE limit), the outcome is `outcome_unknown`. A client close or join failure after a known response is only logged and never rewrites the outcome.
 
-该入口沿用当前 WebView trust model：同一 WebView 内的第一方/vendor extension script 被视为用户授权代码，backend 不声称能证明一次 command 源自物理点击或隔离 hostile extension。若 trust model 改变，应增加真实 command capability boundary，而不是在 DTO 中伪造 click flag。
+This entry point follows the current WebView trust model: first-party and vendor extension scripts in the same WebView are treated as code the user authorized, and the backend does not claim to prove that a command came from a physical click or to isolate a hostile extension. If the trust model changes, add a real command capability boundary rather than faking a click flag in the DTO.
 
-## 7. Agent 消费契约
+## 7. Agent consumption contract
 
-Agent 没有新增公共 raw-call API。Profile v3 以 `mcp/<registration-uuid>:<native-name>` 选择工具；每个 root、return-mode child 与 handoff invocation 都通过 `McpService` 读取 memory→disk persistent snapshot，绝不因启动 Agent 隐式 cold discovery。无 snapshot 或工具不在缓存时，工具从该 invocation 省略并留下 diagnostic；用户在 Manager 中 discovery/refresh 后，下一个 invocation 才观察新目录。
+Agent adds no public raw-call API. Profile v3 selects tools by `mcp/<registration-uuid>:<native-name>`; every root, return-mode child and handoff invocation reads the memory-then-disk persistent snapshot through `McpService`, and never triggers an implicit cold discovery just because an agent started. When there is no snapshot, or a tool is not in the cache, that tool is omitted from the invocation and a diagnostic is left behind; only after a user runs discovery or refresh in the Manager does the next invocation observe the new catalog.
 
-只有 Active 且 permission 为 Ask/Allow、input schema root 明确为 `type: "object"` 的工具可以进入 Agent binding。共享 resolver 先将 registration description override 应用到 catalog descriptor 的副本，Agent invocation 再应用 Profile `tools.toolDescriptions`，因此 Profile 优先。当前按用户要求不实现 Ask 审批 UI：Ask 与 Allow 都自动执行；Off 与 Paused 在广告前过滤，并在实际发送前重新读取 registration 复核。参数必须是 256 KiB 内 JSON object，Host 不按 schema 改写。alias 由 Agent snapshot 生成，不属于 Manager DTO 或 MCP identity。
+Only tools that are Active, whose permission is Ask or Allow, and whose input schema root is explicitly `type: "object"` can enter an Agent binding. The shared resolver first applies the registration description override to a copy of the catalog descriptor, then the Agent invocation applies the profile's `tools.toolDescriptions`, so the profile wins. As requested, no Ask approval UI is implemented: Ask and Allow both run automatically; Off and paused tools are filtered before advertising, and the registration is re-read to confirm before the actual send. Arguments must be a JSON object within 256 KiB, and the host does not rewrite them to fit the schema. Aliases are generated from the Agent snapshot and are not part of the Manager DTO or the MCP identity.
 
-已知结果转为 `AgentToolResult`：text 保持原文，structured content 去重后呈现，image 块进入 Agent 的共同 [结果处理](../Agent/ToolSystem.md#结果如何进入下一轮)。audio、resource 产生可见诊断，metadata 留在内部记录。长结果也走共同结果处理，不改变共享 `McpService` 调用契约。`outcome_unknown` 终止当前 Agent run，不自动重试，也不伪造工具结果。
+A known result becomes an `AgentToolResult`: text stays verbatim, structured content is presented with duplicates removed, and image blocks enter the Agent's shared [result handling](../Agent/ToolSystem.md#how-results-enter-the-next-round). Audio and resources produce visible diagnostics, and metadata stays in the internal record. Long results also go through the shared result handling, without changing the shared `McpService` call contract. `outcome_unknown` terminates the current Agent run, with no automatic retry and no fabricated tool result.
 
-## 8. Legacy 消费契约
+## 8. Legacy consumption contract
 
-Legacy 集成没有扩展上面的公共 `api.mcp`。Legacy 使用第一方内部 commands 从 `McpService` 获取 Active + Ask/Allow 的 cached descriptors，并通过 permission-aware call 用例执行；第三方仍没有公共 raw MCP executor。
+The Legacy integration does not extend the public `api.mcp` above. Legacy uses first-party internal commands to fetch Active + Ask/Allow cached descriptors from `McpService` and executes them through a permission-aware call use case; third parties still have no public raw MCP executor.
 
-- catalog preparation 只读 memory/disk snapshot，cache miss 不联网；单 registration 的 snapshot 读取/校验失败形成 diagnostic，不阻塞健康 MCP/local tools 或普通生成。
-- registration description override 在共享 resolver 中应用，Legacy root 冻结覆盖后的 descriptor；后续 Manager 修改只影响下一个 root。
-- 每个实际 Legacy root generation 冻结 descriptors；工具递归复用 descriptor snapshot，但每轮根据当前 local view 重新分配 alias 并重建 provider schema。执行只解析当前 round binding；MCP 不进入全局 ToolManager、slash commands 或 extension enumeration。
-- local alias 优先；settings hook 后只接受仍唯一存在的初始 MCP alias。删除、改名、重复或失去 binding 的 alias 不按名称/schema猜 canonical ToolId。
-- `custom_include_body` / `custom_exclude_body` 继续作为用户最终 upstream body 意图；Legacy MCP 不保护、拒绝或重注入 `tools` / `tool_choice`。
-- 调用只提交 canonical ToolId、ToolManager 序列化的 `argumentsJson` 与独立 UUID `executionCallId`；不做 input-schema coercion。provider `tool_call_id` 只用于聊天消息关联。发送前重新检查 registration Active、Off 与 cancellation；Ask/Allow 当前都自动执行。
-- Known error 和普通 NotSent 进入现有 error Tool message，让模型下一轮修正。`outcome_unknown` 不重试、不伪造结果、不部分提交 Tool turn，并终止当前 root/group generation。
-- 保存、事件与递归继续使用 SillyTavern Legacy first-class tool-turn contract；旧 `extra.tool_invocations` 只读，不恢复新写。
+- Catalog preparation reads the memory and disk snapshots only, and a cache miss does not touch the network; a snapshot read or validation failure for one registration produces a diagnostic and does not block healthy MCP or local tools, or ordinary generation.
+- The registration description override is applied in the shared resolver, and a Legacy root freezes the overridden descriptor; later Manager edits affect only the next root.
+- Each actual Legacy root generation freezes its descriptors; recursive tool rounds reuse the descriptor snapshot but reassign aliases and rebuild provider schemas from the current local view on every round. Execution resolves only the current round's binding; MCP does not enter the global ToolManager, slash commands or extension enumeration.
+- A local alias wins; after the settings hook, only the original MCP alias that is still unique is accepted. An alias that was deleted, renamed, duplicated or lost its binding is never guessed back to a canonical ToolId by name or schema.
+- `custom_include_body` / `custom_exclude_body` remain the user's final intent for the upstream body; Legacy MCP does not protect, reject or re-inject `tools` / `tool_choice`.
+- A call submits only the canonical ToolId, the `argumentsJson` serialized by ToolManager and an independent UUID `executionCallId`, with no input-schema coercion. The provider `tool_call_id` is used only to associate chat messages. Before sending, registration Active state, Off and cancellation are re-checked; Ask and Allow both run automatically today.
+- A known error and an ordinary NotSent go into the existing error Tool message so that the model can correct itself on the next round. `outcome_unknown` does not retry, does not fabricate a result, does not partially commit the tool turn, and terminates the current root or group generation.
+- Saving, events and recursion continue to use SillyTavern Legacy's first-class tool-turn contract; the old `extra.tool_invocations` is read-only and is never written again.
 
-## 9. 明确未支持
+## 9. Explicitly unsupported
 
-当前没有以下 API 或行为：
+The following APIs and behaviors do not exist today:
 
-- Ask 审批、公共 raw-call API及 Legacy unknown-outcome 恢复交互；
-- OAuth、credential、stdio、2024 HTTP+SSE；
-- Resources、Prompts、Tasks、Apps、subscriptions/list-changed；
-- background discovery、discovery/list 通用 retry、catalog TTL/revision history；
-- registration/Profile 之外的 description scope hierarchy、Manager-defined/global model alias。
+- Ask approval, a public raw-call API, and interactive recovery from a Legacy unknown outcome;
+- OAuth, credentials, stdio, and 2024 HTTP+SSE;
+- Resources, Prompts, Tasks, Apps, and subscriptions/list-changed;
+- Background discovery, a general retry for discovery or list, and catalog TTL or revision history;
+- A description scope hierarchy beyond registration and profile, and Manager-defined or global model aliases.
 
-model alias 属于短命 Agent/Legacy invocation binding，不属于 registration/discovery/test call。Legacy 集成不把 MCP tool 注册进全局 SillyTavern `ToolManager`。
+A model alias belongs to a short-lived Agent or Legacy invocation binding, not to registration, discovery or test calls. The Legacy integration does not register MCP tools into the global SillyTavern `ToolManager`.

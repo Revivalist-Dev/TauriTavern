@@ -264,7 +264,6 @@ export {};
  *   | 'stage_file_finish'
  *   | 'stage_file_from_url'
  *   | 'stage_file_discard'
- *   | 'tts_handle'
  *   | 'unassign_images_from_metadata_folder'
  *   | 'update_avatar'
  *   | 'update_character'

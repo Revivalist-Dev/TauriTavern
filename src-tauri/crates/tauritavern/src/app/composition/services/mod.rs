@@ -45,7 +45,6 @@ use tt_application::services::stable_diffusion_service::StableDiffusionService;
 use tt_application::services::theme_service::ThemeService;
 use tt_application::services::tokenization_service::TokenizationService;
 use tt_application::services::translate_service::TranslateService;
-use tt_application::services::tts_service::TtsService;
 use tt_application::services::update_service::UpdateService;
 use tt_application::services::user_directory_service::UserDirectoryService;
 use tt_application::services::user_endpoint_access_service::UserEndpointAccessService;
@@ -174,10 +173,6 @@ pub(super) async fn build(
         repositories.translate_repository.clone(),
         repositories.secret_repository.clone(),
     ));
-    let tts_service = Arc::new(TtsService::new(
-        repositories.tts_repository.clone(),
-        repositories.secret_repository.clone(),
-    ));
     let world_info_service = Arc::new(WorldInfoService::new(
         repositories.world_info_repository.clone(),
     ));
@@ -299,7 +294,6 @@ pub(super) async fn build(
         tokenization_service,
         stable_diffusion_service,
         translate_service,
-        tts_service,
         world_info_service,
         lan_sync_service: sync_services.lan_sync_service,
         tt_sync_service: sync_services.tt_sync_service,

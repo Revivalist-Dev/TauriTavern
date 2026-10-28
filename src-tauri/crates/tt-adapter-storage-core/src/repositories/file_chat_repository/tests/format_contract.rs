@@ -229,7 +229,8 @@ async fn full_commit_leaves_body_validation_to_readers_and_failed_reads_cannot_r
 async fn json_array_reads_preserve_raw_records_and_reject_truncated_sources() {
     let (repository, root) = setup_repository().await;
     let header = r#"{ "chat_metadata": {"integrity": "old"}, "future": [true] }"#;
-    let message = r#"{ "mes": "\u4f60", "number": 1.200e1, "swipes": ["旧内容", "当前内容"] }"#;
+    let message =
+        r#"{ "mes": "\u00e9", "number": 1.200e1, "swipes": ["old text", "current text"] }"#;
     let source = format!("\n\u{feff}\r\n{header}\r\n\n{message}");
     let target = character_target("alice", "stream");
     commit_payload_bytes(&repository, target.clone(), source.as_bytes(), false)

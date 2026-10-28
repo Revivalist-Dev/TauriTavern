@@ -1,30 +1,30 @@
-# Agent 测试
+# Agent testing
 
-测试准入沿用 [贡献指南](../../CONTRIBUTING.md#测试准入)：验证可观察行为、非平凡边界或已经修复的缺陷。优先扩展已有行为测试，让一次验证覆盖完整的数据流。
+Test admission follows the [contributing guide](../../CONTRIBUTING.md#test-admission): verify observable behaviour, a non-trivial boundary, or a defect already fixed. Prefer extending an existing behaviour test so one verification covers a whole data flow.
 
-## 在哪里验证
+## Where to verify
 
-| 改动 | 现有入口 |
+| Change | Existing entry point |
 | --- | --- |
-| Run、Session 连续性、目录、协作、提交 | [host Agent contract tests](../../src-tauri/crates/tauritavern/src/app/contract_tests/agent_runtime) |
-| Session 分组、计数与压缩 | [session_context.rs](../../src-tauri/crates/tt-application/src/services/agent_runtime_service/session_context.rs) 与 [Session contract tests](../../src-tauri/crates/tauritavern/src/app/contract_tests/agent_runtime/session.rs) |
-| Session 历史放置与深度注入 | [PromptManager 浏览器测试](../../tests/browser/agent-session.test.mjs) |
-| 宏输入捕获与请求参数 | [SDK 捕获](../../tests/browser/agent-macro-capture.test.mjs)、[提示词组装](../../tests/browser/additional-parameters.test.mjs) |
-| 文件与持久版本 | [FileAgentRepository tests](../../src-tauri/crates/tt-adapter-storage-userdata/src/repositories/file_agent_repository/tests.rs)、[文件语义闭环](../../src-tauri/crates/tt-adapter-storage-userdata/src/repositories/file_agent_repository/tests/workspace_fs.rs) |
-| 模型协议与续接 | [gateway tests](../../src-tauri/crates/tt-application/src/services/agent_model_gateway/tests.rs) |
+| Runs, Session continuity, catalogs, collaboration, commits | [host Agent contract tests](../../src-tauri/crates/tauritavern/src/app/contract_tests/agent_runtime) |
+| Session grouping, counting, and compaction | [session_context.rs](../../src-tauri/crates/tt-application/src/services/agent_runtime_service/session_context.rs) and [Session contract tests](../../src-tauri/crates/tauritavern/src/app/contract_tests/agent_runtime/session.rs) |
+| Session history placement and depth injection | [PromptManager browser tests](../../tests/browser/agent-session.test.mjs) |
+| Macro input capture and request parameters | [SDK capture](../../tests/browser/agent-macro-capture.test.mjs), [prompt assembly](../../tests/browser/additional-parameters.test.mjs) |
+| Files and persistent versions | [FileAgentRepository tests](../../src-tauri/crates/tt-adapter-storage-userdata/src/repositories/file_agent_repository/tests.rs), [file semantics loop](../../src-tauri/crates/tt-adapter-storage-userdata/src/repositories/file_agent_repository/tests/workspace_fs.rs) |
+| Model protocols and continuation | [gateway tests](../../src-tauri/crates/tt-application/src/services/agent_model_gateway/tests.rs) |
 | Host API | [agent-api-contract.test.mjs](../../tests/agent-api-contract.test.mjs) |
-| Profile、历史与 Timeline 界面 | [agent-system tests](../../src/scripts/extensions/agent-system/src) |
-| 应用助手历史追赶、受理边界与交互缺陷 | [in-app-agent tests](../../src/scripts/extensions/in-app-agent/src) 与 [app-use tests](../../packages/app-use/src)；主题、几何与普通表单用原生 WebView 验收 |
-| Skill 文件、宏与脚本 | [host 执行闭环](../../src-tauri/crates/tauritavern/src/app/contract_tests/agent_runtime/execution.rs)、[Skill 仓储](../../src-tauri/crates/tt-adapter-storage-userdata/src/repositories/file_skill_repository/tests.rs) |
-| 旧数据迁移 | [Profile 导入](../../src-tauri/crates/tauritavern/src/app/contract_tests/profile_migration.rs)、[Run 修订](../../src-tauri/crates/tauritavern/src/app/contract_tests/agent_runtime/legacy_revision.rs) |
-| Shell / JS 文件与提交 | [host 集成](../../src-tauri/crates/tauritavern/src/app/contract_tests/agent_runtime/shell.rs) |
-| 执行与取消边界 | [JS tests](../../src-tauri/crates/tt-adapter-workspace-shell/src/javascript/tests.rs)、[收尾 tests](../../src-tauri/crates/tt-adapter-workspace-shell/src/tests.rs) |
+| Profile, history, and Timeline UI | [agent-system tests](../../src/scripts/extensions/agent-system/src) |
+| In-app assistant history catch-up, admission boundaries, and interaction defects | [in-app-agent tests](../../src/scripts/extensions/in-app-agent/src) and [app-use tests](../../packages/app-use/src); accept theme, geometry, and plain forms in the native WebView |
+| Skill files, macros, and scripts | [host execution loop](../../src-tauri/crates/tauritavern/src/app/contract_tests/agent_runtime/execution.rs), [Skill repository](../../src-tauri/crates/tt-adapter-storage-userdata/src/repositories/file_skill_repository/tests.rs) |
+| Old data migration | [Profile import](../../src-tauri/crates/tauritavern/src/app/contract_tests/profile_migration.rs), [run revision](../../src-tauri/crates/tauritavern/src/app/contract_tests/agent_runtime/legacy_revision.rs) |
+| Shell and JS files and commits | [host integration](../../src-tauri/crates/tauritavern/src/app/contract_tests/agent_runtime/shell.rs) |
+| Execution and cancellation boundaries | [JS tests](../../src-tauri/crates/tt-adapter-workspace-shell/src/javascript/tests.rs), [wrap-up tests](../../src-tauri/crates/tt-adapter-workspace-shell/src/tests.rs) |
 
-涉及文件时使用临时目录和真实仓储；涉及并发时用 channel、barrier 或受控 future 协调，断言竞争操作的结果和最终内容。不要通过取得私有锁或一次 poll 返回 Pending 来证明并发正确。
+Use temporary directories and the real repository when files are involved; coordinate concurrency with a channel, a barrier, or a controlled future, and assert the outcome and the final content of the racing operations. Never prove concurrency correctness by acquiring a private lock or by a single poll returning Pending.
 
-## 运行检查
+## Running the checks
 
-先运行受影响部分，例如：
+Run the affected part first, for example:
 
 ```sh
 cargo test --manifest-path src-tauri/Cargo.toml -p tauritavern contract_tests::agent_runtime
@@ -33,11 +33,11 @@ node --test tests/agent-api-contract.test.mjs
 pnpm run test:browser
 ```
 
-完成改动后运行仓库检查：
+After the change, run the repository checks:
 
 ```sh
 node scripts/check-rust-crate-boundaries.mjs
 pnpm run check
 ```
 
-手动验证可从默认 Profile 开始：运行一次写作，查看文件与提交，再选择此次改动涉及的委派、交接、取消或历史场景。测试范围随实际行为变化确定。
+Manual verification can start from the default Profile: run one writing task, inspect the files and the commit, then pick the delegation, handoff, cancellation, or history scenario this change touches. The test scope follows the behaviour that actually changed.

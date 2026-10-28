@@ -1,51 +1,87 @@
-# SillyBunny 桌面宿主层（Windows）
+# SillyBunny desktop host layer (Windows)
 
-SillyBunny 的桌面 UI 以第一方宿主层的形式接入 TauriTavern，而不是作为第三方扩展注入。它只包含 Windows 桌面版式：没有移动 shell、没有手机断点、没有 Android/iOS 分支。
+SillyBunny's desktop UI plugs into TauriTavern as a first-party host layer rather than being injected
+as a third-party extension. It contains only the Windows desktop layout: no mobile shell, no phone
+breakpoints, and no Android/iOS branches.
 
-## 组成
+## Composition
 
-| 位置 | 职责 |
+| Location | Responsibility |
 | --- | --- |
-| `src/css/tauritavern-sillybunny-shell.css` | 左侧图标栏、侧面板、对话面板的版式与主题变量 |
-| `src/tauri/main/ui/sillybunny-shell/index.js` | 安装入口：给 `body` 加 `sb-shell`，注入 Conversation 抽屉 |
-| `src/tauri/main/ui/sillybunny-shell/panels.js` | 扩展面板宿主：`__TAURITAVERN_SB_SHELL__` 注册、排队面板与图标栏按钮 |
-| `src/tauri/main/ui/sillybunny-shell/conversation.js` | 对话时间线与发送框 |
-| `src/tauri/main/bootstrap.js` | 在 `APP_READY` 后动态加载安装入口 |
+| `src/css/tauritavern-sillybunny-shell.css` | Layout and theme variables for the left icon rail, the side panels, and the conversation panel |
+| `src/tauri/main/ui/sillybunny-shell/index.js` | Install entry point: adds `sb-shell` to `body` and injects the Conversation drawer |
+| `src/tauri/main/ui/sillybunny-shell/panels.js` | Extension panel host: `__TAURITAVERN_SB_SHELL__` registration, queued panels, and icon-rail buttons |
+| `src/tauri/main/ui/sillybunny-shell/conversation.js` | Conversation timeline and send box |
+| `src/tauri/main/bootstrap.js` | Loads the install entry point dynamically after `APP_READY` |
 
-## 结构
+## Structure
 
-- **图标栏**：直接复用 SillyTavern 的 `#top-settings-holder` 抽屉。宿主层不重新挂载应用骨架，因此上游抽屉的点击、关闭与键盘行为保持不变。
-- **侧面板**：常规抽屉的 `.drawer-content` 在桌面宽度下固定到图标栏右侧，一次只显示一个。World Info、Prompt Manager 等宽编辑器保留自身几何，避免被窄面板挤压。
-- **对话模式**：`#sb_conversation` 是一个普通抽屉，时间线从 `#chat > .mes` 镜像最近 80 条消息。镜像会移除 `id`、`script`、`iframe`，避免与真实聊天重复 ID 或启动第二个运行时。
-- **发送**：写入 `#send_textarea` 并触发 `input` 事件，再点击 `#send_but`。生成、流式、swipe 与扩展仍走 SillyTavern 原有链路，没有第二条生成管线。
+- **Icon rail**: reuses SillyTavern's `#top-settings-holder` drawer directly. The host layer does not
+  remount the application skeleton, so the upstream drawer's click, close, and keyboard behaviour
+  stays intact.
+- **Side panels**: at desktop widths the regular drawer's `.drawer-content` is pinned to the right of
+  the icon rail, one at a time. Wide editors such as World Info and Prompt Manager keep their own
+  geometry so a narrow panel does not squeeze them.
+- **Conversation mode**: `#sb_conversation` is an ordinary drawer whose timeline mirrors the most
+  recent 80 messages from `#chat > .mes`. The mirror strips `id`, `script`, and `iframe` so it neither
+  duplicates IDs with the real chat nor starts a second runtime.
+- **Sending**: writes to `#send_textarea`, dispatches an `input` event, then clicks `#send_but`.
+  Generation, streaming, swipes, and extensions still take SillyTavern's original path; there is no
+  second generation pipeline.
 
-## 扩展面板
+## Extension panels
 
-第一方宿主层提供 `globalThis.__TAURITAVERN_SB_SHELL__`：
+The first-party host layer exposes `globalThis.__TAURITAVERN_SB_SHELL__`:
 
-| 成员 | 行为 |
+| Member | Behaviour |
 | --- | --- |
-| `register(panel)` | 在图标栏添加一个抽屉；`panel = { id, label, icon?, render(container, api) }` |
-| `unregister(id)` | 移除面板与抽屉 |
-| `open(id)` | 打开面板并重新渲染 |
-| `close(id)` | 关闭面板 |
-| `list()` | 返回已注册的面板 id |
+| `register(panel)` | Adds a drawer to the icon rail; `panel = { id, label, icon?, render(container, api) }` |
+| `unregister(id)` | Removes the panel and its drawer |
+| `open(id)` | Opens the panel and re-renders it |
+| `close(id)` | Closes the panel |
+| `list()` | Returns the registered panel ids |
 
-`shared/sb-core` 的 `registerPanel()` 优先使用这个宿主；宿主尚未就绪时把面板放进 `__SB_PENDING_PANELS__`，安装时统一取出。没有宿主时才回退到 `sb-tabs`。
+`registerPanel()` in `shared/sb-core` prefers this host; while the host is not ready it parks panels
+in `__SB_PENDING_PANELS__` and drains them at install time. It falls back to `sb-tabs` only when no
+host exists.
 
-注入的抽屉晚于 `script.js` 的一次性 `.drawer-toggle` 绑定，因此宿主对每个注入抽屉调用 `doNavbarIconClick`，并用 `setTopLevelDrawerOpen` 关闭，否则点击图标不会打开任何面板。
+Injected drawers arrive after `script.js` has made its one-time `.drawer-toggle` binding, so the host
+calls `doNavbarIconClick` for each injected drawer and closes it with `setTopLevelDrawerOpen`;
+otherwise clicking an icon opens nothing.
 
-已接入的面板扩展：`sb-prompt`、`sb-chat`、`sb-groups`、`sb-image-gen`、`sb-chat-archive`、`sb-card-scripts`、`sb-trackers`；`sillybunny-debugger` 保留自己的扩展菜单入口。Cards 与 Lorebooks 面板已移除。
+Extensions already wired to a panel: `sb-prompt`, `sb-chat`, `sb-groups`, `sb-image-gen`,
+`sb-chat-archive`, `sb-card-scripts`, `sb-trackers`; `sillybunny-debugger` keeps its own
+extension-menu entry. The Cards and Lorebooks panels have been removed.
 
-## 布局约束
+### Agent setup UIs
 
-- 只有 `min-width: 1000px` 时启用图标栏与侧面板；更窄的窗口保持上游布局。
-- `#sheld` 在宿主模式下占满图标栏右侧的可用宽度，不再沿用 50% 的聊天宽度。
-- 图标栏可滚动并显示细滚动条；核心抽屉与扩展面板之间有一条分隔线。
-- 不读取平台 API，不判断移动宿主；配色取自 `--SmartTheme*` 变量，跟随用户主题。
-- 不引入手机断点或触摸专用交互。
+The rail has no dedicated Agent panel. Two agent setup surfaces live one level down, in the
+Extensions drawer:
 
-## 与上游的差异
+- **Agent System** (`#agent_system_container`, right settings column): the TauriTavern-native
+  profiles, delegation, prompt, tools, skills and run UI.
+- **In-Chat Agents** (`#in_chat_agents_container`, left settings column): the SillyBunny `sb-agents`
+  port, with its settings, agent editor and pathfinder UI. It mounts its `settings.html` into this
+  host container; without the container the extension's append is a silent no-op.
 
-- SillyBunny 原实现会重新挂载顶层 DOM 并维护自己的 tab 状态机；本实现以 CSS 版式为主、最小化 DOM 改动，以降低与 2.4.0 面板运行时的冲突。
-- `sb-tabs` 第三方注入层不再参与宿主 UI；功能面板应注册到 2.4 的 Panel Runtime。
+Both open from the Extensions drawer in the icon rail, not from a separate rail icon.
+
+## Layout constraints
+
+- The icon rail and side panels are enabled only at `min-width: 1000px`; narrower windows keep the
+  upstream layout.
+- In host mode `#sheld` fills the width available to the right of the icon rail instead of using the
+  50% chat width.
+- The icon rail scrolls and shows a thin scrollbar; a divider separates the core drawers from the
+  extension panels.
+- No platform API is read and no mobile host is detected; colours come from the `--SmartTheme*`
+  variables and follow the user's theme.
+- No phone breakpoints and no touch-only interactions are introduced.
+
+## Differences from upstream
+
+- The original SillyBunny implementation remounts the top-level DOM and maintains its own tab state
+  machine; this implementation is primarily CSS layout with minimal DOM changes, to reduce conflicts
+  with the 2.4.0 panel runtime.
+- The third-party `sb-tabs` injection layer no longer participates in the host UI; feature panels
+  should register with the 2.4 Panel Runtime.

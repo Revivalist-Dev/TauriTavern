@@ -1,10 +1,10 @@
-# MCP 当前状态
+# MCP (current state)
 
-## 当前解决的问题
+## What the current design solves
 
-当前 MCP 平台以稳定 registration、严格持久化、显式启停、只读 discovery 与默认关闭权限为基础，提供第一方 Manager 的 model-facing tool description override 与用户 test call，并将完整成功的 catalog 保存为 application-owned persistent snapshot。Rust Agent Runtime 与 Legacy generation 都从同一 snapshot 消费 MCP tools；Legacy generation 不会污染全局 ToolManager。
+The MCP platform rests on stable registrations, strict persistence, explicit start/stop, read-only discovery, and permissions that are off by default. It provides the first-party Manager with model-facing tool description overrides and user test calls, and stores a complete, successful catalog as an application-owned persistent snapshot. The Rust Agent Runtime and Legacy generation both consume MCP tools from that same snapshot, and Legacy generation does not pollute the global ToolManager.
 
-## 端到端链路
+## End-to-end chain
 
 ```text
 First-party MCP extension (React / strict TSX)
@@ -32,99 +32,99 @@ Legacy Generate root
   -> existing Assistant/Tool rows + TOOL_CALLS events + recursive Generate
 ```
 
-crate 责任：
+Crate responsibilities:
 
-- `tt-domain::models::tool` / `mcp`：通用 `ToolDescriptionOverride`、registration UUID、endpoint、协议版本偏好、Active/Paused、Off/Ask/Allow 与领域约束。
-- `tt-ports::mcp` / `repositories::mcp_server_repository`：Tauri-free、RMCP-free 的 outbound ports 与 MCP call outcome。
-- `tt-application::McpService`：intent CRUD、permission、persistent catalog policy、discovery、test-call Active/JSON gate，以及 Agent/Legacy 共用的 cached model-tool resolution 与发送前 permission/arguments gate。
-- `tt-adapter-storage-core`：registration 与 endpoint-bound catalog snapshot 的严格 v1 单文件存储。
-- `tt-adapter-mcp`：协议版本偏好到 RMCP lifecycle 的映射与协商结果校验、Auto 下一次受限的 legacy initialize 重试、基于 RMCP 内置 reqwest backend 的 Streamable HTTP、手动全分页、discovery validation 与单次 `tools/call` 结果投影。
-- `tt-adapter-http`：无 redirect、无 retry 的 MCP client profile；MCP adapter 每次 discovery/call 从共享 pool 取得当前 proxy/TLS/UA 配置。
-- `tauritavern`：composition、commands 与 Manager Host ABI。
+- `tt-domain::models::tool` / `mcp`: the general `ToolDescriptionOverride`, registration UUID, endpoint, protocol version preference, Active/Paused, Off/Ask/Allow, and the domain constraints.
+- `tt-ports::mcp` / `repositories::mcp_server_repository`: Tauri-free, RMCP-free outbound ports and the MCP call outcome.
+- `tt-application::McpService`: intent CRUD, permissions, persistent catalog policy, discovery, the test-call Active/JSON gate, and the cached model-tool resolution plus pre-send permission/arguments gate shared by Agent and Legacy.
+- `tt-adapter-storage-core`: strict v1 single-file storage for registrations and endpoint-bound catalog snapshots.
+- `tt-adapter-mcp`: mapping the protocol version preference onto the RMCP lifecycle and validating the negotiated result, the one bounded legacy-initialize retry under `auto`, Streamable HTTP over RMCP's built-in reqwest backend, manual full pagination, discovery validation, and projection of a single `tools/call` result.
+- `tt-adapter-http`: an MCP client profile with no redirects and no retries; for each discovery/call the MCP adapter takes the current proxy/TLS/UA configuration from the shared pool.
+- `tauritavern`: composition, commands, and the Manager host ABI.
 
-管理 UI 位于 `src/scripts/extensions/mcp-manager/`，由 SillyTavern 内置扩展加载器激活，并在 Extensions 抽屉中与 Skill 同级展示。React 组件只消费 typed state 与 actions；Host ABI 等待、MCP API 解析以及全部 SillyTavern Popup 交互留在扩展 host adapter。Add 弹窗支持手动 header rows、协议版本选择，以及单服务器的直接对象/`mcpServers` JSON 输入；两者都只调用同一个 create 用例。已保存 server 的 Edit 弹窗复用手动连接表单，可修改名称、endpoint、headers 与协议版本。工具描述弹窗只编辑顶层描述并保留 property overrides；“重置全部自定义”通过 `override: null` 删除完整覆盖。测试调用收敛为工具栏单一入口的测试控制台弹窗：选择 active 服务器后自动 discovery、选择工具、按 schema 表单填写并查看当次结果；没有历史/回放/自动重试。TauriTavern Settings 不再拥有平行入口。
+The management UI lives in `src/scripts/extensions/mcp-manager/`, is activated by SillyTavern's built-in extension loader, and appears in the Extensions drawer at the same level as Skill. React components consume only typed state and actions; waiting for the host ABI, parsing the MCP API, and every SillyTavern popup interaction stay in the extension's host adapter. The Add dialog supports manual header rows, a protocol version choice, and JSON input for a single server given either as a bare object or under `mcpServers`; both forms call the same create use case. The Edit dialog for a saved server reuses the manual connection form and can change the name, endpoint, headers, and protocol version. The tool description dialog edits only the top-level description and keeps property overrides; "Reset all customizations" removes the whole override through `override: null`. Test calls are consolidated into a test console dialog reached from a single toolbar entry: after choosing an active server it discovers automatically, then lets the user pick a tool, fill in a form built from the schema, and inspect that one result; there is no history, replay, or automatic retry. TauriTavern Settings no longer has a parallel entry point.
 
-## 长期不变量
+## Standing invariants
 
-1. canonical ID 沿用当前工具契约：provider 为 `mcp/<registration-uuid>`，ToolId 为 `mcp/<registration-uuid>:<native-name>`。
-2. endpoint 不进入 ToolId；用户可以编辑 endpoint，registration UUID、ToolId 与权限保持不变，connection catalog 会失效。
-3. discovery 只产生候选描述，不产生执行 authority；新工具永远 Off。
-4. annotations 是不可信提示，不能改变 permission。
-5. 完整分页与 application canonical validation 成功后才发布新 catalog；写盘失败时以可见 diagnostic 明确标记 memory-only，不发布协议 partial，其他 refresh 失败不把旧 snapshot 冒充本次结果。
-6. 已定位到具体 registration 文件的读取或解析错误隔离为 storage issue，坏 tool/duplicate 隔离到最小工具组；registration 目录无法枚举、分页不完整等无法归属的失败仍显式失败。
-7. user test call 的一次点击就是本次 authority；Off/Ask/Allow 不阻止调用，也不被调用修改。Agent 与 Legacy 模型调用中 Ask/Allow 均表示自动执行，审批系统留给后续统一工具交互设计。
-8. request handle 建立前的失败才可标记 NotSent；建立后 cancel/timeout/disconnect 无法证明远端状态时必须标记 OutcomeUnknown。
-9. Manager test call 将用户填写的 `argumentsJson` 原样交给 backend 解析；Legacy 沿用 ToolManager 的 provider 参数规范化与序列化结果。两条路径都不做 input-schema coercion。
-10. RMCP/reqwest 类型不得进入 domain、ports、application 或 presentation DTO。
-11. MCP 不进入全局 Legacy ToolManager、slash commands 或 extension enumeration；Legacy 只通过 request-scoped resolver 分派，local registry 保持 live lookup。
-12. `custom_include_body` / `custom_exclude_body` 是用户最终 upstream body 意图；Legacy MCP 不保护、拒绝、重注入或改写 `tools` / `tool_choice`。
-13. endpoint、custom headers 与协议版本作为同一份连接配置原子更新。所有 discovery/call 消费路径从 registration 读取该配置，list DTO 为同一 WebView 的编辑器回传 endpoint 与明文 headers。
-14. discovery catalog 只保存 server 原始 descriptor；registration 保存稀疏 model-facing description override。共享 resolver 先应用 registration，Agent invocation 再应用 Profile override；Legacy 只消费 registration 层。
+1. Canonical IDs follow the current tool contract: the provider is `mcp/<registration-uuid>` and the ToolId is `mcp/<registration-uuid>:<native-name>`.
+2. The endpoint does not enter the ToolId; a user may edit the endpoint, and the registration UUID, ToolId, and permissions stay the same while the connection catalog is invalidated.
+3. Discovery produces candidate descriptions only, never execution authority; a new tool is always Off.
+4. Annotations are untrusted hints and cannot change a permission.
+5. A new catalog is published only after full pagination and application canonical validation succeed; if the write to disk fails, it is explicitly marked memory-only with a visible diagnostic and no protocol partial is published, and another refresh failure does not pass an old snapshot off as this request's result.
+6. A read or parse error located in a specific registration file is isolated as a storage issue, and a bad tool or duplicate is isolated to the smallest tool group; a failure that cannot be attributed, such as an unenumerable registration directory or incomplete pagination, still fails explicitly.
+7. One click on a user test call is this call's authority; Off/Ask/Allow neither blocks the call nor is changed by it. In Agent and Legacy model calls, Ask/Allow both mean automatic execution, and the approval system is left to a later unified tool-interaction design.
+8. Only a failure before the request handle exists may be marked NotSent; after it exists, a cancel/timeout/disconnect that cannot prove the remote state must be marked OutcomeUnknown.
+9. A Manager test call hands the user's `argumentsJson` to the backend for parsing exactly as entered; Legacy reuses the ToolManager's provider argument normalization and serialization result. Neither path coerces against the input schema.
+10. RMCP/reqwest types must not enter domain, ports, application, or presentation DTOs.
+11. MCP does not enter the global Legacy ToolManager, slash commands, or extension enumeration; Legacy dispatches only through the request-scoped resolver, and the local registry keeps live lookup.
+12. `custom_include_body` / `custom_exclude_body` express the user's final intent for the upstream body; Legacy MCP does not protect, refuse, reinject, or rewrite `tools` / `tool_choice`.
+13. The endpoint, custom headers, and protocol version update atomically as one connection configuration. Every discovery/call consumer path reads that configuration from the registration, and the list DTO returns the endpoint and plaintext headers to the editor in the same WebView.
+14. The discovery catalog stores only the server's raw descriptors; the registration stores sparse model-facing description overrides. The shared resolver applies the registration first, an Agent invocation then applies the Profile override, and Legacy consumes only the registration layer.
 
-## Persistent catalog 与 Peer 语义
+## Persistent catalog and Peer semantics
 
-`McpService` 按 registration 持有内存热副本，`tt-adapter-storage-core` 在 `_tauritavern/mcp/catalogs/<uuid>.json` 保存严格 v1 persistent snapshot。文件同时绑定 canonical UUID 与 registration 的规范化 endpoint；permissions、description overrides 与 staleTools 不写入 catalog。permissions/overrides 保存在 registration，模型 descriptor 在每次读取时投影。
+`McpService` keeps an in-memory hot copy per registration, and `tt-adapter-storage-core` saves a strict v1 persistent snapshot at `_tauritavern/mcp/catalogs/<uuid>.json`. The file binds both the canonical UUID and the registration's normalized endpoint; permissions, description overrides, and `staleTools` are not written into the catalog. Permissions and overrides live in the registration, and the model descriptor is projected on every read.
 
-普通 `servers.discover` 按内存、磁盘、真实 network discovery 的顺序读取。内存和磁盘均不存在时才创建 RMCP Peer；显式 `servers.refresh` 始终绕过两级 snapshot。cold discovery/refresh 在完整分页与 adapter/application validation 成功后发布；原子写盘失败不会阻止使用已验证 catalog，而是保留旧磁盘 snapshot、发布 memory-only snapshot，并返回 `mcp.catalog_persistence_failed` diagnostic。网络或 validation 失败仍直接返回错误，上一份 snapshot 保持不变但不会作为该请求的成功结果。损坏、未知 schema、UUID 或 endpoint 不匹配的文件显式失败，用户 refresh 可以直接联网并替换。
+An ordinary `servers.discover` reads in the order memory, disk, real network discovery. An RMCP Peer is created only when neither memory nor disk has anything; an explicit `servers.refresh` always bypasses both snapshot levels. A cold discovery/refresh publishes after full pagination and adapter/application validation succeed; a failed atomic write does not prevent the validated catalog from being used, but keeps the old on-disk snapshot, publishes a memory-only snapshot, and returns the `mcp.catalog_persistence_failed` diagnostic. A network or validation failure still returns an error directly, and the previous snapshot stays as it was but is not reported as this request's success. A damaged file, an unknown schema, or a UUID or endpoint mismatch fails explicitly, and a user refresh may go straight to the network and replace it.
 
-snapshot 没有 TTL/LRU、后台 refresh、自动 retry、source/age DTO 或 migration reader。registration 删除成功不受派生 catalog 清理失败影响；清理失败只写 warning。Data Archive/TT-Sync 的既有 external-data reconciliation 清空内存热副本，使后续读取重新观察当前 data root。仅改名称、Active/Paused、permission 与 description override 不清 catalog；endpoint、headers 或协议版本变化先删除磁盘/内存 snapshot，再保存新连接配置。Paused gate 始终先于 cache lookup。
+A snapshot has no TTL/LRU, background refresh, automatic retry, source/age DTO, or migration reader. A successful registration deletion is not affected by a failure to clean up the derived catalog; such a failure only writes a warning. The existing external-data reconciliation in Data Archive/TT-Sync empties the in-memory hot copy, so a later read observes the current data root again. Changing only the name, Active/Paused, permissions, or description overrides does not clear the catalog; a change to the endpoint, headers, or protocol version deletes the disk and memory snapshot first and then saves the new connection configuration. The Paused gate always precedes the cache lookup.
 
-模型工具准备是严格 cached-only：共享 resolver 只处理 Active 且至少保存一个 Ask/Allow 的 registration，按 memory→disk 读取 snapshot，不调用 gateway、不做 cold discovery；没有 permission 的 registration 不触碰 catalog。resolver 复制 raw descriptor 后应用 registration description override；无效 property override 形成 diagnostic，不回退 raw descriptor。单 registration cache miss、读取/校验失败或非 object-root function schema 只形成 diagnostic，健康 server 继续。Agent 再按 Profile 选择收窄并应用更高优先级的 Profile override；Legacy 每个实际 root generation 读取一次全量 permitted descriptors，并在工具递归中复用。用户在 Manager 显式 refresh 或修改 override 后，下一次 Agent invocation 或 Legacy root 才看到变化。
+Model tool preparation is strictly cached-only: the shared resolver handles only registrations that are Active and store at least one Ask/Allow, reads the snapshot memory first and then disk, calls no gateway, and performs no cold discovery; a registration without a permission never touches the catalog. The resolver copies the raw descriptor and then applies the registration description override; an invalid property override produces a diagnostic and does not fall back to the raw descriptor. A per-registration cache miss, a read or validation failure, or a function schema whose root is not an object produces only a diagnostic, and a healthy server carries on. The Agent then narrows by the Profile's selection and applies the higher-priority Profile override; Legacy reads the entire set of permitted descriptors once per actual root generation and reuses it throughout tool recursion. After the user explicitly refreshes in the Manager or edits an override, the change shows up only on the next Agent invocation or Legacy root.
 
-每次 test call 也使用新的短生命周期 Peer。协商到 `2026-07-28` 时，SEP-2243 要求把带 `x-mcp-header` 注解的参数镜像为 `Mcp-Param-*` header，缺失时 server 必须以 `HeaderMismatch` 拒绝；RMCP 只从同一 transport 上的 `tools/list` 响应缓存 tool schema，未命中时静默省略这些 header，且没有从外部预填缓存的 API。因此 call 前在同一 Peer 分页 `tools/list`，找到目标工具后立即停止；目标始终未出现时才遍历完整目录。该步骤只 hydration transport metadata：不做 arguments schema validation/coercion，也不持久化 catalog；目标未出现在 SDK 可见列表时，明确 NotSent。2025 协议不做这次额外 list。
+Each test call also uses a new, short-lived Peer. When the negotiation lands on `2026-07-28`, SEP-2243 requires the parameters annotated with `x-mcp-header` to be mirrored as `Mcp-Param-*` headers, and a server must reject their absence with `HeaderMismatch`; RMCP caches tool schemas only from a `tools/list` response on the same transport, silently omits those headers on a miss, and offers no API to pre-fill the cache from outside. So before a call, `tools/list` is paged on the same Peer and stops as soon as the target tool appears; only if the target never appears is the full directory walked. That step hydrates transport metadata only: it performs no arguments schema validation or coercion and persists no catalog; when the target does not appear in the list the SDK can see, NotSent is returned explicitly. The 2025 protocols skip this extra list.
 
-## 当前固定边界
+## Current fixed boundaries
 
-- adapter 不设自有 HTTP 响应体上限：直接使用 RMCP 内置 reqwest backend，SSE 单事件沿用 RMCP 默认上限，JSON 响应体与 LLM provider 响应一样只受操作超时约束。结果大小由消费方决定：Agent 共用长结果外置，Legacy 与本地工具一致不另设上限。
-- test-call arguments JSON：256 KiB，且必须为 object。
-- Agent MCP arguments 同样最多 256 KiB 且必须为 object；可广告 schema 的 root 必须显式为 `type: "object"`。
-- Legacy MCP arguments 同样最多 256 KiB 且必须为 object；结果以 MCP outcome JSON 内联到 Tool message，不复用 Agent workspace externalization。
-- Agent MCP 结果的文字、图片与诊断如何交给模型，以及 Manager 测试调用与 Legacy 聊天的差别，见 [Agent 消费契约](../API/MCP.md#7-agent-消费契约)。
-- transport 接受任意带 host 的 HTTP(S) endpoint，包括公网 HTTP、userinfo 与 query。Manager 激活 HTTP registration 时会明确提示流量未加密。
-- custom headers 不设 reserved-name、数量或总量限制；名称和值原样保存。transport 无法接受的配置（非法 header，或 RMCP 保留的 `Accept`、`Mcp-Session-Id`、`Last-Event-Id`）会让启动请求失败，因此在 `tools/call` 发送前返回 NotSent。endpoint credentials 与认证 headers 明文保存在 registration 中。
-- 单 tool wire representation：256 KiB；完整 catalog：8 MiB。
-- 每个 server：最多 32 页、512 tools。
-- HTTP connect timeout 为 30s；lifecycle 与分页各有 120s operation timeout，已发送 tool call 的响应等待为 60s。共享 client 不叠加 request timeout。取消或超时让调用方立即返回；启动请求（`server/discover` 或 `initialize`）若仍挂起，RMCP 目前不会中止这条 HTTP 请求，残留连接由 server 或网络关闭。
-- redirect、SSE reconnect、expired-session reinitialize 与 application retry 均关闭。
-- 协议版本由偏好决定 lifecycle 与接受集合：
+- The adapter sets no HTTP response body limit of its own: it uses RMCP's built-in reqwest backend directly, a single SSE event keeps RMCP's default limit, and a JSON response body is bound only by the operation timeout, like an LLM provider response. Result size is decided by the consumer: the Agent shares the long-result externalization, while Legacy follows local tools and sets no separate limit.
+- Test-call arguments JSON: 256 KiB, and it must be an object.
+- Agent MCP arguments are likewise at most 256 KiB and must be an object; a schema that can be advertised must state `type: "object"` at its root explicitly.
+- Legacy MCP arguments are likewise at most 256 KiB and must be an object; the result is inlined into the Tool message as MCP outcome JSON and does not reuse the Agent workspace externalization.
+- For how the text, images, and diagnostics of an Agent MCP result reach the model, and how a Manager test call differs from a Legacy chat, see [Agent consumption contract](../API/MCP.md#7-agent-consumption-contract).
+- The transport accepts any HTTP(S) endpoint with a host, including plain public HTTP, userinfo, and a query. When the Manager activates an HTTP registration it states plainly that traffic is unencrypted.
+- Custom headers have no reserved-name, count, or total-size limit; names and values are stored exactly as entered. A configuration the transport cannot accept (an illegal header, or one of RMCP's reserved `Accept`, `Mcp-Session-Id`, `Last-Event-Id`) makes the startup request fail, so NotSent is returned before any `tools/call` is sent. Endpoint credentials and authentication headers are stored in the registration in plaintext.
+- A single tool's wire representation: 256 KiB; a complete catalog: 8 MiB.
+- Per server: at most 32 pages and 512 tools.
+- The HTTP connect timeout is 30s; lifecycle and pagination each have a 120s operation timeout, and waiting for the response to a tool call already sent is 60s. The shared client does not add a request timeout on top. A cancellation or a timeout returns to the caller at once; if a startup request (`server/discover` or `initialize`) is still pending, RMCP does not currently abort that HTTP request, and the leftover connection is closed by the server or the network.
+- Redirects, SSE reconnect, reinitialization on an expired session, and application retry are all off.
+- The protocol version preference decides the lifecycle and the accepted set:
 
-  | 偏好 | lifecycle | 接受的协商版本 |
+  | Preference | lifecycle | Accepted negotiated versions |
   | --- | --- | --- |
-  | `auto` | 以 `2026-07-28` 发起 `server/discover`；server 以非 modern JSON-RPC error 或无 session 的 4xx（401/403 除外）拒绝时，RMCP 在同一 transport 上回退到 `2025-11-25` 的 `initialize` | `2026-07-28`、`2025-11-25`、`2025-06-18`、`2025-03-26` |
-  | `2026-07-28` | 只走 `server/discover`，不回退 legacy | `2026-07-28` |
-  | `2025-*` | 直接以所选版本 `initialize`，不发 discover 探测 | 所选版本 |
+  | `auto` | Starts `server/discover` with `2026-07-28`; when the server rejects it with a non-modern JSON-RPC error or a session-less 4xx (401/403 excepted), RMCP falls back to `2025-11-25` `initialize` on the same transport | `2026-07-28`, `2025-11-25`, `2025-06-18`, `2025-03-26` |
+  | `2026-07-28` | `server/discover` only, with no legacy fallback | `2026-07-28` |
+  | `2025-*` | `initialize` with the chosen version directly, without a discover probe | The chosen version |
 
-  启动完成后 adapter 校验协商版本；不在接受集合内时关闭连接并作为启动失败返回。
-- RMCP 目前把启动阶段 SSE 响应中的 JSON-RPC error 当作连接关闭。仅当 `auto` 启动以 `ConnectionClosed` 失败时，才在同一 lifecycle timeout 内用新 Peer 尝试一次 `2025-11-25` initialize，两次失败的原因都保留在错误中；其他错误与固定版本不触发该路径。
-- 协商到 `2026-07-28` 时，RMCP 会从 `tools/list` 结果中移除 `x-mcp-header` 注解无效的工具；这类工具不进入 catalog，也没有 diagnostic。
+  Once startup completes the adapter validates the negotiated version; if it is outside the accepted set, the connection is closed and reported as a startup failure.
+- RMCP currently treats a JSON-RPC error in a startup-phase SSE response as a closed connection. Only when an `auto` startup fails with `ConnectionClosed` is a `2025-11-25` initialize attempted once with a new Peer inside the same lifecycle timeout, and both failure causes are kept in the error; other errors and a fixed version do not take that path.
+- When the negotiation lands on `2026-07-28`, RMCP removes tools whose `x-mcp-header` annotations are invalid from the `tools/list` result; such a tool never enters the catalog and produces no diagnostic.
 
-协议版本候选集合由代码限定；其余边界不是 per-server 设置。超限不会静默截断：单 tool 超限产生 discovery diagnostic，无法确认完整分页或 catalog 总量超限则本次 server discovery 失败；test call 在找到目标前的 metadata 分页超限为 NotSent，server 已响应后无法显示的内容保留 KnownResponse 并产生 diagnostic。无效的可选 output schema 只移除该字段并产生 diagnostic，不隔离仍可调用的工具。
+The candidate protocol versions are fixed in code; the other boundaries are not per-server settings. Exceeding a limit is never silently truncated: a single oversized tool produces a discovery diagnostic, and an unconfirmed complete pagination or an oversized catalog makes this server discovery fail; a test call whose metadata pagination exceeds the limit before finding its target returns NotSent, and content that cannot be displayed after the server has responded keeps KnownResponse and a diagnostic. An invalid optional output schema removes only that field and produces a diagnostic, without isolating a tool that remains callable.
 
-## Agent 调用语义
+## Agent call semantics
 
-- Profile v3 的 MCP identity 是 `mcp/<registration-uuid>:<native-name>`；v1/v2 的 builtin native names 在 application load 时一次性迁移为 `builtin:<native-name>` 并原子写回。
-- registration description override 是 Agent MCP descriptor 的默认值；Profile `tools.toolDescriptions` 在 invocation snapshot 前最后应用并拥有更高优先级。
-- 模型 alias 为 `mcp__<normalized server displayName>__<normalized nativeName>`，碰撞用确定性数字后缀；alias 只从 invocation binding 解码，执行使用原始 native name。
-- 实际发送前重新读取 registration；不存在、读取失败、Paused、Off 或发送前 transport 配置失败都返回可恢复的 NotSent tool error。Ask 与 Allow 当前行为相同。
-- known `isError`、server error 与 unsupported response 作为可恢复 Agent tool result；MCP 不产生 `AgentToolEffect`。
-- `outcome_unknown` 可能已经执行，绝不自动 retry，也不回填一个虚构结果。当前无用户决策 UI，因此以非 retryable error 终止 run；已有聊天 commit 时沿用 Agent 的 partial-success 终态。
+- A Profile v3 MCP identity is `mcp/<registration-uuid>:<native-name>`; builtin native names from v1/v2 are migrated once at application load to `builtin:<native-name>` and written back atomically.
+- The registration description override is the default for an Agent MCP descriptor; Profile `tools.toolDescriptions` is applied last, before the invocation snapshot, and has the higher priority.
+- The model alias is `mcp__<normalized server displayName>__<normalized nativeName>`, with a deterministic numeric suffix on collision; an alias is decoded only from the invocation binding, and execution uses the original native name.
+- The registration is read again just before sending; missing, unreadable, Paused, Off, or a transport configuration failure before sending all return a recoverable NotSent tool error. Ask and Allow behave the same at present.
+- A known `isError`, a server error, and an unsupported response become a recoverable Agent tool result; MCP produces no `AgentToolEffect`.
+- `outcome_unknown` may already have executed, so it is never retried automatically and no invented result is filled in. There is no user decision UI today, so the run ends with a non-retryable error; when a chat commit already happened, the Agent's partial-success terminal state applies.
 
-## Legacy 调用语义
+## Legacy call semantics
 
-- MCP descriptors 只存在于私有 generation context；每个实际 group member 的模型/工具递归链是独立 root。递归复用 descriptor snapshot，但每轮重新求值 local tools、根据当前 local view 分配 MCP aliases 并创建 provider objects；执行只解析当前 round map，历史 alias 不是新请求 authority。
-- 每个 root 从共享 resolver 取得已经应用 registration description override 的 descriptor；Manager 后续修改不改变正在进行的 root。
-- local aliases 保持生态优先；MCP 使用 `mcp__<server>__<tool>` 与确定性数字后缀。`CHAT_COMPLETION_SETTINGS_READY` 后只保留初始 MCP alias 与 post-hook 唯一同名 entry 的交集；删除、改名或重复 alias 不猜 ToolId。
-- finalizer 只描述 frontend post-hook view。后端随后照常应用用户 `custom_include_body` / `custom_exclude_body`；Legacy MCP 不保护或重新注入任何 body 字段。
-- response alias 命中本轮 MCP binding 时，通过独立 UUID `executionCallId` 调用 Rust；provider `tool_call_id` 只用于 Assistant/Tool 消息关联。初始 MCP alias 若失去最终 binding，会形成 NotSent Tool error，不回落到 live local registry。
-- Known error 与非用户 Stop 的 NotSent 保存为普通 error Tool result，同批后续 call 继续。`OutcomeUnknown` 或用户 Stop 立即终止剩余 calls；unknown 不伪造 Tool result、不部分保存当前批次、不自动 retry，并显示“可能已执行”的持久警告。
-- 完整已知批次继续使用现有原子 writer：Assistant `tool_calls[]`、物理 `role=tool` rows、`TOOL_CALLS_PERFORMED`、render、`TOOL_CALLS_RENDERED`、save、recursive Generate。Stop 发生后可以保存已经完整确认的批次，但不会递归。
-- MCP 从不注册到全局 ToolManager；local callback、formatter、stealth、slash commands 和 extension enumeration 保持现有行为。
+- MCP descriptors exist only inside the private generation context; each actual group member's model/tool recursion chain is its own root. Recursion reuses the descriptor snapshot but re-evaluates local tools each round, allocates MCP aliases from the current local view, and creates provider objects; execution resolves only the current round's map, and a historical alias is not authority for a new request.
+- Each root takes descriptors with the registration description override already applied from the shared resolver; a later change in the Manager does not alter a root that is already running.
+- Local aliases keep ecosystem priority; MCP uses `mcp__<server>__<tool>` with a deterministic numeric suffix. After `CHAT_COMPLETION_SETTINGS_READY` only the intersection of the initial MCP aliases and the post-hook entries with a unique name of the same value is kept; a deleted, renamed, or duplicate alias does not get a guessed ToolId.
+- The finalizer describes only the frontend post-hook view. The backend then applies the user's `custom_include_body` / `custom_exclude_body` as usual; Legacy MCP neither protects nor reinjects any body field.
+- When a response alias hits this round's MCP binding, Rust is called through a separate UUID `executionCallId`; the provider's `tool_call_id` is used only to associate Assistant/Tool messages. If an initial MCP alias loses its final binding, that becomes a NotSent tool error, with no fallback to the live local registry.
+- A known error and the NotSent of a non-user Stop are saved as ordinary error tool results, and later calls in the same batch continue. `OutcomeUnknown` or a user Stop ends the remaining calls at once; unknown fabricates no tool result, saves no part of the current batch, is not retried automatically, and shows a persistent "may already have executed" warning.
+- A complete known batch still uses the existing atomic writer: Assistant `tool_calls[]`, physical `role=tool` rows, `TOOL_CALLS_PERFORMED`, render, `TOOL_CALLS_RENDERED`, save, recursive Generate. After a Stop, a batch that has been fully confirmed may still be saved, but nothing recurses.
+- MCP is never registered with the global ToolManager; local callbacks, formatters, stealth, slash commands, and extension enumeration keep their existing behavior.
 
-## 当前不支持
+## Not supported today
 
-- Ask 审批及跨工具统一审批交互；
-- Legacy unknown-outcome pause/resume/retry workflow；
-- OAuth/credential、stdio、Resources/Prompts/Tasks/Apps；
-- background refresh、list-changed、catalog TTL/revision history、MCP 专属 sync dataset。
+- Ask approval and the unified cross-tool approval interaction;
+- the Legacy unknown-outcome pause/resume/retry workflow;
+- OAuth/credentials, stdio, Resources/Prompts/Tasks/Apps;
+- background refresh, list-changed, catalog TTL/revision history, and an MCP-specific sync dataset.
 
-全量 Data Archive 会随 data root 备份 registration、其中的明文 custom header values 与 persistent catalog。TT-Sync 是否包含这些文件仍由用户选择的通用 DatasetPolicy 决定；MCP 不增加专属同步协议。
+A full Data Archive backs up the registrations, the plaintext custom header values they hold, and the persistent catalog along with the data root. Whether TT-Sync includes these files is still decided by the general DatasetPolicy the user selects; MCP adds no sync protocol of its own.

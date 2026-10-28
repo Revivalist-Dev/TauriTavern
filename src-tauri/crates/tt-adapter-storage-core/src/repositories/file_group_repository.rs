@@ -142,7 +142,7 @@ impl FileGroupRepository {
         let mut chat_size: u64 = 0;
         let mut date_last_chat: i64 = 0;
 
-        // 直接使用 group.chats，因为它是 Vec<String> 而不是 Option<Vec<String>>
+        // Use group.chats directly, because it is Vec<String> and not Option<Vec<String>>
         for chat_file in chat_files {
             let file_name = chat_file.file_stem().and_then(|s| s.to_str()).unwrap_or("");
 

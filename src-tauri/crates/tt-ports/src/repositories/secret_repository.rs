@@ -5,16 +5,16 @@ use tt_domain::models::secret::Secrets;
 
 #[async_trait]
 pub trait SecretRepository: Send + Sync {
-    /// 保存所有密钥
+    /// Persist all secrets
     async fn save(&self, secrets: &Secrets) -> Result<(), DomainError>;
 
-    /// 加载所有密钥
+    /// Load all secrets
     async fn load(&self) -> Result<Secrets, DomainError>;
 
     /// Clear in-memory repository cache to reflect external file changes.
     async fn clear_cache(&self) -> Result<(), DomainError>;
 
-    /// 写入单个密钥，返回新密钥 ID
+    /// Write a single secret and return the new secret ID
     async fn write_secret(
         &self,
         key: &str,
@@ -22,16 +22,16 @@ pub trait SecretRepository: Send + Sync {
         label: &str,
     ) -> Result<String, DomainError>;
 
-    /// 读取单个密钥（按 ID 或当前 active）
+    /// Read a single secret (by ID, or the currently active one)
     async fn read_secret(&self, key: &str, id: Option<&str>)
     -> Result<Option<String>, DomainError>;
 
-    /// 删除单个密钥（按 ID 或当前 active）
+    /// Delete a single secret (by ID, or the currently active one)
     async fn delete_secret(&self, key: &str, id: Option<&str>) -> Result<(), DomainError>;
 
-    /// 旋转 active 密钥
+    /// Rotate the active secret
     async fn rotate_secret(&self, key: &str, id: &str) -> Result<(), DomainError>;
 
-    /// 重命名密钥
+    /// Rename a secret
     async fn rename_secret(&self, key: &str, id: &str, label: &str) -> Result<(), DomainError>;
 }

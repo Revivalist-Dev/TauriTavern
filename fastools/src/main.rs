@@ -38,14 +38,14 @@ impl IosPolicyProfileSelection {
 
 fn prompt_ios_policy_profile(action: &str) -> Result<Option<IosPolicyProfileSelection>> {
     let selections = &[
-        "✅ full（默认：无限制）",
-        "🧪 ios_internal_full（内部：全功能，默认禁用启动更新检查）",
-        "🚦 ios_external_beta（外测：review-safe 默认裁剪，可被导入覆盖解锁）",
-        "🔙 返回 (Back)",
+        "✅ full (default: unrestricted)",
+        "🧪 ios_internal_full (internal: full feature set, startup update check disabled by default)",
+        "🚦 ios_external_beta (external beta: review-safe trimming by default, unlockable by an imported override)",
+        "🔙 Back",
     ];
 
     let selection = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt(format!("{}：选择 iOS Policy Profile", action))
+        .with_prompt(format!("{}: Select iOS Policy Profile", action))
         .default(0)
         .items(&selections[..])
         .interact()?;
@@ -58,7 +58,7 @@ fn prompt_ios_policy_profile(action: &str) -> Result<Option<IosPolicyProfileSele
     }
 }
 
-// 日志辅助函数
+// Logging helpers
 fn log_info(msg: &str) {
     let time = Local::now().format("%H:%M:%S").to_string();
     println!(
@@ -100,7 +100,7 @@ fn log_error(msg: &str) {
 }
 
 fn main() -> Result<()> {
-    // 启用 Windows 下的 ANSI 颜色支持
+    // Enable ANSI colour support on Windows
     #[cfg(windows)]
     let _ = colored::control::set_virtual_terminal(true);
 
@@ -116,7 +116,7 @@ fn main() -> Result<()> {
     clear_terminal();
     print_banner();
 
-    // 使用 match 捕获 run_app 的结果，防止直接 panic 或退出导致闪退
+    // Capture the result of run_app with match so that a panic or a direct exit cannot close the window
     match run_app() {
         Ok(_) => Ok(()),
         Err(e) => {
@@ -162,7 +162,7 @@ fn handle_error(e: anyhow::Error) {
     println!(
         "{} {:^52} {}",
         "│".red().bold(),
-        "🛑 启动器发生错误 (Launcher Error) 🛑".white().bold(),
+        "🛑 Launcher Error 🛑".white().bold(),
         "│".red().bold()
     );
     println!(
@@ -172,23 +172,23 @@ fn handle_error(e: anyhow::Error) {
             .bold()
     );
     println!();
-    log_error(&format!("错误详情: {:?}", e));
+    log_error(&format!("Error details: {:?}", e));
     println!();
     pause();
     std::process::exit(1);
 }
 
 fn run_app() -> Result<()> {
-    // 1. 环境自检
-    step_header(1, 3, "环境自检", "Environment Check");
+    // 1. Environment check
+    step_header(1, 3, "Environment Check");
     check_environment()?;
 
-    // 2. 依赖管理
-    step_header(2, 3, "依赖管理", "Dependencies Management");
+    // 2. Dependency management
+    step_header(2, 3, "Dependency Management");
     check_and_install_dependencies()?;
 
-    // 3. 启动菜单
-    step_header(3, 3, "启动菜单", "Main Menu");
+    // 3. Main menu
+    step_header(3, 3, "Main Menu");
     loop {
         if !show_menu()? {
             break;
@@ -208,7 +208,7 @@ fn print_banner() {
         r#"   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝   ╚═╝   ╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝"#,
     ];
 
-    // 渐变色配置 (R, G, B) - 从亮青色过渡到深青色，营造光影立体感
+    // Gradient stops (R, G, B): bright cyan fading into deep cyan for a sense of depth
     let colors = [
         (80, 255, 255),
         (60, 235, 255),
@@ -238,64 +238,65 @@ fn print_banner() {
     println!();
 }
 
-fn step_header(current: usize, total: usize, title: &str, subtitle: &str) {
+fn step_header(current: usize, total: usize, title: &str) {
     let bar_len = 20;
     let filled = (current as f64 / total as f64 * bar_len as f64) as usize;
     let bar = "█".repeat(filled) + &"░".repeat(bar_len - filled);
 
     println!();
     println!(
-        "{} {} {} {} {} {}",
+        "{} {} {} {} {}",
         "🔵".blue(),
         bar.blue().bold(),
         "".clear(),
         format!("{}/{}", current, total).bold(),
         title.white().bold(),
-        format!("({})", subtitle).cyan()
     );
     println!("{}", "─".repeat(60).dimmed());
 }
 
 fn check_environment() -> Result<()> {
-    log_info("正在进行环境自检...");
+    log_info("Running the environment self-check...");
 
-    // 检查 Node.js
+    // Check Node.js
     if which("node").is_err() {
-        log_error("未找到 Node.js！");
-        println!("请前往 https://nodejs.org/ 下载并安装（推荐 LTS 版本）。");
-        println!("安装完成后，请重新运行此启动器。");
+        log_error("Node.js was not found!");
+        println!(
+            "Download and install it from https://nodejs.org/ (the LTS release is recommended)."
+        );
+        println!("Run this launcher again once the installation finishes.");
         pause();
         std::process::exit(1);
     } else {
-        log_success("Node.js 已安装");
+        log_success("Node.js is installed");
     }
 
-    // 检查 Rust (cargo)
+    // Check Rust (cargo)
     if which("cargo").is_err() {
-        log_error("未找到 Rust (cargo)！");
-        println!("Tauri 需要 Rust 环境。请前往 https://rustup.rs/ 安装。");
+        log_error("Rust (cargo) was not found!");
+        println!("Tauri needs a Rust toolchain. Install one from https://rustup.rs/.");
         pause();
         std::process::exit(1);
     } else {
-        log_success("Rust (cargo) 已安装");
+        log_success("Rust (cargo) is installed");
     }
 
-    // 检查 WebView2 (仅 Windows)
+    // Check WebView2 (Windows only)
     #[cfg(windows)]
     if !check_webview2()? {
         pause();
         std::process::exit(1);
     }
 
-    // 检查 pnpm
+    // Check pnpm
     if which("pnpm").is_err() {
-        log_warn("未找到 pnpm，尝试通过 npm 安装...");
+        log_warn("pnpm was not found, trying to install it through npm...");
         install_pnpm()?;
     } else {
-        log_success("pnpm 已安装");
+        log_success("pnpm is installed");
     }
 
-    log_success("环境检查通过！");
+    log_success("Environment check passed!");
     println!();
     Ok(())
 }
@@ -314,13 +315,13 @@ fn check_webview2() -> Result<bool> {
         hklm.open_subkey(subkey_path).is_ok() || hklm.open_subkey(subkey_path_64).is_ok();
 
     if has_webview2 {
-        log_success("WebView2 Runtime 已安装");
+        log_success("WebView2 Runtime is installed");
         Ok(true)
     } else {
-        log_error("未检测到 WebView2 Runtime！");
-        println!("Windows 运行 Tauri 应用需要 WebView2 Runtime。");
-        println!("请前往 https://developer.microsoft.com/zh-cn/microsoft-edge/webview2/ 下载常青版引导程序 (Evergreen Bootstrapper)。");
-        println!("或者直接下载安装：https://go.microsoft.com/fwlink/p/?LinkId=2124703");
+        log_error("WebView2 Runtime was not detected!");
+        println!("Running a Tauri application on Windows requires the WebView2 Runtime.");
+        println!("Download the Evergreen Bootstrapper from https://developer.microsoft.com/microsoft-edge/webview2/.");
+        println!("Or install it directly: https://go.microsoft.com/fwlink/p/?LinkId=2124703");
         Ok(false)
     }
 }
@@ -332,7 +333,7 @@ fn install_pnpm() -> Result<()> {
             .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
             .template("{spinner:.green} {msg}")?,
     );
-    spinner.set_message("正在安装 pnpm...");
+    spinner.set_message("Installing pnpm...");
     spinner.enable_steady_tick(Duration::from_millis(100));
 
     let status = Command::new(get_cmd("npm"))
@@ -340,17 +341,17 @@ fn install_pnpm() -> Result<()> {
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status()
-        .context("执行 npm install -g pnpm 失败")?;
+        .context("failed to run npm install -g pnpm")?;
 
     spinner.finish_and_clear();
 
     if status.success() {
-        log_success("pnpm 安装成功！");
+        log_success("pnpm was installed successfully!");
         Ok(())
     } else {
-        log_error("pnpm 安装失败！");
-        println!("请尝试手动运行: npm install -g pnpm --registry=https://registry.npmmirror.com");
-        Err(anyhow::anyhow!("pnpm 安装失败"))
+        log_error("pnpm installation failed!");
+        println!("Try running this by hand: npm install -g pnpm --registry=https://registry.npmmirror.com");
+        Err(anyhow::anyhow!("pnpm installation failed"))
     }
 }
 
@@ -369,20 +370,22 @@ fn check_and_install_dependencies() -> Result<()> {
     }
 
     if !Path::new("package.json").exists() {
-        return Err(anyhow::anyhow!("无法找到项目根目录 (未发现 package.json)"));
+        return Err(anyhow::anyhow!(
+            "Could not find the project root (no package.json was found)"
+        ));
     }
 
-    // 检查 node_modules
+    // Check node_modules
     if !Path::new("node_modules").exists() {
-        log_warn("检测到依赖缺失，准备安装...");
+        log_warn("Dependencies are missing, preparing to install them...");
 
         if which("npm").is_ok() {
-            log_info("设置 npm 镜像源为淘宝源...");
+            log_info("Pointing npm at the Taobao registry mirror...");
             let _ = Command::new(get_cmd("npm"))
                 .args(["config", "set", "registry", TAOBAO_REGISTRY])
                 .output();
         } else {
-            log_warn("未检测到 npm，跳过镜像源配置");
+            log_warn("npm was not detected, skipping the registry mirror setup");
         }
 
         let spinner = ProgressBar::new_spinner();
@@ -391,7 +394,7 @@ fn check_and_install_dependencies() -> Result<()> {
                 .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
                 .template("{spinner:.green} {msg}")?,
         );
-        spinner.set_message("正在安装依赖 (pnpm install)... 这可能需要一点时间");
+        spinner.set_message("Installing dependencies (pnpm install)... this can take a while");
         spinner.enable_steady_tick(Duration::from_millis(100));
 
         let status = run_sequential_attempts(&[
@@ -404,14 +407,14 @@ fn check_and_install_dependencies() -> Result<()> {
         spinner.finish_and_clear();
 
         if status.success() {
-            log_success("依赖安装完成！");
+            log_success("Dependencies installed!");
         } else {
-            log_error("依赖安装失败！");
-            println!("请尝试手动在终端运行 `pnpm install` 查看详细错误。");
-            return Err(anyhow::anyhow!("依赖安装失败"));
+            log_error("Dependency installation failed!");
+            println!("Run `pnpm install` by hand in a terminal to see the full error.");
+            return Err(anyhow::anyhow!("dependency installation failed"));
         }
     } else {
-        log_success("依赖已就绪");
+        log_success("Dependencies are ready");
     }
     println!();
     Ok(())
@@ -420,7 +423,7 @@ fn check_and_install_dependencies() -> Result<()> {
 fn run_sequential_attempts(candidates: &[(&str, Vec<&str>)]) -> Result<ExitStatus> {
     let mut last_err: Option<anyhow::Error> = None;
     for (prog, args) in candidates {
-        // 在 Windows 上自动处理 .cmd 后缀
+        // Handle the .cmd suffix automatically on Windows
         let cmd_prog = get_cmd(prog);
 
         match Command::new(&cmd_prog)
@@ -436,9 +439,9 @@ fn run_sequential_attempts(candidates: &[(&str, Vec<&str>)]) -> Result<ExitStatu
                 return Ok(status);
             }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                // 如果加上 .cmd 还没找到，尝试不加后缀（可能用户用的 git bash 或 cygwin）
+                // If the .cmd name was not found either, retry without the suffix (the user may be on Git Bash or Cygwin)
                 if cfg!(windows) && *prog != "corepack" {
-                    // corepack 通常也是 cmd
+                    // corepack is normally a .cmd shim as well
                     if let Ok(status) = Command::new(prog)
                         .args(args)
                         .stdout(Stdio::inherit())
@@ -449,7 +452,10 @@ fn run_sequential_attempts(candidates: &[(&str, Vec<&str>)]) -> Result<ExitStatu
                     }
                 }
 
-                log_warn(&format!("未找到可执行程序：{}，尝试下一个方案...", prog));
+                log_warn(&format!(
+                    "Executable not found: {}, trying the next option...",
+                    prog
+                ));
                 last_err = Some(e.into());
                 continue;
             }
@@ -459,16 +465,16 @@ fn run_sequential_attempts(candidates: &[(&str, Vec<&str>)]) -> Result<ExitStatu
             }
         }
     }
-    Err(
-        anyhow::anyhow!("未找到可用的包管理器或执行失败，请安装 pnpm 或 npm 后重试")
-            .context(last_err.unwrap_or_else(|| anyhow::anyhow!("未知错误"))),
+    Err(anyhow::anyhow!(
+        "No usable package manager was found, or running it failed; install pnpm or npm and retry"
     )
+    .context(last_err.unwrap_or_else(|| anyhow::anyhow!("unknown error"))))
 }
 
-// 辅助函数：在 Windows 上自动添加 .cmd 后缀
+// Helper: append the .cmd suffix automatically on Windows
 fn get_cmd(cmd: &str) -> String {
     if cfg!(windows) {
-        // 对于 npm, pnpm, corepack 等命令，在 Windows 上通常是 .cmd 批处理文件
+        // npm, pnpm and corepack are normally .cmd batch files on Windows
         match cmd {
             "npm" | "pnpm" | "corepack" => format!("{}.cmd", cmd),
             _ => cmd.to_string(),
@@ -480,18 +486,18 @@ fn get_cmd(cmd: &str) -> String {
 
 fn show_menu() -> Result<bool> {
     let selections = &[
-        "🚀 启动开发模式 (Dev)",
-        "📱 启动 Android 开发模式 (Android Dev)",
-        "🍎 启动 iOS 开发模式 (iOS Dev)",
-        "🔨 构建生产版本 (Build)",
-        "⭐ 检查更新 (Git Pull)",
-        "🧰 工具箱 (Toolbox)",
-        "🔧 调试工具 (Debug Tools)",
-        "🔙 退出",
+        "🚀 Start Dev Mode (Dev)",
+        "📱 Start Android Dev Mode (Android Dev)",
+        "🍎 Start iOS Dev Mode (iOS Dev)",
+        "🔨 Build Production Release (Build)",
+        "⭐ Check for Updates (Git Pull)",
+        "🧰 Toolbox",
+        "🔧 Debug Tools",
+        "🔙 Exit",
     ];
 
     let selection = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("FasTools 工具箱")
+        .with_prompt("FasTools")
         .default(0)
         .items(&selections[..])
         .interact()?;
@@ -499,7 +505,7 @@ fn show_menu() -> Result<bool> {
     match selection {
         0 => {
             run_dev()?;
-            Ok(true) // 继续循环
+            Ok(true) // Keep looping
         }
         1 => {
             run_android_dev()?;
@@ -525,21 +531,21 @@ fn show_menu() -> Result<bool> {
             show_debug_menu()?;
             Ok(true)
         }
-        _ => Ok(false), // 退出
+        _ => Ok(false), // Exit
     }
 }
 
 fn show_toolbox_menu() -> Result<()> {
     loop {
         let selections = &[
-            "📦 备份数据 (Backup Data)",
-            "🧹 清理 WebView2 缓存 (Clean Cache)",
-            "🗑️ 一键清理环境 (Clean Environment)",
-            "🔙 返回主菜单 (Back)",
+            "📦 Back Up Data (Backup Data)",
+            "🧹 Clear the WebView2 Cache (Clean Cache)",
+            "🗑️ Clean Environment in One Go (Clean Environment)",
+            "🔙 Back to Main Menu",
         ];
 
         let selection = Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("工具箱")
+            .with_prompt("Toolbox")
             .default(0)
             .items(&selections[..])
             .interact()?;
@@ -555,12 +561,12 @@ fn show_toolbox_menu() -> Result<()> {
 }
 
 fn backup_data() -> Result<()> {
-    log_info("正在备份数据...");
+    log_info("Backing up data...");
 
-    // 智能检测 data 目录位置
-    // 1. 检查当前目录 (Portable Mode / Released App)
-    // 2. 检查上级目录 (Dev Environment)
-    // 3. 检查系统默认数据目录 (Global Mode)
+    // Locate the data directory intelligently
+    // 1. Check the current directory (Portable Mode / Released App)
+    // 2. Check the parent directory (Dev Environment)
+    // 3. Check the system default data directory (Global Mode)
     let mut data_dir = Path::new("data").to_path_buf();
     let mut found = false;
 
@@ -570,7 +576,7 @@ fn backup_data() -> Result<()> {
         data_dir = Path::new("../data").to_path_buf();
         found = true;
     } else {
-        // 全局路径检测
+        // Global path detection
         let global_path = if cfg!(target_os = "windows") {
             env::var("APPDATA")
                 .ok()
@@ -600,32 +606,32 @@ fn backup_data() -> Result<()> {
     }
 
     if !found {
-        log_warn("未找到 data 目录 (已检查 ./data, ../data, 及系统默认路径)，无可备份数据。");
+        log_warn("No data directory was found (checked ./data, ../data and the system default paths), so there is nothing to back up.");
         pause();
         return Ok(());
     }
 
-    log_info(&format!("定位到数据目录: {:?}", data_dir));
+    log_info(&format!("Data directory located at: {:?}", data_dir));
 
-    // 创建 backups 目录
+    // Create the backups directory
     if !Path::new("backups").exists() {
         fs::create_dir("backups")?;
     }
 
     let timestamp = Local::now().format("%Y%m%d_%H%M%S").to_string();
-    let backup_file = format!("backups/backup_{}.zip", timestamp); // 使用相对路径
+    let backup_file = format!("backups/backup_{}.zip", timestamp); // Use a relative path
 
-    // 获取 data_dir 的绝对路径以便显示和压缩
+    // Resolve the absolute path of data_dir for display and archiving
     let abs_data_dir = fs::canonicalize(&data_dir)?;
     log_info(&format!(
-        "正在创建备份: {} -> {}",
+        "Creating a backup: {} -> {}",
         abs_data_dir.display(),
         backup_file
     ));
 
     #[cfg(windows)]
     {
-        // 使用 PowerShell Compress-Archive 进行压缩
+        // Compress with PowerShell's Compress-Archive
         let status = Command::new("powershell")
             .arg("Compress-Archive")
             .arg("-Path")
@@ -638,23 +644,25 @@ fn backup_data() -> Result<()> {
         match status {
             Ok(s) => {
                 if s.success() {
-                    log_success("备份成功！");
+                    log_success("Backup succeeded!");
                 } else {
-                    log_error("备份失败，请检查 PowerShell 版本或磁盘空间。");
+                    log_error(
+                        "Backup failed; check the PowerShell version and the free disk space.",
+                    );
                 }
             }
             Err(e) => {
-                log_error(&format!("无法执行 PowerShell: {}", e));
+                log_error(&format!("Could not run PowerShell: {}", e));
             }
         }
     }
 
     #[cfg(not(windows))]
     {
-        // Linux/macOS 使用 tar 打包 (tar -czf backup.tar.gz -C parent_dir dir_name)
+        // On Linux/macOS, archive with tar (tar -czf backup.tar.gz -C parent_dir dir_name)
         let backup_file_tar = format!("backups/backup_{}.tar.gz", timestamp);
 
-        // 获取父目录和目录名
+        // Resolve the parent directory and the directory name
         let parent = abs_data_dir.parent().unwrap_or(Path::new("/"));
         let dirname = abs_data_dir.file_name().unwrap();
 
@@ -669,13 +677,13 @@ fn backup_data() -> Result<()> {
         match status {
             Ok(s) => {
                 if s.success() {
-                    log_success(&format!("备份成功！文件: {}", backup_file_tar));
+                    log_success(&format!("Backup succeeded! File: {}", backup_file_tar));
                 } else {
-                    log_error("备份失败，请检查 tar 命令或磁盘空间。");
+                    log_error("Backup failed; check the tar command and the free disk space.");
                 }
             }
             Err(e) => {
-                log_error(&format!("无法执行 tar: {}", e));
+                log_error(&format!("Could not run tar: {}", e));
             }
         }
     }
@@ -686,12 +694,12 @@ fn backup_data() -> Result<()> {
 
 fn clean_webview2_cache() -> Result<()> {
     #[cfg(windows)]
-    let cache_name = "WebView2 缓存";
+    let cache_name = "the WebView2 cache";
     #[cfg(not(windows))]
-    let cache_name = "应用缓存";
+    let cache_name = "the application cache";
 
-    log_warn(&format!("正在清理 {}...", cache_name));
-    println!("请确保 TauriTavern 已经完全关闭，否则清理将失败。");
+    log_warn(&format!("Clearing {}...", cache_name));
+    println!("Make sure TauriTavern is fully closed, otherwise the cleanup will fail.");
 
     let cache_path = if cfg!(target_os = "windows") {
         env::var("LOCALAPPDATA")
@@ -715,25 +723,25 @@ fn clean_webview2_cache() -> Result<()> {
 
     if let Some(path) = cache_path {
         if !path.exists() {
-            log_info("未找到缓存目录，无需清理。");
+            log_info("No cache directory was found, so there is nothing to clean.");
             pause();
             return Ok(());
         }
 
-        print!("  正在删除缓存目录: {:?}... ", path);
+        print!("  Deleting the cache directory: {:?}... ", path);
         match fs::remove_dir_all(&path) {
             Ok(_) => println!("{}", "✅".green()),
             Err(e) => {
                 println!("{}", "❌".red());
-                log_error(&format!("删除失败: {}", e));
-                println!("  (可能程序仍在运行，请关闭后重试)");
+                log_error(&format!("Deletion failed: {}", e));
+                println!("  (the program may still be running; close it and retry)");
             }
         }
     } else {
         #[cfg(not(windows))]
-        log_info("非 Windows 平台暂不支持自动清理 WebView 缓存 (通常不需要)");
+        log_info("Automatic WebView cache cleanup is not supported on this platform (it is rarely needed)");
         #[cfg(windows)]
-        log_error("无法定位缓存目录。");
+        log_error("Could not locate the cache directory.");
     }
 
     pause();
@@ -741,7 +749,7 @@ fn clean_webview2_cache() -> Result<()> {
 }
 
 fn run_dev() -> Result<()> {
-    log_info("正在启动 Tauri 开发模式...");
+    log_info("Starting Tauri dev mode...");
 
     let status = run_sequential_attempts(&[
         ("pnpm", vec!["run", "tauri:dev:pilot"]),
@@ -750,14 +758,14 @@ fn run_dev() -> Result<()> {
     ])?;
 
     if !status.success() {
-        log_error("开发服务器启动失败");
+        log_error("The dev server failed to start");
         pause();
     }
     Ok(())
 }
 
 fn run_android_dev() -> Result<()> {
-    log_info("正在启动 Android 开发模式...");
+    log_info("Starting Android dev mode...");
 
     let status = run_sequential_attempts(&[
         ("pnpm", vec!["run", "android:dev"]),
@@ -766,7 +774,7 @@ fn run_android_dev() -> Result<()> {
     ])?;
 
     if !status.success() {
-        log_error("Android 开发模式启动失败");
+        log_error("Android dev mode failed to start");
         pause();
     }
     Ok(())
@@ -778,7 +786,7 @@ fn run_ios_dev() -> Result<()> {
     };
 
     log_info(&format!(
-        "正在启动 iOS 开发模式... (policy: {})",
+        "Starting iOS dev mode... (policy: {})",
         profile.as_str()
     ));
 
@@ -805,7 +813,7 @@ fn run_ios_dev() -> Result<()> {
     ])?;
 
     if !status.success() {
-        log_error("iOS 开发模式启动失败");
+        log_error("iOS dev mode failed to start");
         pause();
     }
     Ok(())
@@ -814,16 +822,16 @@ fn run_ios_dev() -> Result<()> {
 fn show_build_menu() -> Result<()> {
     loop {
         let selections = &[
-            "🖥️ 构建桌面端 (Desktop Build)",
-            "🐞 构建桌面端 Debug 版 (Desktop Debug Build)",
-            "🤖 构建 Android (CI ABI)",
-            "🍎 构建 iOS (iOS Build)",
-            "📦 构建便携版 (Portable Build)",
-            "🔙 返回主菜单 (Back)",
+            "🖥️ Desktop Build",
+            "🐞 Desktop Debug Build",
+            "🤖 Android Build (CI ABI)",
+            "🍎 iOS Build",
+            "📦 Portable Build",
+            "🔙 Back to Main Menu",
         ];
 
         let selection = Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("构建生产版本 (Build)")
+            .with_prompt("Build Production Release")
             .default(0)
             .items(&selections[..])
             .interact()?;
@@ -841,7 +849,7 @@ fn show_build_menu() -> Result<()> {
 }
 
 fn run_desktop_build() -> Result<()> {
-    log_info("正在构建桌面端生产版本...");
+    log_info("Building the desktop production release...");
 
     let status = run_sequential_attempts(&[
         ("pnpm", vec!["run", "tauri:build"]),
@@ -853,14 +861,14 @@ fn run_desktop_build() -> Result<()> {
         report_collected_artifacts(artifacts::BuildArtifactsKind::DesktopRelease)?;
         pause();
     } else {
-        log_error("构建失败");
+        log_error("Build failed");
         pause();
     }
     Ok(())
 }
 
 fn run_desktop_build_debug() -> Result<()> {
-    log_info("正在构建桌面端 Debug 版本...");
+    log_info("Building the desktop Debug release...");
     let bundles = if cfg!(target_os = "windows") {
         "nsis"
     } else if cfg!(target_os = "macos") {
@@ -894,7 +902,7 @@ fn run_desktop_build_debug() -> Result<()> {
     if status.success() {
         report_collected_artifacts(artifacts::BuildArtifactsKind::DesktopDebug)?;
     } else {
-        log_error("构建失败");
+        log_error("Build failed");
     }
 
     pause();
@@ -902,7 +910,7 @@ fn run_desktop_build_debug() -> Result<()> {
 }
 
 fn run_android_build_split_abi() -> Result<()> {
-    log_info("正在构建 Android 生产版本 (CI ABI: arm64-v8a + armeabi-v7a)...");
+    log_info("Building the Android production release (CI ABI: arm64-v8a + armeabi-v7a)...");
 
     let status = run_sequential_attempts(&[
         (
@@ -954,7 +962,7 @@ fn run_android_build_split_abi() -> Result<()> {
         report_collected_artifacts(artifacts::BuildArtifactsKind::AndroidSplitApk)?;
         pause();
     } else {
-        log_error("构建失败");
+        log_error("Build failed");
         pause();
     }
     Ok(())
@@ -966,7 +974,7 @@ fn run_ios_build() -> Result<()> {
     };
 
     log_info(&format!(
-        "正在构建 iOS 生产版本... (policy: {})",
+        "Building the iOS production release... (policy: {})",
         profile.as_str()
     ));
 
@@ -1013,14 +1021,14 @@ fn run_ios_build() -> Result<()> {
         })?;
         pause();
     } else {
-        log_error("构建失败");
+        log_error("Build failed");
         pause();
     }
     Ok(())
 }
 
 fn run_portable_build() -> Result<()> {
-    log_info("正在构建便携版生产版本...");
+    log_info("Building the portable production release...");
 
     let status = run_sequential_attempts(&[
         ("pnpm", vec!["run", "tauri:build:portable"]),
@@ -1029,10 +1037,10 @@ fn run_portable_build() -> Result<()> {
     ])?;
 
     if status.success() {
-        log_success("构建成功！便携版已输出到 release/");
+        log_success("Build succeeded! The portable build was written to release/");
         pause();
     } else {
-        log_error("构建失败");
+        log_error("Build failed");
         pause();
     }
     Ok(())
@@ -1040,7 +1048,7 @@ fn run_portable_build() -> Result<()> {
 
 fn report_collected_artifacts(kind: artifacts::BuildArtifactsKind) -> Result<()> {
     let artifacts = artifacts::collect(Path::new("."), kind)?;
-    log_success("构建成功！发行产物已归集到 release/");
+    log_success("Build succeeded! Release artifacts were collected into release/");
     for artifact in artifacts {
         println!("  - {}", artifact.destination().display());
     }
@@ -1048,38 +1056,38 @@ fn report_collected_artifacts(kind: artifacts::BuildArtifactsKind) -> Result<()>
 }
 
 fn clean_environment() -> Result<()> {
-    log_warn("正在清理环境...");
+    log_warn("Cleaning the environment...");
 
-    // 删除 node_modules
+    // Remove node_modules
     if Path::new("node_modules").exists() {
-        print!("  正在删除 node_modules... ");
+        print!("  Removing node_modules... ");
         match fs::remove_dir_all("node_modules") {
             Ok(_) => println!("{}", "✅".green()),
             Err(e) => {
                 println!("{}", "❌".red());
-                println!("  删除失败: {}", e);
+                println!("  Removal failed: {}", e);
             }
         }
     } else {
-        log_info("node_modules 不存在，跳过。");
+        log_info("node_modules does not exist, skipping.");
     }
 
-    // 删除 src-tauri/target
+    // Remove src-tauri/target
     if Path::new("src-tauri/target").exists() {
-        print!("  正在删除 src-tauri/target... ");
+        print!("  Removing src-tauri/target... ");
         match fs::remove_dir_all("src-tauri/target") {
             Ok(_) => println!("{}", "✅".green()),
             Err(e) => {
                 println!("{}", "❌".red());
-                println!("  删除失败: {}", e);
+                println!("  Removal failed: {}", e);
             }
         }
     } else {
-        log_info("src-tauri/target 不存在，跳过。");
+        log_info("src-tauri/target does not exist, skipping.");
     }
 
-    // 清理后需要重新安装依赖
-    log_info("清理完成，正在重新安装依赖...");
+    // Dependencies have to be reinstalled after cleaning
+    log_info("Cleanup finished, reinstalling dependencies...");
     check_and_install_dependencies()?;
 
     pause();
@@ -1087,10 +1095,12 @@ fn clean_environment() -> Result<()> {
 }
 
 fn update_repository() -> Result<()> {
-    log_info("正在检查更新...");
+    log_info("Checking for updates...");
 
     if !Path::new(".git").exists() {
-        log_warn("当前目录不是 Git 仓库，无法自动更新。");
+        log_warn(
+            "The current directory is not a Git repository, so it cannot be updated automatically.",
+        );
         pause();
         return Ok(());
     }
@@ -1100,13 +1110,13 @@ fn update_repository() -> Result<()> {
     match status {
         Ok(s) => {
             if s.success() {
-                log_success("更新成功！");
+                log_success("Update succeeded!");
             } else {
-                log_error("更新失败，请检查网络或 Git 状态。");
+                log_error("Update failed; check the network connection and the Git state.");
             }
         }
         Err(_) => {
-            log_error("未找到 git 命令，请先安装 Git。");
+            log_error("The git command was not found. Install Git first.");
         }
     }
     pause();
@@ -1114,7 +1124,7 @@ fn update_repository() -> Result<()> {
 }
 
 fn pause() {
-    println!("\n按回车键继续...");
+    println!("\nPress Enter to continue...");
     let _ = std::io::stdin().read_line(&mut String::new());
 }
 
@@ -1125,17 +1135,17 @@ fn clear_terminal() {
 fn show_debug_menu() -> Result<()> {
     loop {
         let selections = &[
-            "🐞 启动调试模式 (Debug Mode)",
-            "👀 查看实时日志 (View Logs)",
-            "💀 强制结束进程 (Kill Process)",
-            "🔍 检查端口占用 (Check Port)",
-            "ℹ️ 系统环境信息 (System Info)",
-            "⚙️ 查看配置文件 (Inspect Config)",
-            "🔙 返回主菜单 (Back)",
+            "🐞 Start Debug Mode (Debug Mode)",
+            "👀 View Live Logs (View Logs)",
+            "💀 Force-Kill Processes (Kill Process)",
+            "🔍 Check Port Usage (Check Port)",
+            "ℹ️ System Environment Information (System Info)",
+            "⚙️ Inspect Config File (Inspect Config)",
+            "🔙 Back to Main Menu",
         ];
 
         let selection = Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("调试工具")
+            .with_prompt("Debug Tools")
             .default(0)
             .items(&selections[..])
             .interact()?;
@@ -1154,56 +1164,56 @@ fn show_debug_menu() -> Result<()> {
 }
 
 fn inspect_config() -> Result<()> {
-    log_info("正在读取 Tauri 配置文件...");
+    log_info("Reading the Tauri configuration file...");
 
     let config_path = if Path::new("src-tauri/crates/tauritavern/tauri.conf.json").exists() {
         Path::new("src-tauri/crates/tauritavern/tauri.conf.json").to_path_buf()
     } else if Path::new("../src-tauri/crates/tauritavern/tauri.conf.json").exists() {
         Path::new("../src-tauri/crates/tauritavern/tauri.conf.json").to_path_buf()
     } else {
-        log_warn("未找到 tauri.conf.json 配置文件。");
+        log_warn("The tauri.conf.json configuration file was not found.");
         pause();
         return Ok(());
     };
 
     let content = fs::read_to_string(&config_path)?;
     let json: serde_json::Value =
-        serde_json::from_str(&content).context("解析 tauri.conf.json 失败")?;
+        serde_json::from_str(&content).context("failed to parse tauri.conf.json")?;
 
     println!();
-    println!("{}", "--- Tauri 配置概览 ---".cyan().bold());
+    println!("{}", "--- Tauri Config Overview ---".cyan().bold());
 
     if let Some(name) = json.get("productName").and_then(|v| v.as_str()) {
-        println!("📦 产品名称:   {}", name.green());
+        println!("📦 Product name:   {}", name.green());
     }
     if let Some(version) = json.get("version").and_then(|v| v.as_str()) {
-        println!("🔖 版本号:     {}", version.yellow());
+        println!("🔖 Version:        {}", version.yellow());
     }
     if let Some(id) = json.get("identifier").and_then(|v| v.as_str()) {
-        println!("🆔 包名:       {}", id);
+        println!("🆔 Identifier:     {}", id);
     }
 
     // Build config
     if let Some(build) = json.get("build") {
         if let Some(dist) = build.get("frontendDist").and_then(|v| v.as_str()) {
-            println!("📂 前端输出:   {}", dist);
+            println!("📂 Frontend dist:  {}", dist);
         }
         if let Some(dev) = build.get("devUrl").and_then(|v| v.as_str()) {
-            println!("🌐 开发地址:   {}", dev);
+            println!("🌐 Dev URL:        {}", dev);
         }
     }
 
     println!();
-    log_success(&format!("配置文件路径: {:?}", config_path));
+    log_success(&format!("Config file path: {:?}", config_path));
 
     pause();
     Ok(())
 }
 
 fn view_logs() -> Result<()> {
-    log_info("正在查找日志文件...");
+    log_info("Looking for log files...");
 
-    // 智能检测 logs 目录位置
+    // Locate the logs directory intelligently
     let mut log_dir = Path::new("logs").to_path_buf();
     let mut found = false;
 
@@ -1213,7 +1223,7 @@ fn view_logs() -> Result<()> {
         log_dir = Path::new("../logs").to_path_buf();
         found = true;
     } else {
-        // 全局路径检测
+        // Global path detection
         let global_path = if cfg!(target_os = "windows") {
             env::var("APPDATA")
                 .ok()
@@ -1243,14 +1253,16 @@ fn view_logs() -> Result<()> {
     }
 
     if !found {
-        log_warn("未找到 logs 目录 (已检查 ./logs, ../logs, 及系统默认路径)。");
+        log_warn(
+            "No logs directory was found (checked ./logs, ../logs and the system default paths).",
+        );
         pause();
         return Ok(());
     }
 
-    log_info(&format!("定位到日志目录: {:?}", log_dir));
+    log_info(&format!("Logs directory located at: {:?}", log_dir));
 
-    // 查找最新的日志文件
+    // Find the newest log file
     let mut entries: Vec<_> = fs::read_dir(&log_dir)?
         .filter_map(|entry| entry.ok())
         .filter(|entry| {
@@ -1261,12 +1273,12 @@ fn view_logs() -> Result<()> {
         .collect();
 
     if entries.is_empty() {
-        log_warn("该目录下未找到 tauritavern.log* 文件。");
+        log_warn("No tauritavern.log* file was found in that directory.");
         pause();
         return Ok(());
     }
 
-    // 按修改时间降序排序
+    // Sort by modification time, newest first
     entries.sort_by_key(|entry| {
         std::cmp::Reverse(
             entry
@@ -1278,9 +1290,9 @@ fn view_logs() -> Result<()> {
     });
 
     let log_file_path = entries[0].path();
-    log_success(&format!("打开最新日志: {:?}", log_file_path));
+    log_success(&format!("Opening the newest log: {:?}", log_file_path));
 
-    // 读取并显示最后 50 行
+    // Read and show the last 50 lines
     let file = fs::File::open(&log_file_path)?;
     let reader = BufReader::new(file);
     let lines: Vec<String> = reader.lines().map_while(Result::ok).collect();
@@ -1291,7 +1303,7 @@ fn view_logs() -> Result<()> {
         0
     };
     println!();
-    println!("{}", "--- 日志末尾 50 行 ---".dimmed());
+    println!("{}", "--- Last 50 log lines ---".dimmed());
     for line in &lines[start..] {
         println!("{}", line);
     }
@@ -1302,7 +1314,7 @@ fn view_logs() -> Result<()> {
 }
 
 fn kill_process() -> Result<()> {
-    log_warn("正在扫描相关进程...");
+    log_warn("Scanning for related processes...");
     let mut sys = System::new_all();
     sys.refresh_all();
 
@@ -1315,25 +1327,29 @@ fn kill_process() -> Result<()> {
     let mut killed = 0;
     for process in sys.processes().values() {
         let name = process.name().to_string_lossy();
-        // 在 Windows 上 process.name() 可能包含 .exe
+        // On Windows, process.name() may include the .exe suffix
         let match_found = target_names
             .iter()
             .any(|&target| name.eq_ignore_ascii_case(target));
 
         if match_found {
-            println!("发现进程: {} (PID: {}) - 正在终止...", name, process.pid());
+            println!(
+                "Found process: {} (PID: {}) - terminating...",
+                name,
+                process.pid()
+            );
             if process.kill() {
                 killed += 1;
             } else {
-                log_error(&format!("无法终止 PID: {}", process.pid()));
+                log_error(&format!("Could not terminate PID: {}", process.pid()));
             }
         }
     }
 
     if killed > 0 {
-        log_success(&format!("成功终止了 {} 个进程。", killed));
+        log_success(&format!("Terminated {} process(es).", killed));
     } else {
-        log_info("未发现运行中的 TauriTavern 进程。");
+        log_info("No running TauriTavern process was found.");
     }
 
     pause();
@@ -1342,16 +1358,16 @@ fn kill_process() -> Result<()> {
 
 fn check_port() -> Result<()> {
     let port = 1420;
-    log_info(&format!("正在检查端口 {} (前端开发服务)...", port));
+    log_info(&format!("Checking port {} (frontend dev server)...", port));
 
     match TcpListener::bind(format!("127.0.0.1:{}", port)) {
         Ok(_listener) => {
-            log_success(&format!("端口 {} 未被占用 (空闲)", port));
-            println!("  这意味着开发服务器目前没有运行。");
+            log_success(&format!("Port {} is free (not in use)", port));
+            println!("  That means the dev server is not running right now.");
         }
         Err(_) => {
-            log_warn(&format!("端口 {} 已被占用", port));
-            println!("  这意味着开发服务器正在运行，或者其他程序占用了该端口。");
+            log_warn(&format!("Port {} is already in use", port));
+            println!("  That means the dev server is running, or another program holds the port.");
         }
     }
 
@@ -1373,37 +1389,37 @@ fn get_tool_version(tool: &str) -> String {
 }
 
 fn sys_info() -> Result<()> {
-    log_info("正在获取系统信息...");
+    log_info("Collecting system information...");
     let mut sys = System::new_all();
     sys.refresh_all();
 
     println!();
-    println!("{}", "--- 系统概览 ---".cyan().bold());
+    println!("{}", "--- System Overview ---".cyan().bold());
     println!(
-        "🖥️ 系统:       {} {}",
+        "🖥️ OS:         {} {}",
         System::name().unwrap_or("Unknown".into()),
         System::os_version().unwrap_or("".into())
     );
     println!(
-        "⚙️ 内核:       {}",
+        "⚙️ Kernel:     {}",
         System::kernel_version().unwrap_or("Unknown".into())
     );
     println!(
-        "🏠 主机名:     {}",
+        "🏠 Hostname:   {}",
         System::host_name().unwrap_or("Unknown".into())
     );
 
     let used_mem = sys.used_memory() as f64 / 1024.0 / 1024.0 / 1024.0;
     let total_mem = sys.total_memory() as f64 / 1024.0 / 1024.0 / 1024.0;
-    println!("💾 内存:       {:.2} GB / {:.2} GB", used_mem, total_mem);
+    println!("💾 Memory:     {:.2} GB / {:.2} GB", used_mem, total_mem);
 
     let cpus = sys.cpus();
     if !cpus.is_empty() {
-        println!("🧠 CPU:        {} ({} 核心)", cpus[0].brand(), cpus.len());
+        println!("🧠 CPU:        {} ({} cores)", cpus[0].brand(), cpus.len());
     }
 
     println!();
-    println!("{}", "--- 开发环境 ---".cyan().bold());
+    println!("{}", "--- Development Environment ---".cyan().bold());
     println!("Node.js:    {}", get_tool_version("node"));
     println!("pnpm:       {}", get_tool_version("pnpm"));
     println!("Cargo:      {}", get_tool_version("cargo"));
@@ -1413,12 +1429,12 @@ fn sys_info() -> Result<()> {
     {
         println!();
         println!("{}", "--- WebView2 ---".cyan().bold());
-        // 调用之前的 check_webview2 函数，它会打印结果
-        // 为了不让它报错退出，我们需要稍微修改一下 check_webview2 或者在这里捕获它的输出
-        // 由于 check_webview2 返回 Result<()>，我们可以直接调用
+        // Reuse the check_webview2 helper above, which prints its own result.
+        // It returns Result<()>; a failed check is reported here so this summary
+        // does not abort the whole system report.
         match check_webview2() {
-            Ok(_) => {} // 它会打印 "WebView2 Runtime 已安装"
-            Err(_) => println!("WebView2 Runtime 未检测到或检查失败"),
+            Ok(_) => {} // it prints "WebView2 Runtime is installed"
+            Err(_) => println!("WebView2 Runtime was not detected, or the check failed"),
         }
     }
 
@@ -1428,8 +1444,8 @@ fn sys_info() -> Result<()> {
 }
 
 fn run_debug() -> Result<()> {
-    log_info("正在启动调试模式 (Debug Mode)...");
-    log_info("已启用: RUST_LOG=debug, RUST_BACKTRACE=1");
+    log_info("Starting debug mode (Debug Mode)...");
+    log_info("Enabled: RUST_LOG=debug, RUST_BACKTRACE=1");
 
     // Set environment variables
     env::set_var("RUST_LOG", "debug");
@@ -1438,7 +1454,8 @@ fn run_debug() -> Result<()> {
     env::set_var("FORCE_COLOR", "1");
     env::set_var("CARGO_TERM_COLOR", "always");
 
-    // 与 run_sequential_attempts 保持一致的多候选回退策略，避免单条命令 NotFound 直接失败。
+    // Keep the same multi-candidate fallback strategy as run_sequential_attempts so a single
+    // command answering NotFound does not fail the whole run.
     let candidates = [
         ("pnpm", vec!["tauri", "dev"]),
         ("pnpm", vec!["run", "tauri:dev"]),
@@ -1452,7 +1469,7 @@ fn run_debug() -> Result<()> {
 
     for (prog, args) in candidates.iter() {
         let cmd_prog = get_cmd(prog);
-        log_info(&format!("执行命令: {} {:?}", cmd_prog, args));
+        log_info(&format!("Running command: {} {:?}", cmd_prog, args));
 
         match Command::new(&cmd_prog)
             .args(args)
@@ -1465,7 +1482,7 @@ fn run_debug() -> Result<()> {
                 break;
             }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                // Windows 下额外尝试不带 .cmd 的命令名（兼容部分 shell/path 配置）。
+                // On Windows, also try the command name without .cmd (for some shell and PATH setups).
                 if cfg!(windows) && *prog != "corepack" {
                     match Command::new(prog)
                         .args(args)
@@ -1492,7 +1509,7 @@ fn run_debug() -> Result<()> {
     }
 
     let mut child = child_opt.ok_or_else(|| {
-        anyhow::anyhow!("无法启动调试进程")
+        anyhow::anyhow!("could not start the debug process")
             .context(last_err.unwrap_or_else(|| anyhow::anyhow!("program not found")))
     })?;
 
@@ -1521,7 +1538,7 @@ fn run_debug() -> Result<()> {
     stderr_handle.join().unwrap();
 
     if !status.success() {
-        log_error("调试进程异常退出");
+        log_error("The debug process exited abnormally");
     }
 
     pause();

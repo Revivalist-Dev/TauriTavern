@@ -624,9 +624,9 @@ mod tests {
     fn projection_is_invariant_across_fragment_boundaries() {
         assert_every_split(
             WORKSPACE_WRITE_FILE,
-            r#"{"content":"line\nquote:\" slash:\\ emoji:\uD83D\uDE00","path":"output/你好.md","mode":"replace"}"#,
+            r#"{"content":"line\nquote:\" slash:\\ emoji:\uD83D\uDE00","path":"output/café.md","mode":"replace"}"#,
             ToolCallProjection::WriteFile {
-                path: "output/你好.md".to_string(),
+                path: "output/café.md".to_string(),
                 content: "line\nquote:\" slash:\\ emoji:😀".to_string(),
             },
         );
@@ -715,7 +715,7 @@ mod tests {
         );
         for projector in [&mut first, &mut sibling] {
             projector.observe(AgentModelStreamDelta::Text {
-                text: "答复😀".to_string(),
+                text: "reply😀".to_string(),
             });
             projector.observe(AgentModelStreamDelta::Reasoning {
                 text: "Plan ".to_string(),
@@ -731,7 +731,7 @@ mod tests {
         }
 
         assert_eq!(receiver.borrow().responses["inv_a"].reasoning, "Plan now");
-        assert_eq!(receiver.borrow().responses["inv_a"].text, "答复😀");
+        assert_eq!(receiver.borrow().responses["inv_a"].text, "reply😀");
         let read = AgentModelStreamDelta::ToolCall {
             tool_call_index: 1,
             tool_id: ToolId::builtin("workspace.read_file").unwrap(),

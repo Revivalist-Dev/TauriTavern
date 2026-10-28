@@ -1,196 +1,274 @@
-# 开屏启动优化（Stage-based Boot）现状
+# Startup optimization (stage-based boot): current status
 
-本文档描述 **当前已经落地** 的开屏启动优化实现：它解决什么问题、端到端链路如何工作、阶段语义与契约是什么、以及后续开发最容易误改的边界。
+This document describes the startup optimization **as it is already implemented**: what problem it
+solves, how the end-to-end path works, what the stage semantics and contracts are, and which
+boundaries ongoing development most easily breaks.
 
-> 规划与设计背景见：`docs/StartupOptimizationPlan.md`（本文只写“现在怎么跑”）。
-
----
-
-## 1. 范围与结论
-
-当前开屏优化的核心落点是把启动从“一个巨大的串行 init”拆成 **可见可点（Shell）→ 核心可用（Core）→ 主应用可交互（Full / APP_READY）**，并同时降低首屏 JS/库解析负担。
-
-已落地的关键点：
-
-- **Shell 先到**：`#preloader` 在 `firstLoadInit()` 的 Shell 阶段就移除，主页可以尽早可见可点。
-- **Host Ready 显式等待**：在首次 `/api/*` 访问前等待 `__TAURITAVERN_MAIN_READY__`，确保拦截器/路由已安装，且 Tauri 后端已进入可接收 `AppState` 命令的 readiness 状态。
-- **启动并发读取**：设置与启动元数据并行读取、按顺序应用，并复用本次结果。
-- **扩展启动分层**：扩展发现可提前后台启动；系统扩展仍在 Full 阶段完成，local/global third-party 扩展延后到 `APP_READY` 后串行激活，从启动关键路径移出。
-- **lib.bundle 拆分为 core/optional**：`highlight.js` 通过 `lib.js` 的 async helper 按需加载；上游同步 `/lib.js` ABI 保留在 core bundle。
-- **重任务后移**：`initTokenizers()`、`initScrapers()` 在 `APP_READY` 后、两次 paint 之后后台启动。
+> Planning and design background is in `docs/StartupOptimizationPlan.md`; this document covers only
+> how it runs now.
 
 ---
 
-## 2. 端到端链路（从 index.html 到 APP_READY）
+## 1. Scope and conclusions
 
-### 2.1 HTML 入口与预加载遮罩
+The core of the startup optimization is splitting boot from one huge serial init into **visible and
+clickable (Shell) → core usable (Core) → main app interactive (Full / APP_READY)**, while also
+reducing the first-paint JS and library parse cost.
+
+Key points already landed:
+
+- **Shell arrives first**: `#preloader` is removed during the Shell phase of `firstLoadInit()`, so the
+  main page becomes visible and clickable as early as possible.
+- **Explicit Host Ready wait**: the code waits for `__TAURITAVERN_MAIN_READY__` before the first
+  `/api/*` access, which guarantees the interceptors and routes are installed and the Tauri backend
+  has reached a readiness state that can accept `AppState` commands.
+- **Concurrent startup reads**: settings and bootstrap metadata are read in parallel, applied in order,
+  and reused for the rest of that boot.
+- **Layered extension startup**: extension discovery can start in the background early; system
+  extensions still complete in the Full phase, and local/global third-party extensions are deferred to
+  a serial activation after `APP_READY`, which takes them off the startup critical path.
+- **lib.bundle split into core and optional**: `highlight.js` loads on demand through the async helper
+  in `lib.js`; the upstream-synced `/lib.js` ABI stays in the core bundle.
+- **Heavy tasks moved later**: `initTokenizers()` and `initScrapers()` start in the background after
+  `APP_READY` and after two paints.
+
+---
+
+## 2. The end-to-end path (from index.html to APP_READY)
+
+### 2.1 HTML entry and preload overlay
 
 - `src/index.html`
-  - 首屏遮罩：`<div id="preloader"></div>`
-  - 模块入口：`<script type="module" src="init.js"></script>`
-  - 约束：不使用 modulepreload（移动端 WebView 上曾有缓存/预加载失败问题）。
+  - First-paint overlay: `<div id="preloader"></div>`
+  - Module entry: `<script type="module" src="init.js"></script>`
+  - Constraint: no modulepreload (mobile WebViews have had cache and preload failures before).
 
-### 2.2 Bootloader：分层 import + Android import 重试
+### 2.2 Bootloader: layered imports and Android import retry
 
 - `src/init.js`
-  - 设置：`window.__TAURI_RUNNING__ = true`，并计算 `globalThis.__TAURITAVERN_PERF_ENABLED__`
-  - 等待[可选的开发资源桥就绪信号](../FrontendHostContract.md#22-就绪信号publicproject)
-  - 通过 `importWithRetry()` 依次加载：
-    1) `./lib.js`（静态依赖 `src/dist/lib.core.bundle.js`）
-    2) `./tauri-main.js`（安装 Host Kernel：路由/拦截器/ABI）
-    3) `./script.js`（SillyTavern 主前端）
-  - 目的：在 Android WebView 首启 I/O 抖动场景下提高模块加载确定性。
+  - Sets `window.__TAURI_RUNNING__ = true` and computes `globalThis.__TAURITAVERN_PERF_ENABLED__`
+  - Waits for the
+    [optional dev-resource bridge readiness signal](../FrontendHostContract.md#22-readiness-signals-publicproject)
+  - Loads these in order through `importWithRetry()`:
+    1) `./lib.js` (static dependency on `src/dist/lib.core.bundle.js`)
+    2) `./tauri-main.js` (installs the Host Kernel: routes, interceptors, ABI)
+    3) `./script.js` (the SillyTavern main frontend)
+  - Purpose: make module loading more deterministic on Android WebView, where first-launch I/O is
+    jittery.
 
-### 2.3 Host Kernel：把同源 /api 变成可路由端点
+### 2.3 Host Kernel: turning same-origin /api into routable endpoints
 
 - `src/tauri/main/bootstrap.js`
-  - 安装 `window.__TAURITAVERN__`（稳定 Host ABI）：invoke broker / 资源路径 helpers 等
-  - Patch：
-    - `fetch` 拦截（同源、命中路由表则走 `router.handle(...)`）
-    - `jQuery.ajax` 拦截（同源、命中路由表则转发）
-    - same-origin iframe/window 的补丁（保证扩展/脚本在 iframe 内也能命中路由/下载桥）
-  - 设置 readiness：
+  - Installs `window.__TAURITAVERN__` (the stable Host ABI): the invoke broker, resource path helpers,
+    and so on
+  - Patches:
+    - `fetch` interception (same-origin requests that hit the route table go through
+      `router.handle(...)`)
+    - `jQuery.ajax` interception (same-origin requests that hit the route table are forwarded)
+    - same-origin iframe and window patching, so extensions and scripts inside an iframe also hit the
+      routing and download bridges
+  - Sets readiness:
     - `window.__TAURITAVERN_MAIN_READY__ = readyPromise`
-  - Host Ready 后只加载不会传递导入主应用的模块。设置入口先注册同步/配对监听，事件呈现与设置 UI 共用一个 `APP_READY` Promise；请求参数面板本身依赖主应用，直接在 `APP_READY` 后导入。
+  - After Host Ready it loads only modules that do not transitively import the main app. The settings
+    entry point registers the sync and pairing listeners first, and event presentation shares one
+    `APP_READY` promise with the settings UI; the request-parameters panel itself depends on the main
+    app, so it is imported directly after `APP_READY`.
 
-### 2.4 前端启动编排：Shell → Core → Full（保持 APP_READY 语义）
+### 2.4 Frontend startup orchestration: Shell → Core → Full (keeping APP_READY semantics)
 
 - `src/script.js:firstLoadInit()`
-  - **Shell 阶段**
-    - `initLocales()` 先于任何可见界面：语言数据是静态资源，不依赖 Host 就绪；首帧界面与启动状态文案都已是用户语言
-    - `removePreloader()`（`src/scripts/loader.js`）：移除 `#preloader`
-    - 初始化纯前端 UI/DOM handler、基础 patch（不会做 `/api/*`）
-  - **Core 阶段**
-    - `await window.__TAURITAVERN_MAIN_READY__`：保证 Host 拦截器与 Rust backend readiness 就绪，失败直接传播
-    - `/csrf-token` + 并发启动 `/api/bootstrap` 与 `/api/settings/get`
+  - **Shell phase**
+    - `initLocales()` runs before any visible UI: the locale data is a static resource that does not
+      depend on Host readiness, so the first frame and the startup status copy are already in the
+      user's language
+    - `removePreloader()` (`src/scripts/loader.js`) removes `#preloader`
+    - Initialises pure frontend UI and DOM handlers and the base patches (no `/api/*`)
+  - **Core phase**
+    - `await window.__TAURITAVERN_MAIN_READY__` guarantees Host interceptors and Rust backend
+      readiness; a failure propagates directly
+    - `/csrf-token`, plus `/api/bootstrap` and `/api/settings/get` started concurrently
     - `initSecrets()` + `primeSecretStateSnapshot(...)` + `readSecretState()`
-    - 默认 slash commands、模型/设置等核心模块初始化
-  - **Full 阶段**
-    - 按设置、角色、群组、头像的顺序应用读取结果。
-    - 扩展（如果启用）：
-      - 后台：`startOfflineExtensionsDiscovery()`（可在 Core 阶段提前启动）
-      - Full：`activateStartupSystemExtensions({ parallelism })` 只激活系统扩展，并在需要时提前完成 Extras auto-connect
-    - 对外事件保持原语义：
+    - Initialises core modules such as the default slash commands and models/settings
+  - **Full phase**
+    - Applies the read results in the order settings, characters, groups, avatars.
+    - Extensions (when enabled):
+      - Background: `startOfflineExtensionsDiscovery()` (may start early, during the Core phase)
+      - Full: `activateStartupSystemExtensions({ parallelism })` activates system extensions only,
+        and completes Extras auto-connect early when needed
+    - Outward-facing events keep their original semantics:
       - `event_types.APP_INITIALIZED` → `event_types.APP_READY`
-  - **Post-ready（后台）**
-    - `initTokenizers()`、`initScrapers()`：在 `APP_READY` 后异步执行（避免阻塞首屏）。
-    - 若存在启用中的 third-party 扩展：`activateDeferredThirdPartyExtensions({ parallelism: 1 })` 在首屏完成后后台激活，并在完成后 emit `EXTENSION_SETTINGS_LOADED`。
+  - **Post-ready (background)**
+    - `initTokenizers()` and `initScrapers()` run asynchronously after `APP_READY`, so they do not
+      block the first paint.
+    - When enabled third-party extensions exist, `activateDeferredThirdPartyExtensions({ parallelism:
+      1 })` activates them in the background after the first paint and emits
+      `EXTENSION_SETTINGS_LOADED` when it finishes.
 
 ---
 
-## 3. 阶段语义与全局信号（契约）
+## 3. Stage semantics and global signals (contract)
 
-### 3.1 内部阶段（UI 体验）
+### 3.1 Internal stages (UI experience)
 
-- `Shell`：允许 UI 可见/可点；**不允许依赖扩展已激活**。
-- `Core`：允许进行首次 `/api/*` 与核心数据加载；扩展仍可能未激活。
-- `Full`：完成主应用可交互所需初始化与系统扩展激活；third-party 扩展可能仍在后台补全。
+- `Shell`: the UI may be visible and clickable; **it must not depend on extensions being active**.
+- `Core`: the first `/api/*` calls and core data loading may run; extensions may still be inactive.
+- `Full`: the initialisation the main app needs to be interactive, and system extension activation,
+  are complete; third-party extensions may still be finishing in the background.
 
-当前暴露的信号：
+Signals exposed today:
 
-- `globalThis.__TAURITAVERN_STARTUP_STAGE__`：由 `firstLoadInit()` 写入（shell/core/full）
-- `event_types.APP_READY`：作为“主应用可交互”的稳定语义；晚加载的扩展依赖其 auto-fire 行为完成 ready 钩子
+- `globalThis.__TAURITAVERN_STARTUP_STAGE__`, written by `firstLoadInit()` (shell/core/full)
+- `event_types.APP_READY`, the stable meaning of "the main app is interactive"; late-loaded
+  extensions rely on its auto-fire behaviour to complete their ready hooks
 
-### 3.2 Host 就绪（拦截器、路由与 BackendReadiness）
+### 3.2 Host readiness (interceptors, routes, and BackendReadiness)
 
-- `window.__TAURITAVERN_MAIN_READY__`：在 `src/tauri/main/bootstrap.js` 设置
-- 主应用在 Core 阶段等待它一次，扩展发现与激活都在之后；第一方扩展通过 `window.__TAURITAVERN__.ready` 等待同一个 Promise。失败直接传播，见[就绪契约](../FrontendHostContract.md#22-就绪信号publicproject)。
-- Host 初始化链会在任何需要 `AppState` 的首批工作前调用 `wait_for_backend_ready`，避免依赖 Tauri 的 “state not managed” 错误文本重试。
-
----
-
-## 4. 设置与 bootstrap 元数据读取
-
-`/api/settings/get` 独立读取设置；`/api/bootstrap` 提供角色、群组、头像和密钥状态等启动元数据。前端并发获取，再按既有顺序应用；本次启动复用读取结果，避免重复请求。
-
-设置与角色是启动必需数据，失败会阻止启动，错误消息带上宿主返回的原因；内容无法加载或预设名重复的单个预设文件与 SillyTavern 一样被跳过，并显示可见错误。群组、头像或密钥状态失败时保留可见错误并仅禁用对应能力，不阻止 `APP_READY`。
-
-启动失败只有两个出口：`src/init.js` 加载应用模块失败，或 `firstLoadInit()` 抛错。两处都调用 `showStartupFailure(error)` 显示不可关闭的模态失败对话框（错误、阶段与调用栈，可复制或重新加载），并继续抛出原错误，日志照常记录。展示不能替换原错误：`init.js` 的失败可能来自模块加载本身，所以对话框模块在错误路径之外加载，加载失败时作为第二个错误上报。对话框在 Shadow DOM 中渲染，不受主题与自定义 CSS 影响。
-
-后端采样入口见 [bootstrap_commands.rs](../../src-tauri/crates/tauritavern/src/presentation/commands/bootstrap_commands.rs)。
+- `window.__TAURITAVERN_MAIN_READY__`, set in `src/tauri/main/bootstrap.js`
+- The main app awaits it once during the Core phase, and both extension discovery and activation
+  happen after that; first-party extensions await the same promise through
+  `window.__TAURITAVERN__.ready`. A failure propagates directly; see
+  [Readiness contract](../FrontendHostContract.md#22-readiness-signals-publicproject).
+- The Host init chain calls `wait_for_backend_ready` before any of the first work that needs
+  `AppState`, which avoids retrying on Tauri's "state not managed" error text.
 
 ---
 
-## 5. 扩展加载（离线发现 + 激活批处理）现状
+## 4. Settings and bootstrap metadata reads
 
-> 详细扩展兼容链路见：`docs/CurrentState/ThirdPartyExtensions.md`
+`/api/settings/get` reads settings on its own; `/api/bootstrap` provides startup metadata such as
+characters, groups, avatars, and secret state. The frontend fetches them concurrently and applies them
+in the established order, and that boot reuses the read results so nothing is requested twice.
 
-当前策略要点：
+Settings and characters are required for startup, so a failure blocks startup and the error message
+carries the reason the host returned; a single preset file whose contents cannot load, or whose preset
+name is duplicated, is skipped as SillyTavern does, with a visible error. When groups, avatars, or
+secret state fail, the visible error stays and only that capability is disabled; `APP_READY` is not
+blocked.
 
-- 发现：`startOfflineExtensionsDiscovery()` 等待 Host Ready 后调用 `/api/extensions/discover`，并加载各扩展 `manifest.json`。
-- 系统扩展激活：`activateStartupSystemExtensions({ parallelism })`
-  - 同 `loading_order` 的扩展分组；组内按 `parallelism` 分块 `Promise.all` 并在 chunk 间 `delay(0)` 主动让出事件循环。
-  - Android 设备默认 `parallelism = 1`；其他默认 `parallelism = 2`（见 `src/script.js`）。
-- third-party 激活：`activateDeferredThirdPartyExtensions({ parallelism: 1 })`
-  - 仅处理 `local/global` 扩展，默认在 `APP_READY` 后执行，避免把大体量 third-party 模块求值放进启动关键路径。
-- third-party 兼容（hljs）：
-  - third-party 扩展激活前会 `await getHljs()`，确保 `window.hljs` 存在（`src/scripts/extensions.js`）。
+Startup can fail at only two exits: `src/init.js` failing to load an application module, or
+`firstLoadInit()` throwing. Both call `showStartupFailure(error)` to show a modal failure dialog that
+cannot be dismissed (the error, the stage, and the stack trace, with copy and reload), and then
+rethrow the original error while logging continues as usual. The presentation must not replace the
+original error: a failure in `init.js` may come from module loading itself, so the dialog module loads
+outside the error path, and a failure to load it is reported as a second error. The dialog renders in
+a Shadow DOM and is unaffected by the theme and custom CSS.
+
+The backend sampling entry point is
+[bootstrap_commands.rs](../../src-tauri/crates/tauritavern/src/presentation/commands/bootstrap_commands.rs).
 
 ---
 
-## 6. lib.core / lib.optional（按需加载）现状
+## 5. Extension loading (offline discovery and batched activation): current status
 
-### 6.1 产物与入口
+> The detailed extension compatibility path is in `docs/CurrentState/ThirdPartyExtensions.md`.
 
-- Rspack 入口：`rspack.config.js`
+Current strategy in brief:
+
+- Discovery: `startOfflineExtensionsDiscovery()` waits for Host Ready, calls
+  `/api/extensions/discover`, and loads each extension's `manifest.json`.
+- System extension activation: `activateStartupSystemExtensions({ parallelism })`
+  - extensions with the same `loading_order` are grouped; within a group they run in `Promise.all`
+    chunks sized by `parallelism`, with `delay(0)` between chunks to yield the event loop on purpose.
+  - Android devices default to `parallelism = 1` and everything else to `parallelism = 2` (see
+    `src/script.js`).
+- third-party activation: `activateDeferredThirdPartyExtensions({ parallelism: 1 })`
+  - handles `local/global` extensions only and runs after `APP_READY` by default, keeping large
+    third-party module evaluation off the startup critical path.
+- third-party compatibility (hljs):
+  - activation awaits `getHljs()` before third-party extensions activate, which guarantees
+    `window.hljs` exists (`src/scripts/extensions.js`).
+
+---
+
+## 6. lib.core and lib.optional (on-demand loading): current status
+
+### 6.1 Build outputs and entry points
+
+- Rspack entries: `rspack.config.js`
   - `lib.core` → `src/lib-bundle-core.js` → `src/dist/lib.core.bundle.js`
   - `lib.optional` → `src/lib-bundle-optional.js` → `src/dist/lib.optional.bundle.js`
 
-### 6.2 前端门面（lib.js）
+### 6.2 Frontend facade (lib.js)
 
 - `src/lib.js`
-  - 静态 import core bundle，并 re-export 上游常用库
-  - 可选库按需加载：
-    - `getHljs()`：动态 import optional bundle；并注册 `stscript` 语言（`src/scripts/slash-commands/stscript-hljs-language.js`）
-  - `initLibraryShims()`：将少量库挂到 `window`（用于第三方扩展兼容）；其中 `window._ = lodash` 是正式 ABI，需先于 third-party 扩展模块求值完成
+  - statically imports the core bundle and re-exports the libraries upstream uses most
+  - optional libraries load on demand:
+    - `getHljs()` dynamically imports the optional bundle and registers the `stscript` language
+      (`src/scripts/slash-commands/stscript-hljs-language.js`)
+  - `initLibraryShims()` hangs a few libraries on `window` for third-party compatibility;
+    `window._ = lodash` is a formal ABI and must be in place before third-party extension modules are
+    evaluated
 
-### 6.3 代码高亮（延迟执行）
+### 6.3 Code highlighting (deferred)
 
 - `src/scripts/tauri/perf/code-highlight-coordinator.js`
-  - 通过 `IntersectionObserver` + `requestIdleCallback` 做“近视区”高亮
-  - 内部通过 `getHljs()` 拉起可选 bundle（不进入 Shell/Core 静态依赖图）
+  - highlights near the viewport through `IntersectionObserver` plus `requestIdleCallback`
+  - pulls in the optional bundle through `getHljs()` internally, keeping it out of the Shell/Core
+    static dependency graph
 
 ---
 
-## 7. Panel Runtime 的扩展 DOM “停车”与兼容白名单
+## 7. Panel Runtime extension DOM parking and the compatibility allowlist
 
-Panel Runtime 会在 `APP_READY` 后安装，用于在抽屉关闭时把部分面板 DOM 子树 park 到 `DocumentFragment`，减少低端设备的 DOM/observer 压力。
+Panel Runtime installs after `APP_READY` and parks some panel DOM subtrees into a `DocumentFragment`
+while a drawer is closed, reducing DOM and observer pressure on low-end devices.
 
-已知兼容点：
+Known compatibility points:
 
 - `src/tauri/main/adapters/panel-runtime/extensions-subtree-gates.js`
-  - 当前对扩展设置容器启用“子树 gate + park/hydrate”
-  - **白名单永远保持连接**：`regex_container`、`qr_container`
-    - 目的：避免 SPresets 等脚本在抽屉关闭时找不到 `#saved_regex_scripts` 触发 `MutationObserver.observe(target not Node)`。
+  - currently enables the subtree gate plus park/hydrate for the extension settings container
+  - **the allowlist stays connected at all times**: `regex_container`, `qr_container`
+    - purpose: keep scripts such as SPresets from failing with `MutationObserver.observe(target not
+      Node)` when they cannot find `#saved_regex_scripts` while the drawer is closed.
 - `src/tauri/main/adapters/panel-runtime/top-settings-panel-parking.js`
-  - 左栏 pinned 锚点分两类，判据不同：
-    - `LEFT_NAV_REQUIRED_ANCHORS`（所有档位，正确性）：面板外代码读取的节点保持在线，包括 `onModelChange` 读取边界值的 `#range_block_openai`，以及助手读取支持来源的 `#openai_reasoning_effort_block`。
-    - `LEFT_NAV_COMPAT_ANCHORS`（仅 `compat`，兼容让步）：`#openai_api-presets`、`#completion_prompt_manager`，让第三方脚本在抽屉关闭时仍能选中。
-  - 世界书抽屉：`compat` 只 park 条目列表 `#world_popup_entries_list`（世界书 DOM 的主体），世界书下拉框、分页和编辑按钮保持在线；`aggressive` 仍 park 整个 `#wi-holder`。世界书模块持有列表节点，正常渲染与停放期间的更新使用同一个目标；重新打开只挂回原节点，不额外刷新。离屏更新仍有渲染计算，但停放期间的重型条目不连接 document，保留 DOM 裁剪收益；列表的分页后测量与条目定位跳过离屏节点。
+  - the pinned anchors in the left rail fall into two classes, with different criteria:
+    - `LEFT_NAV_REQUIRED_ANCHORS` (every level, correctness): nodes that code outside the panel
+      reads stay connected, including `#range_block_openai`, which `onModelChange` reads for boundary
+      values, and `#openai_reasoning_effort_block`, which the assistant reads for its supported
+      sources.
+    - `LEFT_NAV_COMPAT_ANCHORS` (`compat` only, a compatibility concession): `#openai_api-presets`
+      and `#completion_prompt_manager`, so third-party scripts can still select them while the drawer
+      is closed.
+  - World Info drawer: `compat` parks only the entry list `#world_popup_entries_list` (the bulk of the
+    World Info DOM), keeping the World Info dropdown, pagination, and edit buttons connected, while
+    `aggressive` still parks the whole `#wi-holder`. The World Info module holds the list node, and
+    normal rendering and updates during parking use the same target; reopening reattaches the original
+    node without an extra refresh. Off-screen updates still do rendering work, but heavy entries are
+    not connected to the document while parked, which keeps the DOM trimming gain; post-pagination
+    measurement and entry positioning skip off-screen nodes.
 
 ---
 
-## 8. 可观测性（perf + 状态）
+## 8. Observability (perf and status)
 
-- Perf 开关：`localStorage tt:perf = '1'` 或 URL `?ttPerf=1`
-- 标记（部分）：
-  - `src/init.js`：`tt:init:*`
-  - `src/tauri/main/bootstrap.js`：`tt:tauri:*`
-  - `src/script.js`：`tt:startup:shell/core/full` + `tt:startup:ready`
-- 运行时提示：
-  - `src/scripts/tauri/startup/startup-status-overlay.js`：右下角非阻塞启动状态 overlay（`APP_READY` 后移除）与启动失败对话框（见 §4）
-- `pnpm run test:browser` 构建 vendor bundle 并运行 `tests/browser/*.test.mjs`。其中 `startup-order.test.mjs` 验证 Host-ready 模块先加载时主应用仍能正常初始化、早到的事件等待应用就绪后呈现，以及启动失败时对话框显示错误且错误继续上报。该测试组包含在 `pnpm test` 和 `pnpm run check` 中。
+- Perf switch: `localStorage tt:perf = '1'` or the URL parameter `?ttPerf=1`
+- Marks (partial list):
+  - `src/init.js`: `tt:init:*`
+  - `src/tauri/main/bootstrap.js`: `tt:tauri:*`
+  - `src/script.js`: `tt:startup:shell/core/full` and `tt:startup:ready`
+- Runtime cues:
+  - `src/scripts/tauri/startup/startup-status-overlay.js`: the non-blocking startup status overlay in
+    the bottom-right corner (removed after `APP_READY`) and the startup failure dialog (see §4)
+- `pnpm run test:browser` builds the vendor bundle and runs `tests/browser/*.test.mjs`. Among them,
+  `startup-order.test.mjs` checks that the main app still initializes normally when a Host-ready
+  module loads first, that an early event waits for app readiness before it is presented, and that on
+  a startup failure the dialog shows the error while the error continues to propagate. This test group
+  is part of `pnpm test` and `pnpm run check`.
 
 ---
 
-## 9. 明确支持 / 不支持边界
+## 9. Explicit support and non-support boundaries
 
-支持：
+Supported:
 
-- 主页尽早可见可点（Shell 先到）。
-- `APP_READY` 表示主应用已可交互；late-loaded third-party 扩展依赖其 auto-fire 语义继续完成初始化。
-- third-party 扩展资源同源加载，并提供 `window._`（lodash）与 `window.hljs` 兼容（见上）。
+- The main page becomes visible and clickable early (Shell arrives first).
+- `APP_READY` means the main app is interactive; late-loaded third-party extensions rely on its
+  auto-fire semantics to finish initializing.
+- Third-party extension resources load same-origin, and `window._` (lodash) and `window.hljs`
+  compatibility is provided (see above).
 
-不保证（需要按需扩展白名单/契约）：
+Not guaranteed (extend the allowlist or contract as needed):
 
-- 任何第三方脚本在 **扩展抽屉关闭** 时都能访问到其期望的“扩展设置 DOM”（Panel Runtime 可能 park 子树；目前只对白名单容器强保证）。
+- That any third-party script can reach the extension settings DOM it expects while the **extension
+  drawer is closed** (Panel Runtime may park subtrees, and only the allowlisted containers are
+  guaranteed today).

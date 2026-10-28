@@ -1,10 +1,10 @@
-# `window.__TAURITAVERN__.api.dev` — API 参考
+# `window.__TAURITAVERN__.api.dev` — API reference
 
-TauriTavern 为开发者工具、调试面板与扩展作者提供的规范化调试 API。
+The normalized debugging API TauriTavern offers developer tools, debug panels and extension authors.
 
-> 设计目标：让调用方依赖稳定宿主 ABI，而不是直接依赖 Tauri 事件名、Rust 命令名或某个 Settings 面板的内部实现。
+> Design goal: let callers depend on a stable host ABI rather than on Tauri event names, Rust command names or the internals of a particular Settings panel.
 
-## 0. 快速上手
+## 0. Quick start
 
 ```js
 await (window.__TAURITAVERN__?.ready ?? window.__TAURITAVERN_MAIN_READY__);
@@ -21,14 +21,14 @@ const unsubscribe = await dev.frontendLogs.subscribe((entry) => {
 });
 ```
 
-### 方法
+### Methods
 
-| 方法 | 返回值 | 说明 |
+| Method | Returns | Notes |
 | --- | --- | --- |
-| `list(options?)` | `Promise<FrontendLogEntry[]>` | 获取当前已捕获的前端日志尾部 |
-| `subscribe(handler)` | `Promise<unsubscribe>` | 订阅新增前端日志 |
-| `getConsoleCaptureEnabled()` | `Promise<boolean>` | 读取 console capture 开关 |
-| `setConsoleCaptureEnabled(enabled)` | `Promise<void>` | 设置 console capture 开关 |
+| `list(options?)` | `Promise<FrontendLogEntry[]>` | Fetches the tail of the frontend logs captured so far |
+| `subscribe(handler)` | `Promise<unsubscribe>` | Subscribes to new frontend log entries |
+| `getConsoleCaptureEnabled()` | `Promise<boolean>` | Reads the console capture switch |
+| `setConsoleCaptureEnabled(enabled)` | `Promise<void>` | Sets the console capture switch |
 
 ### `FrontendLogEntry`
 
@@ -42,14 +42,14 @@ type FrontendLogEntry = {
 };
 ```
 
-### 语义
+### Semantics
 
-- 前端日志 capture 开关由宿主统一管理。
-- 调用方不应再自行读写相关 `localStorage` key。
-- `unsubscribe` 可安全重复调用。
-- 页面开始卸载（非 bfcache 的 `pagehide`）后，宿主不再捕获日志，订阅者也不会在页面销毁过程中被调用。
-- 为避免 DEBUG/INFO 噪声挤掉关键告警，宿主按级别独立保留：`debug` 400 条、`info` 300 条、`warn`+`error` 共 100 条。
-- `message` 是用于 UI 展示的 **preview**：可能被截断；对象参数会被摘要化。需要完整请求/响应体请使用 `llmApiLogs.getRaw()` 或导出日志。
+- The host manages the frontend log capture switch as a whole.
+- Callers should no longer read or write the related `localStorage` key themselves.
+- `unsubscribe` is safe to call repeatedly.
+- Once the page begins unloading (a `pagehide` that is not a bfcache restore), the host stops capturing logs, and subscribers are not called while the page is being destroyed.
+- So that DEBUG and INFO noise cannot crowd out critical warnings, the host retains entries per level: 400 `debug`, 300 `info`, and 100 shared between `warn` and `error`.
+- `message` is a **preview** for UI display: it may be truncated, and object arguments are summarized. For a full request or response body, use `llmApiLogs.getRaw()` or an exported log bundle.
 
 ## 2. `backendLogs`
 
@@ -61,12 +61,12 @@ const unsubscribe = await dev.backendLogs.subscribe((entry) => {
 });
 ```
 
-### 方法
+### Methods
 
-| 方法 | 返回值 | 说明 |
+| Method | Returns | Notes |
 | --- | --- | --- |
-| `tail(options?)` | `Promise<BackendLogEntry[]>` | 获取当前后端日志尾部 |
-| `subscribe(handler)` | `Promise<unsubscribe>` | 订阅新增后端日志 |
+| `tail(options?)` | `Promise<BackendLogEntry[]>` | Fetches the tail of the backend logs |
+| `subscribe(handler)` | `Promise<unsubscribe>` | Subscribes to new backend log entries |
 
 ### `BackendLogEntry`
 
@@ -80,11 +80,11 @@ type BackendLogEntry = {
 };
 ```
 
-### 语义
+### Semantics
 
-- 宿主负责共享后端日志流。
-- 多个订阅者并存时，底层流的启停由宿主统一引用计数，不应互相踩踏。
-- `message` 可能被截断以保证性能；完整排查请以文件日志/导出 bundle 为准。
+- The host owns the shared backend log stream.
+- When several subscribers coexist, the host reference-counts the start and stop of the underlying stream, so subscribers must not interfere with one another.
+- `message` may be truncated for performance; for a full investigation rely on the file logs or an exported bundle.
 
 ## 3. `llmApiLogs`
 
@@ -94,16 +94,16 @@ const preview = await dev.llmApiLogs.getPreview(index[0].id);
 const raw = await dev.llmApiLogs.getRaw(index[0].id);
 ```
 
-### 方法
+### Methods
 
-| 方法 | 返回值 | 说明 |
+| Method | Returns | Notes |
 | --- | --- | --- |
-| `index(options?)` | `Promise<LlmApiLogIndexEntry[]>` | 获取最近几条请求索引 |
-| `getPreview(id)` | `Promise<LlmApiLogPreview>` | 获取适合 UI 展示的预览 |
-| `getRaw(id)` | `Promise<LlmApiLogRaw>` | 获取完整原始请求/响应 |
-| `subscribeIndex(handler)` | `Promise<unsubscribe>` | 订阅新增索引项 |
-| `getKeep()` | `Promise<number>` | 读取保留条数设置 |
-| `setKeep(value)` | `Promise<void>` | 设置保留条数 |
+| `index(options?)` | `Promise<LlmApiLogIndexEntry[]>` | Fetches the index of recent requests |
+| `getPreview(id)` | `Promise<LlmApiLogPreview>` | Fetches a preview suited to UI display |
+| `getRaw(id)` | `Promise<LlmApiLogRaw>` | Fetches the complete raw request and response |
+| `subscribeIndex(handler)` | `Promise<unsubscribe>` | Subscribes to new index entries |
+| `getKeep()` | `Promise<number>` | Reads the retention count |
+| `setKeep(value)` | `Promise<void>` | Sets the retention count |
 
 ### `LlmApiLogIndexEntry`
 
@@ -152,11 +152,11 @@ type LlmApiLogRaw = {
 };
 ```
 
-### 语义
+### Semantics
 
-- `getPreview()` / `getRaw()` 会从磁盘读取对应的 log 文件（按需加载，不常驻内存）。
-- `requestReadable/responseReadable` 为开发者调试默认不截断（内容过大时可能影响 UI 打开速度）；完整内容也可用 `getRaw()` 或导出 bundle 获取。
-- `requestReadable/responseReadable` 会显示 provider 返回的可见/摘要化 reasoning，例如 `[reasoning]`、`[thinking]`、`[thought]` 块；signature、`thoughtSignature`、`encrypted_content` 等 provider-private continuation 只显示 `native_state=present` 标记，不当作可解释文本展开。
+- `getPreview()` and `getRaw()` read the matching log file from disk, loading it on demand rather than keeping it in memory.
+- `requestReadable` and `responseReadable` are not truncated by default for developer debugging (very large content may slow the UI when opened); the full content is also available through `getRaw()` or an exported bundle.
+- They show the visible or summarized reasoning a provider returns, such as `[reasoning]`, `[thinking]` and `[thought]` blocks; provider-private continuation such as `signature`, `thoughtSignature` and `encrypted_content` appears only as a `native_state=present` marker and is not expanded as interpretable text.
 
 ## 4. `exportBundle()`
 
@@ -164,22 +164,22 @@ type LlmApiLogRaw = {
 const delivered = await dev.exportBundle();
 ```
 
-### 方法
+### Methods
 
-| 方法 | 返回值 | 说明 |
+| Method | Returns | Notes |
 | --- | --- | --- |
-| `exportBundle()` | `Promise<boolean>` | 生成并交付 debug bundle（zip）；取消返回 `false`，失败抛出错误 |
+| `exportBundle()` | `Promise<boolean>` | Builds and delivers a debug bundle (zip); returns `false` when cancelled and throws on failure |
 
-### 语义
+### Semantics
 
-- 由用户在系统保存面板中选择位置，见[文件传输](../CurrentState/FileTransfer.md)。
-- 导出内容包含后端文件日志、前端日志 snapshot、LLM API Logs（含 raw）与设置/版本信息。
-- 导出文件可能包含 prompt/响应体等敏感信息；分享前请自行检查。
+- The user picks the location in the system save panel; see [file transfer](../CurrentState/FileTransfer.md).
+- The export contains the backend file logs, a frontend log snapshot, LLM API logs (including raw bodies), and settings and version information.
+- The exported file may contain sensitive information such as prompts and response bodies; check it yourself before sharing.
 
-## 5. 边界与稳定性
+## 5. Boundaries and stability
 
 - `tauritavern-backend-log`
 - `tauritavern-llm-api-log`
 - `devlog_*`
 
-以上事件名和命令名都属于宿主内部实现细节，不是第三方扩展 Public Contract。扩展应只依赖 `api.dev`。
+These event names and command names are all host implementation details, not a Public Contract for third-party extensions. Extensions should depend on `api.dev` only.

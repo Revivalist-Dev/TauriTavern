@@ -1,91 +1,91 @@
 # TauriTavern Extension Development Guide
 
-本文档面向 **SillyTavern 扩展开发者**，介绍 TauriTavern 提供的专属 API——让你的扩展更强大、更优雅。
+This document is for **SillyTavern extension developers**. It covers the dedicated APIs TauriTavern provides, so your extensions can be more capable and more elegant.
 
-> **一句话总结**：TauriTavern 为扩展提供了 `findLastMessage()` 精准定位、`searchMessages()` 全文检索、以及 `store.*` 状态持久化——这些都是 SillyTavern 从未内置，而开发者一直在手动造轮子的能力。
+> **In one sentence**: TauriTavern gives extensions `findLastMessage()` for precise lookup, `searchMessages()` for full-text search, and `store.*` for state persistence. SillyTavern never shipped any of these, so developers kept building them by hand.
 
 ---
 
-## 为什么值得适配？
+## Why adapt?
 
-在 SillyTavern 中，扩展开发者长期面临这些痛点：
+Inside SillyTavern, extension developers have long lived with these pain points:
 
-| 痛点 | 传统做法 | TauriTavern 方案 |
+| Pain point | Traditional approach | TauriTavern approach |
 | --- | --- | --- |
-| **找最后一条特定消息** | `chat.slice().reverse().find(...)` 手动遍历 | ✅ `findLastMessage()` 一行搞定，后端高效定位 |
-| **搜索历史消息** | 手写关键词扫描，CJK 断词全靠运气 | ✅ `searchMessages()` 内置全文检索，CJK 优化 |
-| **扩展数据持久化** | 塞进消息体、手动 `saveChat()`，数据与消息耦合 | ✅ `store.*` 独立 KV 存储，干净可靠 |
-| **小配置/进度保存** | 各种 hack 写入 `chat_metadata` | ✅ `metadata.*` 标准化接口，语义清晰 |
+| **Find the last message of a given kind** | Walk the chat by hand with `chat.slice().reverse().find(...)` | ✅ `findLastMessage()` in one line; the backend locates it efficiently |
+| **Search message history** | Hand-rolled keyword scans; CJK word splitting left to luck | ✅ `searchMessages()` with built-in full-text search, tuned for CJK |
+| **Persist extension data** | Push it into the message body and call `saveChat()` by hand; data coupled to messages | ✅ `store.*` as standalone KV storage, clean and reliable |
+| **Save small config or progress** | Assorted hacks writing into `chat_metadata` | ✅ `metadata.*` as a standardized interface with clear semantics |
 
-** TauriTavern，让你的扩展制作更简单。**
-
----
-
-## 关于窗口化聊天
-
-TauriTavern 采用**窗口化加载**（windowed payload）的设计：前端只保留最近 N 条消息在内存中，而非一次性加载全部聊天记录。这让长对话和移动端体验更流畅，同时也意味着 `getContext().chat` 只反映当前窗口内的消息。
-
-你**不需要**关心底层细节——上面提到的 `findLastMessage()`、`searchMessages()`、`history.*` 等 API 已经帮你透明地处理了窗口边界，后端会扫描完整历史。只需调用 API，其余交给 Rust。
+**TauriTavern makes building extensions simpler.**
 
 ---
 
-## 1. 快速开始
+## About windowed chat
 
-### 1.1 扩展目录
+TauriTavern loads a **windowed payload**: the frontend keeps only the most recent N messages in memory instead of loading the whole chat at once. Long conversations and mobile run better this way, and the consequence is that `getContext().chat` only reflects the messages inside the current window.
 
-TauriTavern 的 third-party 扩展目录与 SillyTavern 兼容：
+You do **not** need to care about the details underneath. `findLastMessage()`, `searchMessages()`, `history.*` and the other APIs listed above already handle window boundaries transparently, because the backend scans the full history. Call the API and leave the rest to Rust.
 
-- local：`data/default-user/extensions/<folder>`
-- global：`data/extensions/third-party/<folder>`
-- 同名时 **local 优先**
+---
 
-资源端点：`/scripts/extensions/third-party/<folder>/<path>`
+## 1. Getting started
 
-> 更多细节：[ThirdPartyExtensions.md](docs/CurrentState/ThirdPartyExtensions.md)
+### 1.1 Extension directories
 
-### 1.2 等待宿主就绪
+TauriTavern's third-party extension directories are compatible with SillyTavern:
+
+- local: `data/default-user/extensions/<folder>`
+- global: `data/extensions/third-party/<folder>`
+- when both exist, **local wins**
+
+Asset endpoint: `/scripts/extensions/third-party/<folder>/<path>`
+
+> More detail: [ThirdPartyExtensions.md](docs/CurrentState/ThirdPartyExtensions.md)
+
+### 1.2 Wait for the host to be ready
 
 ```js
 await (window.__TAURITAVERN__?.ready ?? window.__TAURITAVERN_MAIN_READY__);
 const api = window.__TAURITAVERN__.api.chat;
 ```
 
-TauriTavern 在宿主层暴露 `window.__TAURITAVERN__`，你只需等待 `ready` 即可使用所有 API。
+TauriTavern exposes `window.__TAURITAVERN__` at the host layer. Wait on `ready` and every API is available.
 
-### 1.3 判断是否在 TauriTavern 中运行
+### 1.3 Detect whether you are running inside TauriTavern
 
 ```js
 if (window.__TAURITAVERN__) {
-  // TauriTavern 环境，可以使用增强 API
+  // TauriTavern environment: the enhanced APIs are available
 } else {
-  // 标准 SillyTavern 环境，走原有逻辑
+  // Standard SillyTavern environment: keep the original code path
 }
 ```
 
-这样你的扩展可以轻松做到**两端兼容**。
+That is all it takes for an extension to run **on both sides**.
 
 ---
 
-## 2. 核心能力一览
+## 2. Core capabilities at a glance
 
-TauriTavern 专属 API 的唯一入口：
+The single entry point for TauriTavern's dedicated APIs:
 
 ```
 window.__TAURITAVERN__.api.chat
 ```
 
-### `findLastMessage()` — 再也不用手动遍历
+### `findLastMessage()` — stop walking the chat by hand
 
-以前为了找最后一条包含特定扩展数据的消息，你得：
+Finding the last message that carried particular extension data used to look like this:
 
 ```js
-// ❌ 以前的做法
+// ❌ The old way
 const hit = context.chat.slice().reverse().find(
   msg => msg.extra?.TavernDB_ACU_IsolatedData
 );
 ```
 
-现在只需要：
+Now it looks like this:
 
 ```js
 // ✅ TauriTavern
@@ -94,42 +94,42 @@ const hit = await handle.locate.findLastMessage({
   hasExtraKeys: ['TavernDB_ACU_IsolatedData'],
   scanLimit: 2000,
 });
-// hit = { index, message } 或 null
+// hit = { index, message }, or null
 ```
 
-后端 Rust 处理，快速、高效、准确。
+Rust does the work in the backend: fast, efficient and accurate.
 
-### `searchMessages()` — 内置全文检索，告别手写搜索
+### `searchMessages()` — built-in full-text search, no hand-written scanning
 
-以前你要在聊天记录里搜关键词？只能自己 `filter/includes`，CJK 用户更是一言难尽。
+Searching chat history for a keyword used to mean your own `filter/includes`, and for CJK users it was an ordeal.
 
-现在：
+Now:
 
 ```js
 // ✅ TauriTavern
 const hits = await handle.searchMessages({
-  query: 'AUV，您吉祥',
+  query: 'good morning',
   limit: 20,
   filters: { role: 'assistant' },
 });
 // hits = [{ index, score, snippet, role, text }, ...]
 ```
 
-- 内置 CJK bigram 分词优化
-- 支持按角色、索引范围过滤
-- `scanLimit` 控制性能开销
+- Built-in CJK bigram tokenization
+- Filtering by role and index range
+- `scanLimit` bounds the cost
 
-### `store.*` — 真正的扩展数据持久化
+### `store.*` — real persistence for extension data
 
-这是 **SillyTavern 从未实现** 的功能。以前存数据的"标准做法"是塞进消息体：
+This is something **SillyTavern never implemented**. The old "standard practice" was to push data into the message body:
 
 ```js
-// ❌ 以前的做法：把数据塞进最后一条消息
+// ❌ The old way: push the data into the last message
 lastMsg.extra.myExtensionData = hugeJsonObject;
-saveChat(); // 放大 payload，容易出问题
+saveChat(); // bloats the payload and invites trouble
 ```
 
-现在你有独立的 per-chat KV 存储：
+Now you have standalone per-chat KV storage:
 
 ```js
 // ✅ TauriTavern
@@ -139,11 +139,11 @@ const keys = await handle.store.listKeys({ namespace: 'my-ext' });
 await handle.store.deleteJson({ namespace: 'my-ext', key: 'old-key' });
 ```
 
-数据与消息彻底解耦，干净、可靠、不膨胀 payload。
+Data is fully decoupled from messages: clean, reliable, and it does not inflate the payload.
 
-### `metadata.*` — 轻量配置存储
+### `metadata.*` — lightweight config storage
 
-适合存储进度、配置项、短摘要等小状态：
+Suited to small state such as progress, config values and short summaries:
 
 ```js
 await handle.metadata.setExtension({ namespace: 'my-ext', value: { lastFloor: 42 } });
@@ -152,36 +152,36 @@ const meta = await handle.metadata.get();
 
 ---
 
-## 3. 完整 API 参考
+## 3. Full API reference
 
-详细参数与返回值请查阅：
+For detailed parameters and return values, see:
 
-- 📖 **[API 参考](docs/API/Chat.md)** — 完整接口说明
-- 🔄 **[适配指南](docs/API/Migration.md)** — 从 SillyTavern 扩展快速适配
-
----
-
-## 4. 移动端性能建议
-
-TauriTavern 同时运行在桌面和移动端（Android/iOS），以下建议让你的扩展在移动端也流畅运行：
-
-- 检索和定位交给后端 API（`findLastMessage` / `searchMessages`），避免在 JS 侧做 O(N) 扫描
-- 大状态用 `store.setJson()` 持久化，不要塞进消息体，小状态优先 `metadata.*`
-- 使用 `scanLimit` 控制扫描上限，保护低端设备性能
+- 📖 **[API reference](docs/API/Chat.md)** — the complete interface documentation
+- 🔄 **[Adaptation guide](docs/API/Migration.md)** — moving a SillyTavern extension across quickly
 
 ---
 
-## 5. 移动端布局适配（Safe‑Area / Viewport / IME）
+## 4. Performance advice for mobile
 
-如果你的扩展包含悬浮球、全屏面板、弹窗、同源 iframe 小应用等 UI，推荐接入 TauriTavern 的 Layout ABI：
+TauriTavern runs on desktop and on mobile (Android/iOS). The advice below keeps your extension smooth on mobile too:
 
-- ✅ **推荐（DX）**：直接使用 `/scripts/tauritavern/layout-kit.js`（减少样板代码、避免字符串 typo）
-- ✅ **硬 ABI（长期稳定）**：`data-tt-mobile-surface` + `--tt-inset-* / --tt-base-viewport-height / --tt-ime-bottom`
-- ✅ **稳定 API**：`window.__TAURITAVERN__.api.layout`（读取/订阅 safe-area、viewport、IME 快照；layout-kit 内部也会用它）
+- Leave searching and lookup to the backend APIs (`findLastMessage` / `searchMessages`) and avoid O(N) scans on the JS side.
+- Persist large state with `store.setJson()` instead of pushing it into the message body; prefer `metadata.*` for small state.
+- Use `scanLimit` to cap the scan range and protect performance on low-end devices.
 
-### 5.1 几行接入：把你的 UI 归类为 surface
+---
 
-全屏面板：
+## 5. Layout adaptation (Safe-Area / Viewport / IME)
+
+If your extension contains UI such as a floating button, a full-screen panel, a popup or a same-origin iframe mini-app, integrate TauriTavern's Layout ABI:
+
+- ✅ **Recommended (DX)**: use `/scripts/tauritavern/layout-kit.js` directly (less boilerplate, no string typos)
+- ✅ **Hard ABI (stable long term)**: `data-tt-mobile-surface` + `--tt-inset-* / --tt-base-viewport-height / --tt-ime-bottom`
+- ✅ **Stable API**: `window.__TAURITAVERN__.api.layout` (read and subscribe to safe-area, viewport and IME snapshots; layout-kit uses it internally as well)
+
+### 5.1 A few lines: classify your UI as a surface
+
+Full-screen panel:
 
 ```js
 import { waitForHostReady, SURFACE, applySurface } from '/scripts/tauritavern/layout-kit.js';
@@ -191,22 +191,22 @@ applySurface(panelEl, SURFACE.FullscreenWindow);
 applySurface(backdropEl, SURFACE.Backdrop);
 ```
 
-悬浮球/小窗：
+Floating button / small window:
 
 ```js
 applySurface(bubbleEl, SURFACE.FreeWindow);
 ```
 
-同源 iframe（只承诺 same-origin）：
+Same-origin iframe (same-origin only is guaranteed):
 
 ```js
 applySurface(iframe, SURFACE.ViewportHost);
 iframe.src = '/scripts/extensions/third-party/my-ext/ui/index.html';
 ```
 
-> 提示：宿主的 overlay classifier 会保持克制（避免全局 subtree observer）。框架型扩展请优先显式写入 `data-tt-mobile-surface`，不要依赖宿主“猜中”你的结构。
+> Tip: the host's overlay classifier stays deliberately conservative to avoid a global subtree observer. Framework-style extensions should write `data-tt-mobile-surface` explicitly instead of relying on the host to guess their structure.
 
-### 5.2 订阅布局快照（用于 clamp / 自定义动画等）
+### 5.2 Subscribe to layout snapshots (for clamping, custom animation and similar)
 
 ```js
 import { subscribeLayout } from '/scripts/tauritavern/layout-kit.js';
@@ -216,5 +216,5 @@ const unsubscribe = await subscribeLayout((snap) => {
 });
 ```
 
-完整参考：
-- 📖 **[Layout API](docs/API/Layout.md)** — `api.layout` + mobile surface contract 说明
+Full reference:
+- 📖 **[Layout API](docs/API/Layout.md)** — `api.layout` and the mobile surface contract

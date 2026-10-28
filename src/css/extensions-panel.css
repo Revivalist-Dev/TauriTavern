@@ -135,6 +135,31 @@ input.extension_missing[type="checkbox"] {
 #extensions_settings2 {
     display: flex;
     flex-direction: column;
+    min-width: 0;
+}
+
+#extensions_settings > *,
+#extensions_settings2 > * {
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* The shell drawer is 460px wide. Two settings columns leave about 230px each,
+   which is too narrow for tables and extension forms, so stack them there. */
+body.sb-shell .extensions_block {
+    flex-direction: column;
+}
+
+body.sb-shell #extensions_settings,
+body.sb-shell #extensions_settings2 {
+    width: 100%;
+}
+
+/* A wide table or form scrolls inside its own panel instead of widening the drawer. */
+#extensions_settings .inline-drawer-content,
+#extensions_settings2 .inline-drawer-content {
+    max-width: 100%;
+    overflow-x: auto;
 }
 
 /* Fixes order of settings for extensions */

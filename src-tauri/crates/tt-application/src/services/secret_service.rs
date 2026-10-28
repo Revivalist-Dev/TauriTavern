@@ -31,7 +31,7 @@ impl SecretService {
         }
     }
 
-    /// 写入密钥并返回新密钥 ID
+    /// Write a secret and return the new secret ID
     pub async fn write_secret(
         &self,
         key: &str,
@@ -47,7 +47,7 @@ impl SecretService {
         Ok(id)
     }
 
-    /// 读取密钥状态
+    /// Read the state of the secrets
     pub async fn read_secret_state(&self) -> Result<SecretStateDto, ApplicationError> {
         tracing::info!("Reading secret state");
         let secrets = self.secret_repository.load().await?;
@@ -84,7 +84,7 @@ impl SecretService {
         Ok(SecretStateDto { states })
     }
 
-    /// 查看所有密钥
+    /// View every secret
     pub async fn view_secrets(&self) -> Result<AllSecretsDto, ApplicationError> {
         tracing::info!("Viewing all secrets");
 
@@ -100,7 +100,7 @@ impl SecretService {
         })
     }
 
-    /// 查找特定密钥
+    /// Look up a specific secret
     pub async fn find_secret(
         &self,
         key: &str,

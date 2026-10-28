@@ -5,9 +5,8 @@
 
 mod desktop;
 
-use std::path::PathBuf;
-
 use serde::Deserialize;
+use std::path::PathBuf;
 use tauri::{AppHandle, WebviewWindow};
 use tt_domain::errors::DomainError;
 
@@ -62,6 +61,17 @@ pub async fn pick(
     native::pick(window, kind, multiple).await
 }
 
+pub async fn pick_directory(window: &WebviewWindow) -> Result<Option<PathBuf>, DomainError> {
+    native::pick_directory(window).await
+}
+
+pub async fn pick_save_path(
+    window: &WebviewWindow,
+    file_name: &str,
+) -> Result<Option<PathBuf>, DomainError> {
+    native::pick_save_path(window, file_name).await
+}
+
 pub async fn materialize(
     _app: &AppHandle,
     source: PickedSource,
@@ -106,7 +116,8 @@ fn sanitize_file_name(name: &str) -> String {
     let name: String = name
         .chars()
         .map(|ch| {
-            if ch.is_control() || matches!(ch, '/' | '\\' | '<' | '>' | ':' | '"' | '|' | '?' | '*') {
+            if ch.is_control() || matches!(ch, '/' | '\\' | '<' | '>' | ':' | '"' | '|' | '?' | '*')
+            {
                 '_'
             } else {
                 ch

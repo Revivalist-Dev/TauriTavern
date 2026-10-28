@@ -1,0 +1,9 @@
+.layout-wide-table {
+    width: 720px;
+    border-collapse: collapse;
+}
+
+.layout-wide-table td {
+    border: 1px solid var(--SmartThemeBorderColor);
+    padding: 4px;
+}

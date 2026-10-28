@@ -1,38 +1,38 @@
-# First-party UI 当前架构
+# First-party UI architecture
 
-本文说明 TauriTavern 自有前端的现行架构与维护边界。SillyTavern 前端仍拥有页面、扩展加载和全局生命周期；TauriTavern 只在既有页面中挂载独立的 React client island，不建立第二套页面壳或路由。
+This page describes the current architecture of TauriTavern's own frontend and the boundaries for maintaining it. The SillyTavern frontend still owns the pages, extension loading, and the global lifecycle; TauriTavern only mounts independent React client islands inside the existing pages and does not build a second page shell or router.
 
-## 1. 范围
+## 1. Scope
 
-First-party UI 包含：
+The first-party UI covers:
 
-- Agent System；
-- In-App Assistant；
-- MCP Manager；
-- Tauri Settings、Dev Logs 与 Sync。
+- the Agent System;
+- the In-App Assistant;
+- the MCP Manager;
+- Tauri Settings, Dev Logs, and Sync.
 
-这些界面统一使用 React、React DOM 与 strict TypeScript/TSX。上游 SillyTavern 前端、第三方扩展和由 WebView 直接加载的宿主脚本不属于 React 组件源码。
+These interfaces all use React, React DOM, and strict TypeScript/TSX. The upstream SillyTavern frontend, third-party extensions, and host scripts loaded directly by the WebView are not part of the React component sources.
 
-## 2. 所有权与数据流
+## 2. Ownership and data flow
 
 ```text
 Rust / Host services
   -> feature composition root
-  -> typed controller / model / external store（按需）
+  -> typed controller / model / external store, as needed
   -> React client island
-  -> island 自己的 DOM subtree
+  -> the island's own DOM subtree
 ```
 
-- Rust 与 Host service 拥有持久数据、跨窗口事实、文件和网络 I/O、Tauri command 及平台事件。
-- Feature composition root 获取并校验 Host 能力，组装 DTO、typed actions、订阅、翻译器和挂载参数。
-- Controller、model 或 external store 只在功能确实需要时承载异步编排和视图投影；简单界面直接使用局部 React state。
-- React 组件负责渲染、未保存草稿和当前视图状态，不复制持久事实，也不直接调用 Tauri `invoke()`。
-- 页面级事件必须使用 `window.SillyTavern.getContext()` 提供的 `eventSource` 与 `eventTypes`；订阅和退订使用同一个页面实例。
-- 缺少必需 Host API、事件或 DTO 字段时立即失败并暴露上下文，不猜测默认能力。
+- Rust and host services own persisted data, cross-window facts, file and network I/O, Tauri commands, and platform events.
+- The feature composition root acquires and validates host capabilities and assembles DTOs, typed actions, subscriptions, translators, and mount arguments.
+- A controller, model, or external store carries asynchronous orchestration and view projections only where the feature genuinely needs them; a simple interface uses local React state.
+- React components own rendering, unsaved drafts, and current view state. They do not copy persisted facts and do not call Tauri `invoke()` directly.
+- Page-level events must use the `eventSource` and `eventTypes` that `window.SillyTavern.getContext()` provides; subscribing and unsubscribing use the same page instance.
+- A missing required host API, event, or DTO field fails immediately and surfaces the context, rather than assuming a default capability.
 
-## 3. 源码与构建边界
+## 3. Source and build boundaries
 
-Rspack 直接拥有以下 TypeScript/TSX 源码：
+Rspack owns the following TypeScript/TSX sources directly:
 
 ```text
 src/scripts/extensions/agent-system/src
@@ -43,88 +43,88 @@ src/scripts/tauri/setting/dev-logs-app
 src/scripts/tauri/setting/sync-app
 ```
 
-入口和稳定输出如下：
+Entry points and stable outputs:
 
-| 功能 | Rspack entry | 输出 | 加载方 |
+| Feature | Rspack entry | Output | Loaded by |
 | --- | --- | --- | --- |
 | Agent System | `agent-system/src/index.tsx` | `agent-system/dist/index.bundle.js` | Agent manifest |
-| In-App Assistant | `in-app-agent/src/index.ts` | `in-app-agent/dist/index.bundle.js`、`index.bundle.css` | Assistant manifest |
+| In-App Assistant | `in-app-agent/src/index.ts` | `in-app-agent/dist/index.bundle.js`, `index.bundle.css` | Assistant manifest |
 | MCP Manager | `mcp-manager/src/index.tsx` | `mcp-manager/dist/index.bundle.js` | MCP manifest |
 | Settings | `settings-app/SettingsApp.tsx` | `setting/dist/settings.bundle.js` | `setting-panel/settings-popup.js` |
 | Dev Logs | `dev-logs-app/DevLogsApp.tsx` | `setting/dist/dev-logs.bundle.js` | `setting/dev-logs.js` |
-| Sync | `sync-app/index.ts` | `setting/dist/sync.bundle.js` | Sync popup 与 listener 外壳 |
+| Sync | `sync-app/index.ts` | `setting/dist/sync.bundle.js` | The Sync popup and listener shell |
 
-In-App Assistant 的 manifest 加载构建生成的 `dist/index.bundle.css`，因为光标样式要从 app-use 包导入；Agent System 与 MCP Manager 的 manifest 直接加载 `style.css`。所以改了助手的 `style.css`，要经 rspack 重新构建才会生效。
+The In-App Assistant manifest loads the build-generated `dist/index.bundle.css`, because the cursor styles have to be imported from the app-use package; the Agent System and MCP Manager manifests load `style.css` directly. A change to the assistant's `style.css` therefore only takes effect after an rspack rebuild.
 
-本地 TS/TSX 模块使用无扩展名相对 import。显式 `.js` import 只指向磁盘上真实存在、由浏览器执行的 JavaScript 模块。
+Local TS/TSX modules use extensionless relative imports. An explicit `.js` import points only at a real JavaScript module on disk that the browser executes.
 
-[app-use](../../packages/app-use/README.md) 是例外：它的相对 import 写显式 `.ts`，构建时由 TypeScript 改写为 `.js`。包用自己的 tsconfig（NodeNext）做类型检查和 lint。TT 直接 import 包的源码，所以 `tsconfig.ui.json` 打开了 `allowImportingTsExtensions`。ESLint 按目录显式指定 tsconfig，因为自动查找会用到上游的 `src/jsconfig.json`。
+[app-use](../../packages/app-use/README.md) is the exception: its relative imports carry an explicit `.ts`, which the build rewrites to `.js`. The package type-checks and lints with its own tsconfig (NodeNext). TT imports the package's source directly, which is why `tsconfig.ui.json` enables `allowImportingTsExtensions`. ESLint names the tsconfig explicitly per directory, because automatic lookup would pick up upstream's `src/jsconfig.json`.
 
-`src/scripts/tauri/setting/*.js` 与 `setting-panel/*.js` 是 WebView 直接加载的宿主适配层。它们拥有 Popup 生命周期、保存/关闭时序、原生事件接线和 bundle 动态导入，因此继续以浏览器 ESM 交付。`format-bytes.js` 同时服务宿主脚本与 TS bundle，并在实现中通过 `// @ts-check` 和 JSDoc 提供类型信息。
+`src/scripts/tauri/setting/*.js` and `setting-panel/*.js` are host adapter layers the WebView loads directly. They own the popup lifecycle, the save/close timing, native event wiring, and dynamic bundle imports, so they continue to ship as browser ESM. `format-bytes.js` serves both the host scripts and the TS bundles, and provides type information in the implementation through `// @ts-check` and JSDoc.
 
-Production 与 development 共用 `rspack.config.js` 的 `createRspackConfigs(mode)`。各 bundle 都是自包含 ES module，不依赖页面级 React 全局变量；React Compiler 只用于 Agent System。
+Production and development share `createRspackConfigs(mode)` in `rspack.config.js`. Every bundle is a self-contained ES module and depends on no page-level React global; React Compiler is used for the Agent System only.
 
-## 4. 功能内部结构
+## 4. Internal feature structure
 
 ### Agent System
 
-- `index.tsx` 是扩展启动与主入口 composition root。
-- `host-api.ts` 集中访问 `window.__TAURITAVERN__` 和 SillyTavern context。
-- Panel、Timeline 与 Skill Manager 各自拥有 feature-local contract、controller/model 和 React presentation。
-- `i18n.ts` 负责翻译与插值，消息 key 由静态 catalog 推导类型。
-- `chat-input-toggle.ts` 与 `embedded-assets-buttons.ts` 是接入上游 DOM 的原生适配器，不创建额外 React root。
+- `index.tsx` is the extension bootstrap and the main composition root.
+- `host-api.ts` centralizes access to `window.__TAURITAVERN__` and the SillyTavern context.
+- Panel, Timeline, and Skill Manager each own their feature-local contract, controller/model, and React presentation.
+- `i18n.ts` handles translation and interpolation, and message keys take their types from a static catalog.
+- `chat-input-toggle.ts` and `embedded-assets-buttons.ts` are native adapters that hook into upstream DOM and create no additional React root.
 
 ### In-App Assistant
 
-- 一个 React island 挂载于原 A 抽屉；SillyTavern 保留外围 DOM 与抽屉行为，隐藏不卸载。
-- `host.ts` 组合公共 API；controller 管理会话、任务与输入草稿，组件管理设置草稿和视图。
+- One React island mounts in the original A drawer; SillyTavern keeps the surrounding DOM and the drawer behavior, and hiding does not unmount it.
+- `host.ts` composes the shared APIs; the controller owns sessions, tasks, and the input draft, and the components own the settings draft and the view.
 
-启动顺序、消息归属与工具边界见 [应用内助手](InAppAssistant.md)。
+For the startup order, message ownership, and tool boundaries see [In-App Assistant](InAppAssistant.md).
 
 ### MCP Manager
 
-- `index.tsx` 负责挂载；`host.ts` 负责 Host 与 SillyTavern 边界。
-- Manager、server dialog 与 test-call dialog 保持 feature-local，不依赖 Agent 或 Settings 的 UI runtime。
+- `index.tsx` mounts the app; `host.ts` owns the host and SillyTavern boundary.
+- The manager and the server and test-call dialogs stay feature-local and depend on neither the Agent nor the Settings UI runtime.
 
-### Settings、Dev Logs 与 Sync
+### Settings, Dev Logs, and Sync
 
-- Raw Settings 外壳创建 Popup、读取 Host 数据并向 React root 注入 typed options、actions 与 translator。
-- React root 不读取外壳内部状态；外壳也不依赖 React component instance，只持有公开 mount handle。
-- 扩展菜单快捷入口是设备本地的展示偏好；Raw Settings 外壳复用上游 Popup 管理选择，并由 DOM adapter 投影到既有 `#extensionsMenu`，不新增 React root 或后端设置。
-- 三个功能共享同一 Rspack compiler，但保持独立 bundle 和独立生命周期。
+- The Raw Settings shell creates the popup, reads host data, and injects typed options, actions, and a translator into the React root.
+- The React root reads no shell-internal state; the shell does not depend on a React component instance either, holding only the public mount handle.
+- The extensions-menu shortcut is a device-local display preference; the Raw Settings shell reuses upstream popup management for the choice and a DOM adapter projects it into the existing `#extensionsMenu`, adding no React root and no backend setting.
+- The three features share one Rspack compiler while keeping separate bundles and separate lifecycles.
 
-## 5. 宿主调用契约
+## 5. Host call contract
 
-Settings 系列 bundle 通过 named export 暴露挂载函数：
+The Settings bundles expose their mount functions as named exports:
 
-| 挂载函数 | 返回 handle |
+| Mount function | Returns a handle offering |
 | --- | --- |
-| `mountTauriTavernSettingsApp()` | `getDraft()`、`setChatBackupStorageStats()`、`unmount()` |
+| `mountTauriTavernSettingsApp()` | `getDraft()`, `setChatBackupStorageStats()`, `unmount()` |
 | `mountTauriTavernDevLogsApp()` | `unmount()` |
-| `mountTauriTavernSyncApp()` | `refresh()`、`refreshAutomationStatus()`、`unmount()` |
-| `mountTauriTavernSyncProgressApp()` | `update()`、`unmount()` |
-| `mountTauriTavernSyncScopeApp()` | `getSelection()`、`unmount()` |
+| `mountTauriTavernSyncApp()` | `refresh()`, `refreshAutomationStatus()`, `unmount()` |
+| `mountTauriTavernSyncProgressApp()` | `update()`, `unmount()` |
+| `mountTauriTavernSyncScopeApp()` | `getSelection()`, `unmount()` |
 
-挂载参数在 JS/TS 边界校验。外壳只通过这些 handle 与 island 交互；新增能力应优先扩展对应 feature contract，而不是读取 React DOM 或组件内部状态。
+Mount arguments are validated at the JS/TS boundary. A shell interacts with its island only through these handles; a new capability should extend the matching feature contract first, rather than reading the React DOM or a component's internal state.
 
-Agent 与 MCP 由 manifest 加载后自行启动。它们的外部契约是 manifest 路径、Host ABI、事件/DTO 语义以及已挂载 DOM 的可观察行为。
+Agent and MCP start themselves once a manifest has loaded them. Their external contract is the manifest path, the host ABI, event/DTO semantics, and the observable behavior of the DOM they mount.
 
-## 6. 生命周期、DOM 与样式
+## 6. Lifecycle, DOM, and styling
 
-- 每个 React root 只管理自己的 mount subtree；SillyTavern 继续管理外围文档和扩展容器。
-- Host 订阅由 composition root、controller 或专用 hook 持有，并在对应生命周期结束时释放。
-- 异步读取使用明确的 epoch、snapshot 或取消语义阻止旧结果覆盖新状态；不使用定时等待模拟协调。
-- Popup 的 Save、Cancel、Escape、`onClosing` 和原生 dialog 行为由创建它的外壳或 composition root 拥有。
-- 样式沿用 SillyTavern class、SmartTheme CSS 变量和移动端 surface 契约；React 不引入 CSS-in-JS 或独立 UI framework。
-- 需要插入上游既有控件栏的简单按钮使用原生 DOM adapter；完整状态型界面才使用 React root。
+- Each React root manages only its own mount subtree; SillyTavern keeps managing the surrounding document and extension container.
+- Host subscriptions are held by the composition root, a controller, or a dedicated hook, and released when the matching lifecycle ends.
+- Asynchronous reads use explicit epoch, snapshot, or cancellation semantics to keep an old result from overwriting a newer state; timer-based waits do not stand in for coordination.
+- A popup's Save, Cancel, Escape, `onClosing`, and native dialog behavior belong to the shell or composition root that created it.
+- Styling reuses SillyTavern classes, SmartTheme CSS variables, and the mobile surface contract; React brings in no CSS-in-JS and no separate UI framework.
+- A simple button that has to sit in an existing upstream control bar uses a native DOM adapter; only a fully stateful interface gets a React root.
 
-## 7. 测试与开发
+## 7. Testing and development
 
-Rstest、Testing Library 与 `happy-dom` 覆盖组件交互、controller 行为、订阅生命周期和稳定边界。Node contract tests 覆盖 Host ABI 与浏览器 JavaScript 集成；Rust tests 覆盖后端领域和适配器行为。
+Rstest, Testing Library, and `happy-dom` cover component interaction, controller behavior, subscription lifecycle, and the stable boundaries. Node contract tests cover the host ABI and the browser JavaScript integration; Rust tests cover backend domain and adapter behavior.
 
-`happy-dom` 不提供真实布局、滚动和平台 WebView 行为。涉及 pointer、focus、native dialog、scroll anchor、移动端 viewport 或主题级联的改动，还需要在真实 Tauri WebView 中验证。
+`happy-dom` provides no real layout, scrolling, or platform WebView behavior. A change touching pointers, focus, native dialogs, scroll anchors, the mobile viewport, or theme inheritance still has to be verified in a real Tauri WebView.
 
-常用命令：
+Common commands:
 
 ```bash
 pnpm run check:types

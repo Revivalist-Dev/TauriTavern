@@ -204,7 +204,7 @@ async fn tql_binds_values_once_and_uses_native_statement_classification() {
     let root = tempfile::tempdir().unwrap();
     let backend = TriviumDatabaseBackend::new(root.path().into());
     open(&backend, json!({"dim": 2})).await.unwrap();
-    let text = "quote ' slash \\ newline\n carriage\r nul\0 $id2 中文";
+    let text = "quote ' slash \\ newline\n carriage\r nul\0 $id2 café";
     let payload =
         json!({"text": text, "items": [true, null, "λ"], "id": 1, "id2": 2, "literal": "$id"});
     let created = operation(

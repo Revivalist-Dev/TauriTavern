@@ -27,8 +27,6 @@ pub const WEB_SEARCH_REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 pub const IMAGE_GENERATION_CONNECT_TIMEOUT: Duration = Duration::from_secs(10 * 60);
 pub const TRANSLATION_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 pub const TRANSLATION_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
-pub const TTS_CONNECT_TIMEOUT: Duration = Duration::from_secs(3 * 60);
-pub const TTS_REQUEST_TIMEOUT: Duration = Duration::from_secs(15 * 60);
 pub const GIT_CONNECT_TIMEOUT: Duration = Duration::from_secs(20);
 pub const GIT_REQUEST_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 pub const MCP_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
@@ -47,7 +45,6 @@ pub enum HttpClientProfile {
     WebSearch,
     ImageGeneration,
     Translation,
-    Tts,
     Mcp,
 }
 
@@ -379,9 +376,6 @@ fn build_profile_client(
         HttpClientProfile::Translation => builder
             .connect_timeout(TRANSLATION_CONNECT_TIMEOUT)
             .timeout(TRANSLATION_REQUEST_TIMEOUT),
-        HttpClientProfile::Tts => builder
-            .connect_timeout(TTS_CONNECT_TIMEOUT)
-            .timeout(TTS_REQUEST_TIMEOUT),
         // Match RMCP's default client: idle reuse can stall on delayed ACK when a prior body
         // was not fully consumed.
         HttpClientProfile::Mcp => builder

@@ -18,7 +18,6 @@ import { registerContentRoutes } from './content-routes.js';
 import { registerAssetsRoutes } from './assets-routes.js';
 import { registerSdRoutes } from './sd-routes.js';
 import { registerTranslateRoutes } from './translate-routes.js';
-import { registerTtsRoutes } from './tts-routes.js';
 import { registerVectorRoutes } from './vector-routes.js';
 import { registerSpriteRoutes } from './sprite-routes.js';
 
@@ -44,6 +43,5 @@ export function registerRoutes(router, context, responses) {
     registerSearchRoutes(router, context, responses);
     registerSdRoutes(router, context, responses);
     registerTranslateRoutes(router, context, responses);
-    registerTtsRoutes(router, context, responses);
     registerStatsRoutes(router, context, responses);
 }

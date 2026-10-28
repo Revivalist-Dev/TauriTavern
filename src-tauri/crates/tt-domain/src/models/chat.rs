@@ -256,10 +256,10 @@ impl Chat {
     /// Create a new chat
     pub fn new(user_name: &str, character_name: &str) -> Self {
         let now = Utc::now();
-        let create_date = humanized_date(now); // `create_date` 拥有 String
+        let create_date = humanized_date(now); // `create_date` owns the String
         let chat_id_hash = rand::random::<u64>();
 
-        // 在移动 create_date 之前，先用它计算 file_name
+        // Compute file_name from create_date before the String is moved
         let file_name = Some(format!("{} - {}", character_name, create_date));
 
         Self {
@@ -395,8 +395,8 @@ mod tests {
             Some(" Story".to_string())
         );
         assert_eq!(
-            normalize_chat_file_stem("中文会话.jsonl"),
-            Some("中文会话".to_string())
+            normalize_chat_file_stem("café-session.jsonl"),
+            Some("café-session".to_string())
         );
         assert_eq!(normalize_chat_file_stem("CON.jsonl"), None);
         assert_eq!(normalize_chat_file_stem("*.jsonl"), None);
@@ -446,7 +446,7 @@ mod tests {
 
     #[test]
     fn truncates_generated_chat_stem_prefix_without_splitting_utf8() {
-        let prefix = "中".repeat(100);
+        let prefix = "€".repeat(100);
         let suffix = " - imported";
         let truncated = truncate_chat_file_stem_prefix(&prefix, suffix);
         assert!(truncated.is_char_boundary(truncated.len()));

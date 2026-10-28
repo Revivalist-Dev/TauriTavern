@@ -7,7 +7,7 @@ fn indexed_world_name_reserves_suffix_bytes() {
     assert!(ascii.ends_with(" (2)"));
     assert!(format!("{ascii}.json").len() <= 255);
 
-    let unicode = CharacterService::indexed_world_name(&"中".repeat(83), 2)
+    let unicode = CharacterService::indexed_world_name(&"€".repeat(83), 2)
         .expect("allocate maximum-length Unicode name");
     assert!(unicode.ends_with(" (2)"));
     assert!(format!("{unicode}.json").len() <= 255);

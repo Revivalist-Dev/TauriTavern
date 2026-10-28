@@ -1,66 +1,66 @@
-# 记忆类扩展 API（当前落地状态）
+# Memory-extension API (current state)
 
-本文档记录 TauriTavern 记忆、数据库与检索类扩展 API 的当前状态。
+This document records the current state of TauriTavern's memory, database, and retrieval extension APIs.
 
-TauriTavern 遵循 SillyTavern 的完整历史契约：`getContext().chat` 是当前聊天的完整、有序消息数组，数组下标就是 0-based 绝对消息索引。增强 API 不替代这一契约，而是把有界读取、定位、搜索和扩展状态持久化交给 Rust 后端。
+TauriTavern follows SillyTavern's full-history contract: `getContext().chat` is the complete, ordered message array of the current chat, and an array subscript is a 0-based absolute message index. The enhanced API does not replace that contract; it hands bounded reads, location, search, and extension state persistence to the Rust backend.
 
-## 1. 唯一入口
+## 1. Single entry point
 
-公开 ABI 刻意只有一个入口，不提供 alias：
+The public ABI deliberately has one entry point and offers no alias:
 
 ```js
 await (window.__TAURITAVERN__?.ready ?? window.__TAURITAVERN_MAIN_READY__);
 const api = window.__TAURITAVERN__.api.chat;
 ```
 
-## 2. 当前 chat 与身份
+## 2. Current chat and identity
 
-- `api.chat.current.ref()`：当前聊天引用。
-- `api.chat.current.handle()`：当前聊天 handle。
-- `api.chat.current.windowInfo()`：保留六字段 Promise ABI；`mode` 固定为 `'off'`，`windowStartIndex` 固定为 `0`，`windowLength === totalCount === chat.length`。
-- `handle.stableId()`：可持久化的稳定聊天身份。
-- `handle.summary({ includeMetadata? })`：无需读取消息正文的摘要。
+- `api.chat.current.ref()`: a reference to the current chat.
+- `api.chat.current.handle()`: a handle for the current chat.
+- `api.chat.current.windowInfo()`: keeps the six-field Promise ABI; `mode` is fixed to `'off'`, `windowStartIndex` is fixed to `0`, and `windowLength === totalCount === chat.length`.
+- `handle.stableId()`: a persistent, stable chat identity.
+- `handle.summary({ includeMetadata? })`: a summary obtained without reading the message bodies.
 
-## 3. 有界历史读取
+## 3. Bounded history reads
 
 - `handle.history.tail({ limit })`
 - `handle.history.before(page, { limit })`
 - `handle.history.beforePages(page, { limit, pages })`
 
-这些方法单次只返回请求的页，适合后台批处理或避免扩展再创建一份全量数组。它们不会改变前端 `chat[]` 或 DOM。
+Each call returns only the page asked for, which suits background batch work and keeps an extension from making a second full array. None of them changes the frontend `chat[]` or the DOM.
 
-分页 cursor 带文件签名；聊天被其他写入改变后，旧 cursor 会明确失败，调用方应重新从 `tail()` 开始。
+A pagination cursor carries a file signature; once another write has changed the chat, an old cursor fails explicitly and the caller should start again from `tail()`.
 
-## 4. 后端定位与搜索
+## 4. Backend location and search
 
 - `handle.locate.findLastMessage({ role?, hasTopLevelKeys?, hasExtraKeys?, scanLimit? })`
 - `handle.searchMessages({ query, limit?, filters? })`
 
-`filters` 支持：
+`filters` accepts:
 
 - `role?: 'user' | 'assistant' | 'system'`
 - `startIndex?: number`
 - `endIndex?: number`
 - `scanLimit?: number`
 
-当前搜索是轻量文本召回，不引入向量库或全量常驻索引。CJK/无空格 query 会扩展 bigram tokens；扩展应使用 `scanLimit` 明确性能边界。
+Search today is lightweight text recall and introduces no vector store or fully resident index. A CJK or space-less query is expanded into bigram tokens; an extension should use `scanLimit` to set its performance bound.
 
-## 5. 内置 Summarize
+## 5. Built-in Summarize
 
-TauriTavern 保留 SillyTavern Summarize 扩展的三种来源：Main API、外部 Extras 与 WebLLM。新建设置默认使用已由 TauriTavern 支持的 Main API；已经显式保存的来源保持不变。Extras 仍是用户配置的外部服务，宿主不伪造同源 `/api/summarize` 模块。
+TauriTavern keeps the three sources of the SillyTavern Summarize extension: the Main API, external Extras, and WebLLM. A new configuration defaults to the Main API, which TauriTavern already supports; a source that has been saved explicitly keeps its value. Extras remains an external service the user configures, and the host does not fake a same-origin `/api/summarize` module.
 
-摘要仍按上游逻辑写入 `message.extra.memory` 并通过原有 extension prompt 注入；请求完成时只检查当前聊天身份，避免将结果写入另一个聊天。
+A summary is still written to `message.extra.memory` under upstream logic and injected through the original extension prompt; when the request completes only the current chat identity is checked, so the result cannot land in another chat.
 
-聊天混合召回的设计与边界见 `docs/CurrentState/VectorApi.md`。
+For the design and boundaries of hybrid chat recall see `docs/CurrentState/VectorApi.md`.
 
-## 6. 每聊天扩展状态
+## 6. Per-chat extension state
 
-小状态写入 header 的 namespace：
+Small state is written into a namespace in the header:
 
 - `handle.metadata.get()`
 - `handle.metadata.setExtension({ namespace, value })`
 
-大状态使用独立 KV JSON store：
+Large state uses a separate KV JSON store:
 
 - `handle.store.getJson({ namespace, key })`
 - `handle.store.setJson({ namespace, key, value })`
@@ -69,18 +69,18 @@ TauriTavern 保留 SillyTavern Summarize 扩展的三种来源：Main API、外�
 - `handle.store.deleteJson({ namespace, key })`
 - `handle.store.listKeys({ namespace })`
 
-消息本身的修改仍应通过 `await getContext().saveChat()` 保存；不要 import `script.js` 内部实现，也不要直接写 JSONL。
+A change to a message itself should still be saved through `await getContext().saveChat()`; do not import `script.js` internals, and do not write JSONL directly.
 
-## 7. 持续开发约束
+## 7. Constraints for continued development
 
-- 保持 `getContext().chat` 完整、有序，不为内存优化改变数据契约。
-- DOM 优化只能发生在渲染层。
-- history 分页保持显式、只读，不参与当前聊天状态或 generation。
-- API 错误直接传播，不做 silent fallback。
-- 不新增公开 alias，不把大扩展状态塞进消息体。
+- Keep `getContext().chat` complete and ordered; do not change the data contract for a memory optimization.
+- A DOM optimization may happen in the rendering layer only.
+- History pagination stays explicit and read-only, taking no part in current chat state or generation.
+- API errors propagate directly, with no silent fallback.
+- Add no public alias, and do not stuff large extension state into message bodies.
 
-## 8. 相关文档
+## 8. Related documentation
 
-- API 参考：`docs/API/Chat.md`
-- 适配指南：`docs/API/Migration.md`
-- Chat payload：`docs/CurrentState/ChatPayload.md`
+- API reference: `docs/API/Chat.md`
+- Migration guide: `docs/API/Migration.md`
+- Chat payload: `docs/CurrentState/ChatPayload.md`

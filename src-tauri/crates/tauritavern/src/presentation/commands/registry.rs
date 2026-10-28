@@ -131,6 +131,25 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         super::settings_commands::get_settings_snapshots,
         super::settings_commands::load_settings_snapshot,
         super::settings_commands::restore_settings_snapshot,
+        // Local vault commands
+        super::vault_commands::vault_get_state,
+        super::vault_commands::vault_pick_mount,
+        super::vault_commands::vault_add_mount,
+        super::vault_commands::vault_remove_mount,
+        super::vault_commands::vault_set_primary_mount,
+        super::vault_commands::vault_rename_mount,
+        super::vault_commands::vault_list,
+        super::vault_commands::vault_stat,
+        super::vault_commands::vault_read_text,
+        super::vault_commands::vault_read_bytes,
+        super::vault_commands::vault_thumbnail,
+        super::vault_commands::vault_create_entry,
+        super::vault_commands::vault_rename_entry,
+        super::vault_commands::vault_delete_entries,
+        super::vault_commands::vault_move_entries,
+        super::vault_commands::vault_write_file,
+        super::vault_commands::vault_export_entry,
+        super::vault_commands::vault_reveal,
         // Dev logging commands
         super::dev_logging_commands::devlog_append_frontend_logs,
         super::dev_logging_commands::devlog_set_backend_log_stream_enabled,
@@ -392,8 +411,6 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         super::vector_commands::vector_handle,
         // Translate commands
         super::translate_commands::translate_text,
-        // TTS commands
-        super::tts_commands::tts_handle,
         // Tokenizer commands
         super::tokenizer_commands::count_openai_tokens_batch,
         super::tokenizer_commands::count_openai_token_prefixes,

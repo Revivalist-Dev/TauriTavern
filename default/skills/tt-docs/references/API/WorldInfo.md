@@ -1,17 +1,17 @@
-# `window.__TAURITAVERN__.api.worldInfo` — API 参考
+# `window.__TAURITAVERN__.api.worldInfo` — API reference
 
-TauriTavern 为角色卡作者、世界书工具与相关扩展提供的规范化 World Info API。
+TauriTavern's normalized World Info API for character card authors, World Info tooling and related extensions.
 
-> 设计目标：只暴露“最近一次激活结果 / 实时订阅 / 跳转”这三个真正稳定的平台能力，不把上游扫描循环内部态直接变成公共契约。
+> Design goal: expose only the three genuinely stable platform capabilities — the last activation result, live subscription and navigation — and never turn upstream's internal scan-loop state directly into a public contract.
 
-## 0. 快速上手
+## 0. Quick start
 
 ```js
 await (window.__TAURITAVERN__?.ready ?? window.__TAURITAVERN_MAIN_READY__);
 const worldInfo = window.__TAURITAVERN__.api.worldInfo;
 ```
 
-## 1. 数据结构
+## 1. Data structures
 
 ### `WorldInfoEntryRef`
 
@@ -61,15 +61,15 @@ if (last) {
 }
 ```
 
-### 返回值
+### Return value
 
 - `Promise<WorldInfoActivationBatch | null>`
-- `null` 仅表示当前会话尚未捕获到任何一次最终激活结果
+- `null` means only that the current session has not yet captured any final activation result.
 
-### 语义
+### Semantics
 
-- 返回的是最近一次真实生成流程对应的最终结果。
-- 不返回扫描过程中的中间循环态。
+- It returns the final result of the most recent real generation pass.
+- It does not return intermediate state from the scan.
 
 ## 3. `subscribeActivations(handler)`
 
@@ -79,15 +79,15 @@ const unsubscribe = await worldInfo.subscribeActivations((batch) => {
 });
 ```
 
-### 返回值
+### Return value
 
 - `Promise<unsubscribe>`
 
-### 语义
+### Semantics
 
-- 只推送最终激活批次。
-- 不复播历史结果。
-- 若 UI 初始化时需要先显示最近一次结果，应先调用 `getLastActivation()`。
+- Only final activation batches are pushed.
+- Past results are not replayed.
+- If a UI needs to show the latest result while initializing, it should call `getLastActivation()` first.
 
 ## 4. `openEntry(ref)`
 
@@ -102,29 +102,29 @@ if (!result.opened) {
 }
 ```
 
-### 返回值
+### Return value
 
 ```ts
 Promise<{ opened: boolean }>
 ```
 
-### 语义
+### Semantics
 
 - `opened: true`
-  - 表示宿主已成功打开目标世界书，并尝试定位到目标条目。
+  - The host opened the target lorebook and attempted to locate the entry.
 - `opened: false`
-  - 表示目标世界书或目标条目不存在。
-- 其他异常直接抛出
-  - 这是刻意的，便于开发阶段及时暴露问题。
+  - The target lorebook or the target entry does not exist.
+- Other errors are thrown directly.
+  - This is deliberate, so problems surface promptly during development.
 
-## 5. v1 收缩边界
+## 5. v1 scope boundaries
 
-- `api.worldInfo` 不直接暴露 `WORLD_INFO_ACTIVATED` 或 `WORLDINFO_SCAN_DONE` 原始载荷。
-- 只承诺激活条目的稳定显示字段：
+- `api.worldInfo` does not expose the raw `WORLD_INFO_ACTIVATED` or `WORLDINFO_SCAN_DONE` payloads.
+- It promises only the stable display fields of an activated entry:
   - `world`
   - `uid`
   - `displayName`
   - `constant`
   - `position?`
-- 不把扫描预算、递归控制、中间态对象升格为 Public Contract。
-- `openEntry()` 必须复用上游 World Info 模块自身的导航能力；宿主 ABI 层不直接承诺 DOM 结构细节。
+- Scan budgets, recursion control and intermediate state objects are not promoted to the Public Contract.
+- `openEntry()` must reuse the navigation capability of the upstream World Info module itself; the host ABI layer does not promise anything about DOM structure directly.

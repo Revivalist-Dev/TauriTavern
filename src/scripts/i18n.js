@@ -1,6 +1,7 @@
 const storageKey = 'language';
-const overrideLanguage = localStorage.getItem(storageKey);
-const localeFile = String(overrideLanguage || navigator.language || navigator.userLanguage || 'en').toLowerCase();
+// English-only fork: the non-English locale dictionaries were removed, so the
+// application always runs in English.
+const localeFile = 'en';
 var langs;
 // Don't change to let/const! It will break module loading.
 // eslint-disable-next-line prefer-const
@@ -317,39 +318,15 @@ export function applyLocale(root = document) {
 }
 
 function addLanguagesToDropdown() {
-    const uiLanguageSelects = $('#ui_language_select, #onboarding_ui_language_select');
-    for (const langObj of langs) { // Set the value to the language code
-        const option = document.createElement('option');
-        option.value = langObj.lang; // Set the value to the language code
-        option.innerText = langObj.display; // Set the display text to the language name
-        uiLanguageSelects.append(option);
-    }
-
-    const selectedLanguage = localStorage.getItem(storageKey);
-    if (selectedLanguage) {
-        uiLanguageSelects.val(selectedLanguage);
-    }
+    // English-only fork: the language selector was removed.
 }
 
 export async function initLocales() {
     langs = await fetch('/locales/lang.json').then(response => response.json());
     localeData = await getLocaleData(localeFile);
-    document.documentElement.lang = localeFile;
+    document.documentElement.lang = 'en';
     applyLocale();
-    addLanguagesToDropdown();
     await updateSecretDisplayAfterLocaleApplied();
-
-    $('#ui_language_select, #onboarding_ui_language_select').on('change', async function () {
-        const language = String($(this).val());
-
-        if (language) {
-            localStorage.setItem(storageKey, language);
-        } else {
-            localStorage.removeItem(storageKey);
-        }
-
-        location.reload();
-    });
 
     observer.observe(document, {
         childList: true,

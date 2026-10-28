@@ -212,7 +212,7 @@ test('performance HUD keeps world info byte commits intact', async context => {
     registerWorldInfoRoutes(router, service, { jsonResponse });
     hud = installPerfHud({ context: service });
     hud.enable();
-    const body = '{"name":"Book","data":{"entries":{},"text":"你好 👋"}}';
+    const body = '{"name":"Book","data":{"entries":{},"text":"Héllo 👋"}}';
     const response = await router.handle({ method: 'POST', path: '/api/worldinfo/edit', body });
     assert.equal(response.status, 200);
     assert.equal(saved, body);

@@ -304,7 +304,6 @@ extensions:
     captioning: Xenova/vit-gpt2-image-captioning
     embedding: Cohee/jina-embeddings-v2-base-en
     speechToText: Xenova/whisper-small
-    textToSpeech: Xenova/speecht5_tts
 
 # Git backend for plugin/extension repository operations.
 # - Use "auto" to prefer system git, falling back to the integrated backend

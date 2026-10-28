@@ -25,17 +25,17 @@ function conversationDrawerMarkup() {
                     <header class="sb-conversation-header">
                         <div>
                             <h2 class="sb-conversation-title">Conversation Mode</h2>
-                            <p class="sb-conversation-subtitle" data-sb-conversation-subtitle>最近消息</p>
+                            <p class="sb-conversation-subtitle" data-sb-conversation-subtitle>Recent messages</p>
                         </div>
-                        <button type="button" class="sb-icon-button" data-sb-conversation-refresh title="刷新" aria-label="刷新">
+                        <button type="button" class="sb-icon-button" data-sb-conversation-refresh title="Refresh" aria-label="Refresh">
                             <i class="fa-solid fa-rotate" aria-hidden="true"></i>
                         </button>
                     </header>
                     <div class="sb-conversation-timeline" data-sb-conversation-timeline role="log" aria-live="polite"></div>
                     <footer class="sb-composer">
                         <textarea class="sb-composer-input" data-sb-composer-input rows="2"
-                            placeholder="写点什么…（Enter 发送，Shift+Enter 换行）" aria-label="消息"></textarea>
-                        <button type="button" class="sb-composer-send" data-sb-composer-send title="发送" aria-label="发送">
+                            placeholder="Write something… (Enter to send, Shift+Enter for a new line)" aria-label="Message"></textarea>
+                        <button type="button" class="sb-composer-send" data-sb-composer-send title="Send" aria-label="Send">
                             <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
                         </button>
                     </footer>

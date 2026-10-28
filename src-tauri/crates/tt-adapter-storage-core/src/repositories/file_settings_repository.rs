@@ -511,15 +511,15 @@ impl SettingsRepository for FileSettingsRepository {
 
 #[cfg(test)]
 mod tests {
-    use super::fields::{APPEARANCE_FILE, DYNAMIC_THEME_FILE, LAYOUT_FILE, PRESETS_FILE};
     use super::FileSettingsRepository;
+    use super::fields::{APPEARANCE_FILE, DYNAMIC_THEME_FILE, LAYOUT_FILE, PRESETS_FILE};
     use rand::random;
     use serde_json::json;
     use std::fs;
     use std::path::{Path, PathBuf};
     use std::sync::Arc;
-    use tt_domain::models::settings::revision::UserSettingsRevision;
     use tt_domain::models::settings::UserSettings;
+    use tt_domain::models::settings::revision::UserSettingsRevision;
     use tt_ports::repositories::settings_repository::SettingsRepository;
 
     struct TestDir {
@@ -832,8 +832,8 @@ mod tests {
         let openai_dir = dir.path().join("OpenAI Settings");
         fs::create_dir_all(&openai_dir).expect("create OpenAI Settings dir");
         fs::write(
-            openai_dir.join("_明月青秋_.json"),
-            r#"{"name":"【明月青秋】","temperature":0.7}"#,
+            openai_dir.join("_Étoile_.json"),
+            r#"{"name":"«Étoile»","temperature":0.7}"#,
         )
         .expect("write legacy preset file");
 
@@ -842,7 +842,7 @@ mod tests {
             .await
             .expect("load openai settings");
 
-        assert_eq!(names, vec!["【明月青秋】".to_string()]);
+        assert_eq!(names, vec!["«Étoile»".to_string()]);
         assert_eq!(settings.len(), 1);
         assert!(settings[0].contains(r#""temperature":0.7"#));
     }
@@ -854,13 +854,13 @@ mod tests {
         let openai_dir = dir.path().join("OpenAI Settings");
         fs::create_dir_all(&openai_dir).expect("create OpenAI Settings dir");
         fs::write(
-            openai_dir.join("_明月青秋_.json"),
-            r#"{"name":"【明月青秋】","temperature":0.1}"#,
+            openai_dir.join("_Étoile_.json"),
+            r#"{"name":"«Étoile»","temperature":0.1}"#,
         )
         .expect("write legacy preset file");
         fs::write(
-            openai_dir.join("【明月青秋】.json"),
-            r#"{"name":"【明月青秋】","temperature":0.9}"#,
+            openai_dir.join("«Étoile».json"),
+            r#"{"name":"«Étoile»","temperature":0.9}"#,
         )
         .expect("write canonical preset file");
 
@@ -869,7 +869,7 @@ mod tests {
             .await
             .expect("load openai settings");
 
-        assert_eq!(names, vec!["【明月青秋】".to_string()]);
+        assert_eq!(names, vec!["«Étoile»".to_string()]);
         assert_eq!(settings.len(), 1);
         assert!(settings[0].contains(r#""temperature":0.9"#));
     }

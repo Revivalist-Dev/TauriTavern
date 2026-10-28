@@ -5,8 +5,7 @@ use tauri::State;
 use crate::app::AppState;
 use crate::app::dev_observability::DevObservabilityHub;
 use crate::presentation::commands::chunk_body::{chunk_bytes_from_request, commit_headers};
-use crate::presentation::commands::helpers::{ log_command, map_command_error,
-};
+use crate::presentation::commands::helpers::{log_command, map_command_error};
 use crate::presentation::errors::CommandError;
 use tt_application::dto::settings_dto::{
     SettingsSnapshotDto, TauriTavernSettingsDto, UpdateTauriTavernSettingsDto, UserSettingsDto,
@@ -55,12 +54,6 @@ pub async fn update_tauritavern_settings(
     log_command("update_tauritavern_settings");
 
     let agent_retention_settings_updated = has_agent_retention_settings_update(&dto);
-    if dto
-        .request_proxy
-        .as_ref()
-        .is_some_and(|settings| settings.enabled)
-    {
-    }
 
     let settings = app_state
         .services

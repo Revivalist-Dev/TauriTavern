@@ -245,8 +245,8 @@ mod tests {
         for name in [
             "read.state".to_string(),
             "read_state".to_string(),
-            "界".repeat(80),
-            "界".repeat(81),
+            "€".repeat(80),
+            "€".repeat(81),
             mcp_name.clone(),
             mcp_name,
         ] {

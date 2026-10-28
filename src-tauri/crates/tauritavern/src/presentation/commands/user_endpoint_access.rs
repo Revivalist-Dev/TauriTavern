@@ -81,29 +81,7 @@ struct DialogCopy {
     cancel: &'static str,
 }
 
-fn dialog_copy(locale: &str) -> DialogCopy {
-    let locale = locale.trim().to_ascii_lowercase();
-    if locale.starts_with("zh-cn") || locale.starts_with("zh-hans") {
-        return DialogCopy {
-            title: "允许连接到自定义端点？",
-            endpoint_label: "端点：",
-            warning: "第三方扩展也可能发起此请求。仅当这是你刚刚配置并认识的端点时继续；TauriTavern 可能向它发送 API 密钥、提示词和聊天内容。该端点后续将保持信任，请谨慎授权。",
-            http_warning: "\n此 HTTP 连接未加密，传输内容可能被观察或修改。",
-            confirm: "信任并连接",
-            cancel: "取消",
-        };
-    }
-    if locale.starts_with("zh-tw") || locale.starts_with("zh-hant") {
-        return DialogCopy {
-            title: "允許連線到自訂端點？",
-            endpoint_label: "端點：",
-            warning: "第三方擴充功能也可能發起此請求。僅當這是你剛剛設定並認識的端點時繼續；TauriTavern 可能向它傳送 API 金鑰、提示詞和聊天內容。該端點後續將保持信任，請謹慎授權。",
-            http_warning: "\n此 HTTP 連線未加密，傳輸內容可能被觀察或修改。",
-            confirm: "信任並連線",
-            cancel: "取消",
-        };
-    }
-
+fn dialog_copy(_locale: &str) -> DialogCopy {
     DialogCopy {
         title: "Allow custom endpoint?",
         endpoint_label: "Endpoint:",

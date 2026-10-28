@@ -178,7 +178,7 @@ jobs:
           {
             echo "> Canary build · China Standard Time $DISPLAY_TIME · dev@$SHA12"
             echo
-            echo "## Changes / 变更"
+            echo "## Changes"
             cat changes.md
             echo
             echo "[Full comparison](https://github.com/${GITHUB_REPOSITORY}/compare/${PREVIOUS_SHA}...${GITHUB_SHA})"
@@ -256,7 +256,6 @@ jobs:
           set -euo pipefail
           printf '%s\n' "$AI_NOTES" > candidate.md
           if [[ -n "$AI_NOTES" && ${#AI_NOTES} -le 30000 ]] \
-            && grep -qx '## 更新日志' candidate.md \
             && grep -qx '## Release Notes' candidate.md \
             && ! grep -q '^```' candidate.md; then
             {

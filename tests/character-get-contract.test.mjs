@@ -51,7 +51,7 @@ test('/api/characters/get treats avatar_url as an exact avatar filename identity
         { avatar: 'Alice#1.png', stem: 'Alice#1' },
         { avatar: 'Alice%2FB.png', stem: 'Alice%2FB' },
         { avatar: ' Alice.png', stem: ' Alice' },
-        { avatar: '名字.带.点.png', stem: '名字.带.点' },
+        { avatar: 'name.with.dots.png', stem: 'name.with.dots' },
         { avatar: 'Legacy\u0080.png', stem: 'Legacy\u0080' },
     ];
 

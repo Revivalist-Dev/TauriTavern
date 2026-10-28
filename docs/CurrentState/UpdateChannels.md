@@ -1,53 +1,110 @@
-# 更新渠道当前契约
+# Current contract of the update channels
 
-TauriTavern 只维护 `stable` 与 `canary` 两个更新渠道。更新功能只负责检测和引导下载，不在应用内安装更新。
+TauriTavern maintains exactly two update channels, `stable` and `canary`. The update feature only
+detects an update and guides the download; it does not install updates inside the app.
 
-Linux 系统软件源默认使用 `stable`，并提供独立的 `canary` 套件。APT/DNF/Zypper 根据系统的软件包数据库安装更新，与应用内 Stable/Canary 偏好相互独立；软件源地址、签名身份和安装方式见 `docs/CurrentState/LinuxRepository.md`。
+The Linux system package repository defaults to `stable` and also provides a separate `canary` suite.
+APT/DNF/Zypper install updates from the system package database, independently of the in-app
+Stable/Canary preference; repository addresses, signing identities, and installation methods are in
+`docs/CurrentState/LinuxRepository.md`.
 
-## 身份与默认渠道
+## Identity and default channel
 
-- 面向用户：Stable 显示版本号；Canary 显示中国标准日期，例如 `Canary Release 2026.06.14`。
-- 面向程序：Stable 按 SemVer 比较；Canary 把当前构建与远端 Git 提交都规范化为 12 位短哈希后精确比较。
-- 构建分支为精确的 `main` 时默认 `stable`，其他已知分支默认 `canary`；缺失分支信息时保守默认为 `stable`。
-- 用户可在版本扩展设置中覆盖默认渠道。该选择进入现有 settings 持久化链路。
+- User-facing: Stable shows the version number; Canary shows a China Standard Time date, for example
+  `Canary Release 2026.06.14`.
+- Program-facing: Stable compares by SemVer; Canary normalizes both the current build and the remote
+  Git commit to a 12-character short hash and compares them exactly.
+- A build branch of exactly `main` defaults to `stable`, any other known branch defaults to `canary`,
+  and missing branch information conservatively defaults to `stable`.
+- The user can override the default channel in the version extension settings. That choice goes
+  through the existing settings persistence path.
 
-构建身份由 `TAURITAVERN_BUILD_BRANCH` 和 `TAURITAVERN_BUILD_REVISION` 注入；未显式提供时，构建脚本依次读取 GitHub Actions 环境和本地 Git。Canary 构建缺失或包含非法 revision 时必须明确失败，不能退回版本号比较。
+Build identity is injected through `TAURITAVERN_BUILD_BRANCH` and `TAURITAVERN_BUILD_REVISION`; when
+they are not supplied explicitly, the build script reads the GitHub Actions environment and then local
+Git. A Canary build with a missing or invalid revision must fail explicitly rather than fall back to
+version comparison.
 
-## 检测链路
+## Detection path
 
-前端把有效渠道传给 `check_for_update` command，application service 决定比较语义，GitHub adapter 只负责读取渠道对应的数据：
+The frontend passes the effective channel to the `check_for_update` command, the application service
+decides the comparison semantics, and the GitHub adapter only reads the data for that channel:
 
-- Stable：`GET /repos/Darkatse/TauriTavern/releases/latest`
-- Canary：`GET /repos/Darkatse/TauriTavern/releases/tags/Canary` 与 `GET /repos/Darkatse/TauriTavern/commits/Canary`
+- Stable: `GET /repos/Darkatse/TauriTavern/releases/latest`
+- Canary: `GET /repos/Darkatse/TauriTavern/releases/tags/Canary` and
+  `GET /repos/Darkatse/TauriTavern/commits/Canary`
 
-Canary Release 必须是 prerelease；Stable latest 不能是 prerelease。返回给前端的 `release_token` 是机器去重键：Stable 使用 tag，Canary 使用 `sha12`。弹窗主要展示 Release name，因此 Canary 的时间格式由发布流水线统一产生。
+A Canary Release must be a prerelease, and the Stable latest must not be one. The `release_token`
+returned to the frontend is the machine deduplication key: the tag for Stable, `sha12` for Canary. The
+popup mainly shows the Release name, so the release pipeline generates Canary's date format
+consistently.
 
-## Canary 发布链路
+## Canary release pipeline
 
-Windows 与 macOS 的 Stable、Canary debug 包均启用 Tauri Pilot；常规 release 构建默认不启用。
+The Stable and Canary debug builds on Windows and macOS both enable Tauri Pilot; regular release builds
+leave it off by default.
 
-`.github/workflows/canary-release.yml` 从 `dev` 的同一提交构建桌面端与移动端，必需产物校验通过后才更新固定的 `Canary` Release 和 tag。实验性的鸿蒙 HAP 在 Stable 与 Canary 中都是可选产物：鸿蒙构建失败时照常发布其他平台，只缺少该 HAP，失败体现在本次运行的鸿蒙 job 上。Stable 与 Canary 共用面向用户的产物命名契约：
+`.github/workflows/canary-release.yml` builds the desktop and mobile targets from the same commit on
+`dev`, and updates the fixed `Canary` Release and tag only after the required artifacts have validated.
+The experimental HarmonyOS HAP is an optional artifact in both Stable and Canary: when the HarmonyOS
+build fails, the other platforms publish as usual and only that HAP is missing, with the failure shown
+on the HarmonyOS job of that run. Stable and Canary share one user-facing artifact naming contract:
 
 ```text
 TauriTavern-<release-id>-<platform>-<arch>[-<variant>][.<ext>]
 ```
 
-Stable 的 `release-id` 是版本号；Canary 使用 `<YYYYMMDD>-canary`，日期以 `Asia/Shanghai` 计算。平台统一使用 `windows`、`macos`、`linux`、`android`、`ios`、`ohos`，桌面架构统一使用 `x64` / `arm64`，Android 与鸿蒙使用标准 ABI 名称。扩展名已经能区分包格式时不重复添加 kind，只有 `setup`、`portable`、`TestFlight` 等必要变体保留后缀；Linux portable 是无扩展名的原生可执行文件。Release 标题使用 `Canary Release <YYYY.MM.DD>`。tag 最后移动到已发布提交，因此客户端不会先看到尚未完成的构建。
+Stable's `release-id` is the version number; Canary uses `<YYYYMMDD>-canary`, with the date computed in
+`Asia/Shanghai`. Platforms are always `windows`, `macos`, `linux`, `android`, `ios`, or `ohos`; desktop
+architectures are always `x64` / `arm64`; Android and HarmonyOS use the standard ABI names. The kind is
+not repeated when the extension already distinguishes the package format, so only necessary variants
+such as `setup`, `portable`, and `TestFlight` keep a suffix; a Linux portable build is a native
+executable with no extension. The Release title is `Canary Release <YYYY.MM.DD>`. The tag moves to the
+published commit last, so clients never see an unfinished build first.
 
-Release notes 先由 Git 历史生成确定性上下文和回退正文。独立的只读 Codex job 使用 `CANARY_CODEX_API_KEY`、`CANARY_CODEX_RESPONSES_ENDPOINT`、`CANARY_CODEX_MODEL` 与 `CANARY_CODEX_EFFORT` secrets 检查实际 diff，再通过项目专用 Skill 撰写中英双语正文。Skill 源文件保存在不会被本地 Codex 自动发现的 `.github/codex/skills/`，CI 只把它们复制到 runner 临时 `CODEX_HOME`。Codex 调用失败或输出不符合结构时直接使用确定性正文，不影响构建和发布。
+Release notes begin with a deterministic context and fallback body generated from Git history. A
+separate read-only Codex job inspects the actual diff using the `CANARY_CODEX_API_KEY`,
+`CANARY_CODEX_RESPONSES_ENDPOINT`, `CANARY_CODEX_MODEL`, and `CANARY_CODEX_EFFORT` secrets, then writes
+a bilingual Chinese/English body through a project-specific skill. The skill source files live in
+`.github/codex/skills/`, which local Codex does not discover automatically, and CI only copies them
+into the runner's temporary `CODEX_HOME`. When the Codex call fails or its output does not match the
+expected structure, the deterministic body is used directly, without affecting the build or the
+release.
 
 ## Public TestFlight
 
-Stable 与 Canary 原有的自签 iOS IPA 保持原构建参数和 Release 文件名。iOS job 在普通 IPA 完成后，复用已生成的前端资源额外构建 `ios_external_beta` + App Store Connect 版本，并以 `-TestFlight.ipa` 后缀作为独立产物。完整 GitHub Release 产物发布成功后，共享的 `.github/workflows/public-testflight.yml` 才上传并分发该专用 IPA；成功进入 TestFlight 流程后，再从 GitHub Release 删除临时的 `-TestFlight.ipa`，普通自签 IPA 始终保留。
+The existing self-signed iOS IPA for Stable and Canary keeps its original build parameters and Release
+file name. After the ordinary IPA completes, the iOS job reuses the frontend assets it already produced
+to build an additional `ios_external_beta` + App Store Connect copy, published as a separate artifact
+with the `-TestFlight.ipa` suffix. Only once the full GitHub Release assets publish successfully does
+the shared `.github/workflows/public-testflight.yml` upload and distribute that dedicated IPA; after it
+has entered the TestFlight flow successfully, the temporary `-TestFlight.ipa` is deleted from the
+GitHub Release, while the ordinary self-signed IPA is always kept.
 
-Stable 的专用 IPA 只进入 `TauriTavern Beta Test`，Canary 的专用 IPA 只进入 `TauriTavern Canary Test`；流水线会校验目标确实是当前 App 的公开外测组。每次 TestFlight 构建使用按时间单调变化的 `CFBundleVersion`，避免两个渠道共用营销版本时发生构建号冲突。
+The Stable dedicated IPA goes only to `TauriTavern Beta Test`, and the Canary one only to
+`TauriTavern Canary Test`; the pipeline verifies that the target really is a public external-testing
+group of the current app. Every TestFlight build uses a monotonically increasing `CFBundleVersion`, so
+the two channels can share a marketing version without a build-number collision.
 
-上传前，隔离且只读的 Codex job 检查实际提交范围与 `ios_external_beta` capability 边界，只生成公开包中可见、值得测试的英文 `What to Test` 内容。AI 不参与构建、版本、分组或审核决策；调用失败或正文非法时使用确定性的通用测试提示，因此 AI 不会阻塞上传。IPA 上传前先按 App、营销版本与构建号检查 App Store Connect；重跑遇到已上传的同一构建时跳过重复上传。随后由确定性脚本等待 Apple 完成处理、写入 `en-US` build localization、开启自动通知、关联唯一目标组，并在需要时提交 Beta App Review。Apple 审核是异步外部状态：提交被接受即结束 CI，不等待审核通过。
+Before upload, an isolated read-only Codex job checks the actual commit range and the
+`ios_external_beta` capability boundary, and produces only English `What to Test` copy that is visible
+in the public build and worth testing. AI takes no part in build, version, group, or review decisions;
+when the call fails or the copy is invalid, a deterministic generic testing hint is used, so AI never
+blocks the upload. Before the IPA uploads, App Store Connect is checked by app, marketing version, and
+build number; a rerun that encounters the same build already uploaded skips the duplicate. A
+deterministic script then waits for Apple to finish processing, writes the `en-US` build localization,
+enables automatic notifications, associates the single target group, and submits for Beta App Review
+when needed. Apple's review is asynchronous external state: the run ends as soon as the submission is
+accepted, without waiting for approval.
 
-## 维护约束
+## Maintenance constraints
 
-1. 不要用显示时间判断更新；时间只服务用户认知，提交 SHA 才是 Canary 身份。
-2. 不要让桌面与移动端各自推进 Canary tag；一个 Release 必须对应一个源码提交。
-3. 不要让 AI 决定版本、产物、发布条件或 tag；AI 只能改写已经生成的事实。
-4. 修改渠道 DTO、settings 或 command 时，保持 Rust serde 名称与前端字符串 `stable` / `canary` 一致。
-5. Public TestFlight 始终使用 `ios_external_beta`；不要把 GitHub Release 的完整更新日志直接复制成 `What to Test`。
+1. Never judge an update by the displayed date; the date serves user recognition only, and the commit
+   SHA is the Canary identity.
+2. Never let desktop and mobile advance the Canary tag separately; one Release must correspond to one
+   source commit.
+3. Never let AI decide the version, the artifacts, the release conditions, or the tag; AI may only
+   rewrite facts that have already been produced.
+4. When changing the channel DTO, settings, or command, keep the Rust serde names matching the
+   frontend strings `stable` / `canary`.
+5. Public TestFlight always uses `ios_external_beta`; never copy the full GitHub Release changelog
+   straight into `What to Test`.

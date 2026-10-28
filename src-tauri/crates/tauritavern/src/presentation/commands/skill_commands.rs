@@ -6,8 +6,7 @@ use serde::Serialize;
 use tauri::State;
 
 use crate::app::AppState;
-use crate::presentation::commands::helpers::{ log_command, map_command_error,
-};
+use crate::presentation::commands::helpers::{log_command, map_command_error};
 use crate::presentation::errors::CommandError;
 use tt_domain::models::skill::{
     DEFAULT_SKILL_READ_FALLBACK_MAX_CHARS, SkillFileRef, SkillImportInput, SkillImportPreview,

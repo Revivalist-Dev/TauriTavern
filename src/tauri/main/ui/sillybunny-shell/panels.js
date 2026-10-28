@@ -65,7 +65,7 @@ function renderPanel(entry) {
         });
         entry.rendered = true;
     } catch (error) {
-        entry.body.replaceChildren(element('p', 'sb-panel-error', `面板加载失败：${error?.message ?? error}`));
+        entry.body.replaceChildren(element('p', 'sb-panel-error', `Failed to load panel: ${error?.message ?? error}`));
         console.error(`[sb-shell] Panel "${entry.panel.id}" failed to render:`, error);
     }
 }
@@ -92,8 +92,8 @@ function createDrawer(panel) {
     header.append(element('h2', 'sb-panel-heading', panel.label));
     const close = element('button', 'sb-icon-button sb-panel-close');
     close.type = 'button';
-    close.title = '关闭';
-    close.setAttribute('aria-label', '关闭');
+    close.title = 'Close';
+    close.setAttribute('aria-label', 'Close');
     close.append(element('i', 'fa-solid fa-xmark'));
     header.append(close);
 

@@ -8,8 +8,8 @@
     "src/tauri/main/routes/chat-routes.js": 500
   },
   "notes": [
-    "这些文件是宿主层的关键聚合点，不再允许继续增长。",
-    "如需新增能力，请优先新增小文件（<= 500 行）并通过组合方式接入；不要继续往这些文件堆逻辑。",
-    "当完成拆分重构后，可更新本基线以反映新的、更小的文件布局。"
+    "These files are key aggregation points in the host layer and must not grow any further.",
+    "To add a capability, prefer a new, small file (<= 500 lines) wired in by composition; do not keep piling logic into these files.",
+    "Once a split has been completed, this baseline may be updated to reflect the new, smaller file layout."
   ]
 }

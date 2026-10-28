@@ -1,129 +1,129 @@
-# 角色身份契约现状
+# Character identity contract (current state)
 
-本文档记录 TauriTavern 当前已经落地的角色身份契约，重点覆盖角色头像文件名、聊天目录、旧错误目录兼容、世界书绑定，以及后续开发时不能误改的边界。
+This document records the character identity contract TauriTavern has already landed, covering avatar filenames, chat directories, compatibility with legacy directories created incorrectly, lorebook binding, and the boundaries later development must not break by accident.
 
-目标读者：后续继续修改角色导入、编辑、聊天保存、聊天导出、Agent profile/skill 导入链路的开发者。
+Audience: developers who will keep working on character import, editing, chat saving, chat export, and the Agent profile/skill import chain.
 
 ---
 
-## 1. 范围与结论
+## 1. Scope and conclusions
 
-TauriTavern 前端来源于 SillyTavern。角色相关接口必须遵循上游契约：
+The TauriTavern frontend comes from SillyTavern. Character-related interfaces must follow the upstream contract:
 
-> `/api/characters/get` 返回和前端传回的 `avatar_url` 是一个精确的头像文件名，不是 URL，不是路径，也不是可被解析的资源地址。
+> The `avatar_url` returned by `/api/characters/get` and passed back by the frontend is an exact avatar filename — not a URL, not a path, and not a resource address that can be parsed.
 
-例如：
+For example:
 
-- 合法身份值：`Alice#1.png`
-- 对应 Rust 内部 character stem：`Alice#1`
-- 对应 canonical chat directory key：`Alice#1`
+- A valid identity value: `Alice#1.png`
+- The corresponding Rust-internal character stem: `Alice#1`
+- The corresponding canonical chat directory key: `Alice#1`
 
-因此任何角色身份链路都不能再对 `avatar_url` 做以下处理：
+No character identity chain may therefore apply any of the following to `avatar_url`:
 
 - `trim`
 - `decodeURIComponent` / percent decode
-- 去掉 `?query` 或 `#hash`
-- 按 `/` 或 `\` 取 basename
-- 把它当成 `/thumbnail?file=...` 一类资源 URL
+- stripping `?query` or `#hash`
+- taking the basename by `/` or `\`
+- treating it as a resource URL such as `/thumbnail?file=...`
 
-这些变换只允许出现在后端 legacy resolver 内部，用来寻找历史版本已经错误创建的聊天目录。
+These transformations are allowed only inside the backend legacy resolver, where they serve to find chat directories that earlier versions created incorrectly.
 
 ---
 
-## 2. 前端/API 边界
+## 2. Frontend/API boundary
 
-JS 侧的边界规则：
+Boundary rules on the JS side:
 
-- `avatar_url` 表示 exact avatar filename。
-- 当前只接受 `.png` 角色卡文件名。
-- 文件名不能包含路径分隔符、查询/片段语义、控制字符或平台非法字符。
-- 从 `avatar_url` 得到 character stem 时，只移除最后一个 `.png` 扩展名。
+- `avatar_url` means the exact avatar filename.
+- Only `.png` character card filenames are accepted for now.
+- A filename must not contain path separators, query/fragment semantics, control characters, or characters the platform forbids.
+- Deriving the character stem from `avatar_url` removes only the trailing `.png` extension.
 
-核心实现位置：
+Core implementation:
 
 - `src/tauri/main/services/characters/character-identity.js`
 
-持续开发约束：
+Constraints for continued development:
 
-- 路由、service、adapter、Agent 导入链路都应共用该身份模块。
-- 不要在调用点重新写一套“宽松解析”。
-- 如果调用方拿到的是资源 URL，应先回到产生该 URL 的业务上下文，不能把 URL 传进角色身份模块。
+- Routes, services, adapters, and the Agent import chain should all share that identity module.
+- Do not write a second, "lenient parser" at a call site.
+- If a caller is holding a resource URL, it should first go back to the business context that produced that URL; a URL must not be passed into the character identity module.
 
 ---
 
-## 3. Rust 内部 key
+## 3. Rust internal keys
 
-Rust chat repository 当前接收的是 character stem，而不是 avatar filename。
+The Rust chat repository currently receives the character stem, not the avatar filename.
 
-也就是说：
+That is:
 
-- JS/API 边界：`Alice#1.png`
-- Rust chat repository 参数：`Alice#1`
-- 磁盘 canonical chat directory：`default-user/chats/Alice#1/`
+- JS/API boundary: `Alice#1.png`
+- Rust chat repository argument: `Alice#1`
+- Canonical chat directory on disk: `default-user/chats/Alice#1/`
 
-核心实现位置：
+Core implementation:
 
 - `src-tauri/crates/tt-adapter-storage-core/src/chat_directory_identity.rs`
 - `src-tauri/crates/tt-adapter-storage-core/src/repositories/file_chat_repository/chat_dir_resolver.rs`
 - `src-tauri/crates/tt-adapter-storage-userdata/src/repositories/file_character_repository/helpers.rs`
 
-持续开发约束：
+Constraints for continued development:
 
-- Rust resolver 的输入名虽然叫 `character_name`，实际语义是内部 stem/key。
-- Rust resolver 不负责解析 avatar filename，也不负责解析 URL/path。
-- Rust resolver 内部的 legacy candidate 生成，只是为了读取旧错误目录，不是新身份规则。
-
----
-
-## 4. 聊天目录解析
-
-当前角色聊天目录解析顺序：
-
-1. 计算 canonical key。
-2. 如果 alias store 已经记录该 key 的 legacy directory，并且目录仍存在，优先使用 alias。
-3. 如果 canonical directory 已存在，使用 canonical directory。
-4. 如果 canonical 不存在，尝试 safe legacy discovery。
-5. 如果没有 legacy 命中，返回 canonical directory。
-
-alias 优先于 canonical 是有意设计：
-
-- 一旦系统确认 `Alice#1 -> Alice` 是旧错误目录，后续读写要继续落到同一个物理目录。
-- 这样可以避免 canonical directory 后来出现时把历史聊天分裂成两份。
+- The Rust resolver's input is named `character_name`, but its meaning is the internal stem/key.
+- The Rust resolver does not parse avatar filenames, and does not parse URLs or paths.
+- Legacy candidate generation inside the Rust resolver exists only to read old, incorrect directories; it is not a new identity rule.
 
 ---
 
-## 5. Legacy Discovery
+## 4. Chat directory resolution
 
-legacy discovery 只服务于历史兼容。
+The current resolution order for a character's chat directory is:
 
-它复现的是旧错误 normalizer 可能造成的目录名：
+1. Compute the canonical key.
+2. If the alias store already records a legacy directory for that key and the directory still exists, use the alias first.
+3. If the canonical directory exists, use the canonical directory.
+4. If the canonical directory does not exist, attempt safe legacy discovery.
+5. If no legacy hit is found, return the canonical directory.
+
+An alias taking precedence over the canonical directory is deliberate:
+
+- Once the system has established that `Alice#1 -> Alice` is an old, incorrect directory, later reads and writes must keep landing in the same physical directory.
+- That prevents the canonical directory, should it appear later, from splitting the chat history into two copies.
+
+---
+
+## 5. Legacy discovery
+
+Legacy discovery exists only for historical compatibility.
+
+It reproduces the directory names the old, incorrect normalizer could produce:
 
 - `trim`
-- 去掉 `?` 或 `#` 后的内容
-- percent decode 后再去 query/hash
-- percent decode 后再取 basename
+- stripping the content after `?` or `#`
+- percent decode, then strip query/hash
+- percent decode, then take the basename
 
-命中条件：
+Hit conditions:
 
-- candidate directory 必须存在。
-- candidate directory 至少包含一个 `.jsonl` 聊天文件。
-- candidate 不能等于 canonical。
-- 如果 `characters/<candidate>.png` 存在，则认为该目录属于另一个真实角色，不能抢占。
-- 多个 legacy candidate 同时命中时 fail-fast，返回错误，不猜测。
+- The candidate directory must exist.
+- The candidate directory must contain at least one `.jsonl` chat file.
+- The candidate must not equal the canonical directory.
+- If `characters/<candidate>.png` exists, the directory is taken to belong to another real character and must not be claimed.
+- When several legacy candidates hit at once, fail fast and return an error rather than guessing.
 
-这条规则避免了升级时全量扫描和批量迁移：只有用户实际访问相关角色时才做一次小范围解析。
+This rule avoids a full scan and a bulk migration at upgrade time: a small, scoped resolution happens only when the user actually touches the character in question.
 
 ---
 
-## 6. Alias Store
+## 6. Alias store
 
-alias 文件位置：
+Alias file location:
 
 - `default-user/user/cache/chat_aliases_v1.json`
 
-alias key 是 Rust 内部 character stem，不是 avatar filename。
+The alias key is the Rust-internal character stem, not the avatar filename.
 
-示例：
+Example:
 
 ```json
 {
@@ -138,84 +138,84 @@ alias key 是 Rust 内部 character stem，不是 avatar filename。
 }
 ```
 
-当前生产 bootstrap 会把同一个 shared alias store 注入 character repository 和 chat repository：
+The current production bootstrap injects the same shared alias store into both the character repository and the chat repository:
 
 - `FileCharacterRepository::with_chat_repository(...)`
 - `FileChatRepository::with_chat_aliases(...)`
 
-这样两个 repository 不再各自持有独立 alias cache，避免并发懒发现时互相覆盖 alias 文件。
+The two repositories therefore no longer each hold a separate alias cache, which prevents concurrent lazy discovery from overwriting the alias file.
 
-生产 bootstrap 会显式创建 shared alias store 和 shared `FileChatRepository`，再通过 `with_chat_repository(...)` 注入给 character repository。`new(...)` 只是 isolated/single-repository 便捷构造；当同一运行时同时创建 character/chat repositories 时，必须共享同一个 `FileChatRepository`。
-
----
-
-## 7. Rename / Delete 当前语义
-
-角色 rename：
-
-- 新身份使用新 canonical key。
-- 如果旧聊天目录通过 canonical/alias/legacy resolver 找到，并且新 canonical 目录不存在，则尝试把旧目录 rename 到新 canonical 目录。
-- 如果文件系统 rename 失败，错误直接暴露。
-
-角色 delete：
-
-- 删除角色卡。
-- 当 `delete_chats=true` 时，通过 resolver 找到当前身份对应的物理聊天目录并删除。
-- 这包括已经确认的 alias 目录，也包括 safe legacy discovery 找到的历史错误目录。
-- 绑定的世界书按 [§10](#10-角色世界书) 处理。
-
-这意味着 delete 语义偏向用户意图：“删除这个角色及其聊天”，而不是只删除 canonical directory。
+Production bootstrap explicitly creates the shared alias store and the shared `FileChatRepository`, then injects the latter into the character repository through `with_chat_repository(...)`. `new(...)` is only a convenience constructor for an isolated, single-repository setup; when one runtime creates both character and chat repositories, they must share the same `FileChatRepository`.
 
 ---
 
-## 8. 不支持的行为
+## 7. Current rename / delete semantics
 
-当前不做启动期全量迁移：
+Character rename:
 
-- 不扫描全部 `characters/` 和 `chats/`。
-- 不在升级时批量 rename 目录。
-- 不自动合并多个可能相关的聊天目录。
-- 不在 ambiguous legacy 情况下静默选择一个目录。
+- The new identity uses the new canonical key.
+- If the old chat directory is found through the canonical/alias/legacy resolver and the new canonical directory does not exist, the old directory is renamed to the new canonical directory.
+- If a filesystem rename fails, the error surfaces directly.
 
-如需批量清理或显式迁移，应单独实现维护工具，并展示冲突项让用户确认。
+Character delete:
+
+- Delete the character card.
+- When `delete_chats=true`, resolve the physical chat directory for the current identity and delete it.
+- That includes confirmed alias directories and historical, incorrect directories found by safe legacy discovery.
+- The bound lorebook is handled per [§10](#10-character-lorebook).
+
+Delete semantics therefore lean toward user intent — "delete this character and its chats" — rather than deleting only the canonical directory.
 
 ---
 
-## 9. 最容易误改的契约
+## 8. Behavior that is not supported
 
-后续开发时尤其不要做这些事：
+There is no full migration at startup:
 
-1. 把 `avatar_url` 当成 URL/path 解析。
-2. 在路由或 service 里临时写 `trim/decode/basename`。
-3. 在 Rust resolver 里把 legacy candidate 当作新规则。
-4. 让 character repository 和 chat repository 在生产路径各自创建 alias store。
-5. 升级时递归扫描并重命名大量聊天目录。
-6. ambiguous legacy 时静默降级到某个目录。
+- No scanning of every `characters/` and `chats/` entry.
+- No bulk directory renames on upgrade.
+- No automatic merging of several possibly related chat directories.
+- No silently picking one directory when legacy hits are ambiguous.
 
-正确方向是：
+If a bulk cleanup or an explicit migration is needed, it should be a separate maintenance tool that lists the conflicts for the user to confirm.
 
-- 新数据严格使用 exact avatar filename -> stem -> canonical directory。
-- 旧错误目录只通过 alias/lazy resolver 兼容。
-- 发现歧义时 fail-fast。
+---
 
-## 10. 角色世界书
+## 9. The contracts easiest to break by accident
 
-角色使用 `data.extensions.world` 绑定的那本世界书。卡内的 `character_book` 只是它的副本，在保存和导出时刷新；两者不一致是正常的，不算冲突。
+Later development especially should not do any of these:
 
-接管内嵌书：
+1. Parse `avatar_url` as a URL or path.
+2. Write ad-hoc `trim/decode/basename` handling in a route or service.
+3. Treat a legacy candidate as a new rule inside the Rust resolver.
+4. Let the character repository and the chat repository each create their own alias store on the production path.
+5. Recursively scan and rename large numbers of chat directories on upgrade.
+6. Fall back silently to some directory when legacy hits are ambiguous.
 
-- 只在卡片到达时处理：导入、替换、“导入角色卡的世界书”。规则在 `CharacterService::adopt_embedded_lorebook`，前端的询问和刷新在 `world-info.js` 的 `completeCharacterLorebookAdoption`。
-- 绑定只在接管或用户手动链接时改变。替换时先写回原绑定，再接管；原来没有绑定或旧卡读不出时，写回空绑定。
-- 新书以 `character_book.name` 命名，没有名字时用 `<角色名>'s Lorebook`。名字被占用时依次用 `名字 (1)`、`名字 (2)`……，遇到条目完全相同的书就直接复用。
-- 按角色当前在用的书处理。“本地版本”指名字是新书原名或其编号副本的那本书。
-  - 内容相同，且是本地版本：不改动。
-  - 内容不同：询问一次；“更新当前”只对本地版本提供。
-  - 其余情况：链接分配到的书，必要时新建。
+The right direction is:
 
-删除角色：
+- New data strictly follows exact avatar filename -> stem -> canonical directory.
+- Old, incorrect directories are supported only through the alias/lazy resolver.
+- Ambiguity fails fast.
 
-- 后端只删角色，不删世界书。
-- 前端 `deleteCharacter` 只删除没有其他使用者的绑定世界书。
-  - 使用者包括其他角色的绑定和附加世界书、全局启用的世界书、Persona 的世界书。
-  - 删除失败的角色仍算使用者。判断在刷新列表之前完成。
-- 不检查聊天级世界书，也不检查读不出的角色卡。
+## 10. Character lorebook
+
+A character uses the book bound in `data.extensions.world`. The `character_book` inside the card is only a copy of it, refreshed on save and export; the two disagreeing is normal and is not a conflict.
+
+Adopting an embedded book:
+
+- This happens only when a card arrives: import, replace, and "import the character card's lorebook". The rules live in `CharacterService::adopt_embedded_lorebook`; the frontend prompt and refresh live in `completeCharacterLorebookAdoption` in `world-info.js`.
+- The binding changes only on adoption or when the user links a book manually. On replace, the original binding is written back before adoption; if there was no binding, or the old card cannot be read, an empty binding is written back.
+- The new book is named after `character_book.name`, or `<character name>'s Lorebook` when it has no name. If the name is taken, `name (1)`, `name (2)`… are tried in turn, and a book whose entries are identical is reused directly.
+- The character's currently active book is what gets handled. A "local version" is the book whose name is either the new book's original name or a numbered copy of it.
+  - Same content and a local version: leave it alone.
+  - Different content: ask once; "update current" is offered only for local versions.
+  - Anything else: link the assigned book, creating one when needed.
+
+Deleting a character:
+
+- The backend deletes the character only, not the lorebook.
+- The frontend `deleteCharacter` deletes only bound lorebooks that have no other users.
+  - Users include other characters' bound and additional lorebooks, globally enabled lorebooks, and Persona lorebooks.
+  - A character whose deletion failed still counts as a user. This is decided before the list is refreshed.
+- Chat-level lorebooks are not checked, and neither are character cards that cannot be read.

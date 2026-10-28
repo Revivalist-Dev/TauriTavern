@@ -392,11 +392,11 @@ mod tests {
     fn google_translation_parser_collects_segments() {
         let json = serde_json::json!([
             [
-                ["Hello ", "你好", null, null, 1],
-                ["world", "世界", null, null, 1]
+                ["Hello ", "Bonjour ", null, null, 1],
+                ["world", "monde", null, null, 1]
             ],
             null,
-            "zh-CN"
+            "fr"
         ]);
 
         let translated = parse_google_translation(json).unwrap();

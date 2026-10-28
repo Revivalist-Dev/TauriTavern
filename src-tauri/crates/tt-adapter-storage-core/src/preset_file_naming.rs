@@ -257,8 +257,8 @@ mod tests {
     #[test]
     fn canonical_stem_matches_upstream_unicode_behavior() {
         assert_eq!(
-            canonical_preset_file_stem("【明月青秋】").expect("valid stem"),
-            "【明月青秋】"
+            canonical_preset_file_stem("«Étoile»").expect("valid stem"),
+            "«Étoile»"
         );
         assert_eq!(
             canonical_preset_file_stem("name/with\\unsafe:chars").expect("valid stem"),
@@ -273,8 +273,8 @@ mod tests {
             " testname.png"
         );
         assert_eq!(
-            canonical_preset_file_stem("emoji😀【名】").expect("valid stem"),
-            "emoji😀【名】"
+            canonical_preset_file_stem("emoji😀«é»").expect("valid stem"),
+            "emoji😀«é»"
         );
     }
 
@@ -288,17 +288,17 @@ mod tests {
     #[test]
     fn legacy_stem_keeps_buggy_underscore_behavior() {
         #[allow(deprecated)]
-        let legacy = legacy_preset_file_stem("【明月青秋】");
-        assert_eq!(legacy, "_明月青秋_");
+        let legacy = legacy_preset_file_stem("«Étoile»");
+        assert_eq!(legacy, "_Étoile_");
     }
 
     #[tokio::test]
     async fn prepare_for_save_migrates_deprecated_legacy_path() {
         let dir = TestDir::new();
-        let paths = PresetFilePaths::new("【明月青秋】", dir.path(), ".json").expect("paths");
+        let paths = PresetFilePaths::new("«Étoile»", dir.path(), ".json").expect("paths");
         #[allow(deprecated)]
         let legacy = paths.legacy_path().to_path_buf();
-        tokio::fs::write(&legacy, r#"{"name":"【明月青秋】"}"#)
+        tokio::fs::write(&legacy, r#"{"name":"«Étoile»"}"#)
             .await
             .expect("write legacy file");
 
@@ -312,13 +312,13 @@ mod tests {
     #[tokio::test]
     async fn prepare_for_save_rejects_conflicting_canonical_and_deprecated_legacy_paths() {
         let dir = TestDir::new();
-        let paths = PresetFilePaths::new("【明月青秋】", dir.path(), ".json").expect("paths");
+        let paths = PresetFilePaths::new("«Étoile»", dir.path(), ".json").expect("paths");
         #[allow(deprecated)]
         let legacy = paths.legacy_path().to_path_buf();
-        tokio::fs::write(paths.canonical_path(), r#"{"name":"【明月青秋】"}"#)
+        tokio::fs::write(paths.canonical_path(), r#"{"name":"«Étoile»"}"#)
             .await
             .expect("write canonical file");
-        tokio::fs::write(&legacy, r#"{"name":"【明月青秋】"}"#)
+        tokio::fs::write(&legacy, r#"{"name":"«Étoile»"}"#)
             .await
             .expect("write legacy file");
 
@@ -334,14 +334,14 @@ mod tests {
     async fn load_named_preset_files_prefers_canonical_over_deprecated_legacy() {
         let dir = TestDir::new();
         tokio::fs::write(
-            dir.path().join("_明月青秋_.json"),
-            r#"{"name":"【明月青秋】","temperature":0.1}"#,
+            dir.path().join("_Étoile_.json"),
+            r#"{"name":"«Étoile»","temperature":0.1}"#,
         )
         .await
         .expect("write legacy preset");
         tokio::fs::write(
-            dir.path().join("【明月青秋】.json"),
-            r#"{"name":"【明月青秋】","temperature":0.9}"#,
+            dir.path().join("«Étoile».json"),
+            r#"{"name":"«Étoile»","temperature":0.9}"#,
         )
         .await
         .expect("write canonical preset");
@@ -351,9 +351,9 @@ mod tests {
             .expect("load preset files");
 
         assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].name, "【明月青秋】");
+        assert_eq!(entries[0].name, "«Étoile»");
         assert!(entries[0].is_canonical);
-        assert_eq!(entries[0].path, dir.path().join("【明月青秋】.json"));
+        assert_eq!(entries[0].path, dir.path().join("«Étoile».json"));
     }
 
     #[tokio::test]

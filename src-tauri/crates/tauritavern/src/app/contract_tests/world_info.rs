@@ -10,9 +10,9 @@ async fn world_info_document_replacement_preserves_text_and_rejects_invalid_upda
         Arc::default(),
         4 * 1024 * 1024,
     )));
-    let json = r#"{ "z":9007199254740993,"entries":{},"originalData":{"b":"你好 👋","a":1,"opaque":"\ud800"} }"#;
+    let json = r#"{ "z":9007199254740993,"entries":{},"originalData":{"b":"café 👋","a":1,"opaque":"\ud800"} }"#;
     let request = format!(
-        r#"{{"name":false,"data":null,"extra":{{"data":"unrelated }}"}},"data": {json}, "name":" 世界 "}}"#
+        r#"{{"name":false,"data":null,"extra":{{"data":"unrelated }}"}},"data": {json}, "name":" café "}}"#
     );
     let session = service.begin_commit().await.unwrap();
     let mut offset = 0;
@@ -27,12 +27,12 @@ async fn world_info_document_replacement_preserves_text_and_rejects_invalid_upda
         .await
         .unwrap();
     assert_eq!(
-        service.get_world_info(" 世界 ").await.unwrap().bytes,
+        service.get_world_info(" café ").await.unwrap().bytes,
         json.as_bytes()
     );
 
     // A complete body must not be published if the enclosing request is malformed.
-    let invalid = r#"{"name":" 世界 ","data":{"entries":{}},}"#.as_bytes();
+    let invalid = r#"{"name":" café ","data":{"entries":{}},}"#.as_bytes();
     let session = service.begin_commit().await.unwrap();
     let size = service
         .append_commit(&session.session_id, 0, invalid)
@@ -45,7 +45,7 @@ async fn world_info_document_replacement_preserves_text_and_rejects_invalid_upda
             .is_err()
     );
     assert_eq!(
-        fs::read(user.join("worlds/ 世界 .json")).await.unwrap(),
+        fs::read(user.join("worlds/ café .json")).await.unwrap(),
         json.as_bytes()
     );
     assert_eq!(

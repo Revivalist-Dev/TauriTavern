@@ -2,49 +2,48 @@
 
 <img src="docs/images/tauritavern-readme-hero.webp" alt="TauriTavern" width="720">
 
-
 # TauriTavern
 
-**SillyTavern 的 Windows 原生应用 —— 安装即用**
+**SillyTavern, as a native Windows app — ready out of the box**
 
-**简体中文** · [English](README.en.md) · [日本語](README.ja.md) · [Русский](README.ru.md) · [Português (Brasil)](README.pt-BR.md)
+> **Fork note:** this branch builds Windows 10/11 x64 only. macOS, Linux, Android, iOS, HarmonyOS, Flatpak and TestFlight instructions from upstream do not apply and are not part of this repository. Text-to-speech is removed from this fork and is not a supported feature.
 
-[下载](https://tauritavern.github.io/downloads/) · [文档](https://tauritavern.github.io/) · [Releases](https://github.com/Darkatse/TauriTavern/releases) · [Issues](https://github.com/Darkatse/TauriTavern/issues)
+[Downloads](https://tauritavern.github.io/en/downloads/) · [Docs](https://tauritavern.github.io/en/) · [Releases](https://github.com/Darkatse/TauriTavern/releases) · [Issues](https://github.com/Darkatse/TauriTavern/issues)
 
 [![Release](https://img.shields.io/github/v/release/Darkatse/TauriTavern?style=flat-square&color=1f9d96)](https://github.com/Darkatse/TauriTavern/releases/latest)
 [![License](https://img.shields.io/github/license/Darkatse/TauriTavern?style=flat-square)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/Darkatse/TauriTavern?style=flat-square&labelColor=black&color=ffcb47)](https://github.com/Darkatse/TauriTavern/stargazers)
-[![Platforms](https://img.shields.io/badge/platforms-Windows%2010%2F11%20x64-1f9d96?style=flat-square)](https://tauritavern.github.io/downloads/)
+[![Platforms](https://img.shields.io/badge/platforms-Windows%2010%2F11%20x64-1f9d96?style=flat-square)](https://github.com/Darkatse/TauriTavern/releases/latest)
 <br/>
-[![Telegram](https://img.shields.io/badge/Telegram-%E7%BE%A4%E7%BB%84-26A5E4?style=flat-square&logo=telegram&logoColor=white)](https://t.me/TauriTavern)
-[![Discord](https://img.shields.io/badge/Discord-%E7%A4%BE%E5%8C%BA-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.gg/hn57aFGe8h)
+[![Telegram](https://img.shields.io/badge/Telegram-Group-26A5E4?style=flat-square&logo=telegram&logoColor=white)](https://t.me/TauriTavern)
+[![Discord](https://img.shields.io/badge/Discord-Community-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.gg/hn57aFGe8h)
 [![Issues](https://img.shields.io/github/issues/Darkatse/TauriTavern?style=flat-square&logo=github)](https://github.com/Darkatse/TauriTavern/issues)
 [![Canary](https://img.shields.io/github/actions/workflow/status/Darkatse/TauriTavern/canary-release.yml?style=flat-square&logo=githubactions&label=canary)](https://github.com/Darkatse/TauriTavern/actions/workflows/canary-release.yml)
 
 </div>
 
-<p align="center"><sub>感谢 <a href="https://github.com/shiyue137">@shiyue137</a> 为 TauriTavern 设计 Logo 💛</sub></p>
+<p align="center"><sub>Thanks to <a href="https://github.com/shiyue137">@shiyue137</a> for designing the TauriTavern logo 💛</sub></p>
 
-## 下载
+## Download
 
 <div align="center">
 
-[![⬇ 下载 TauriTavern](https://img.shields.io/badge/%E2%AC%87_%E4%B8%8B%E8%BD%BD-TauriTavern-1f9d96?style=for-the-badge)](https://tauritavern.github.io/downloads/)
+[![⬇ Download TauriTavern](https://img.shields.io/badge/%E2%AC%87_Download-TauriTavern-1f9d96?style=for-the-badge)](https://tauritavern.github.io/en/downloads/)
 
-**Windows 10/11 x64 · 一键获取最新稳定版**
+**Windows 10/11 x64 · one click to the latest stable build**
 
-[![Windows](https://custom-icon-badges.demolab.com/badge/Windows-0078D6?logo=windows11&logoColor=white&style=flat-square)](https://tauritavern.github.io/downloads/platforms/)
+[![Windows](https://custom-icon-badges.demolab.com/badge/Windows-0078D6?logo=windows11&logoColor=white&style=flat-square)](https://tauritavern.github.io/en/downloads/platforms/)
 
 [GitHub Releases](https://github.com/Darkatse/TauriTavern/releases)
 
 </div>
 
 <details>
-<summary><b>📦 使用包管理器安装</b></summary>
+<summary><b>📦 Install with a package manager</b> (Windows)</summary>
 
 ### Windows · WinGet
 
-在 PowerShell 中运行：
+Run in PowerShell:
 
 ```powershell
 winget install --id TauriTavern.TauriTavern
@@ -52,7 +51,7 @@ winget install --id TauriTavern.TauriTavern
 
 ### Windows · Scoop
 
-在 PowerShell 中运行：
+Run in PowerShell:
 
 ```powershell
 scoop bucket add Darkatse https://github.com/Darkatse/Scoop-Darkatse.git
@@ -63,56 +62,52 @@ scoop install Darkatse/TauriTavern
 
 ### Canary
 
-Canary 版本每天更新，包含最新功能和修复，但稳定性可能不如稳定版。如果你希望体验最新版本，或在稳定版中遇到问题，可以先尝试 Canary，确认问题是否已经修复。
+Canary receives daily updates with new features and fixes, but may be less reliable than Stable. If you want to try the latest build or are having an issue with Stable, check whether Canary already includes a fix.
 
-Windows 版本可从 [Canary Release](https://github.com/Darkatse/TauriTavern/releases/tag/Canary) 下载。
+Windows builds are available from the [Canary Release](https://github.com/Darkatse/TauriTavern/releases/tag/Canary).
 
 > [!TIP]
-> **系统要求**：Windows 10 或 Windows 11 x64，需系统已安装 WebView2 运行时（Windows 11 默认自带）。
->
-> **Windows 便携版**（Portable）：不需安装，同样需要 WebView2 运行时。
+> **Windows portable**: requires the WebView2 runtime on the system.
 
-## 这是什么
+## What is TauriTavern
 
-TauriTavern 把 [SillyTavern](https://github.com/SillyTavern/SillyTavern) 移植为真正的 Windows 原生应用：前端完整保留上游体验（已同步 1.19.0），后端从 Node.js 重构为 Rust（Tauri v2）。
+TauriTavern ports [SillyTavern](https://github.com/SillyTavern/SillyTavern) into a true native Windows app: the frontend keeps the full upstream experience (synced to 1.19.0), while the backend is rebuilt from Node.js into Rust (Tauri v2).
 
-不需要安装 Node.js，不需要命令行，安装即用。你的角色卡、聊天记录、预设、世界书与前端扩展，全部兼容。
+No Node.js to install, no command line — just download and run. Your character cards, chats, presets, world info, and frontend extensions all stay compatible with SillyTavern.
 
-> 注：TauriTavern 是独立维护的开源项目，并非 SillyTavern 官方客户端。TauriTavern 完全免费且开源，遵循 AGPL-3.0 许可协议。请在使用前仔细阅读许可条款。
->
-> 本分支为 Windows-only 发行版：仅构建 Windows x64（NSIS/MSI）安装包与便携包，不再提供 macOS、Linux、Android、iOS 或鸿蒙构建。
+> Note: TauriTavern is an independently maintained open-source project, not an official SillyTavern client. TauriTavern is free and open source under the AGPL-3.0 license. Please review the license terms before use.
 
-## 特性亮点
+## Highlights
 
-- 🪟 **Windows 原生**：Windows 10/11 x64，NSIS/MSI 安装包与便携包，同一份桌面体验
-- 🎭 **完整 SillyTavern 体验**：前端同步上游 1.19.0，数据格式与目录布局完全兼容
-- 🧩 **前端扩展生态**：内置原生 Git，安装、更新、切换分支都在界面内完成（不支持上游 Node-only 后端插件）
-- 🔄 **内置多设备同步**：局域网加密配对同步，或经远端 TT-Sync v2 自动上传
-- 🤖 **Agent 框架**：工具调用、Skills、子代理与运行时间线，持续演进中
-- 📦 **一键迁移**：SillyTavern 数据导出脚本 + 应用内导入，平滑搬家
-- ⚡ **性能工程**：分阶段启动、聊天虚拟DOM加载，超长聊天记录依然流畅
-- 🔒 **数据自主**：数据完全保存在本地，支持便携模式
+- 🖥️ **Native Windows desktop app**: Windows 10/11 x64, packaged as a Tauri v2 application
+- 🎭 **Full SillyTavern experience**: frontend synced to upstream 1.19.0, with fully compatible data formats and directory layout
+- 🧩 **Frontend extension ecosystem**: built-in native Git — install, update, and switch branches right in the UI (Node-only backend plugins are not supported)
+- 🔄 **Built-in multi-device sync**: encrypted LAN pairing, or automatic upload via the remote TT-Sync v2
+- 🤖 **Agent framework**: tool calling, Skills, sub-agents, and a run timeline; development is ongoing
+- 📦 **One-click migration**: SillyTavern export scripts + in-app import for a smooth move
+- ⚡ **Performance engineering**: phased startup and chat DOM virtualization keep even very long chats smooth
+- 🔒 **Your data, yours**: everything stays on your device, with an optional portable mode
 
-## 截图
+## Screenshots
 
 <div align="center">
-<img src="docs/images/tauritavern-readme-hero.webp" alt="TauriTavern 界面" width="760">
+<img src="docs/images/tauritavern-multidevice-cutout.webp" alt="TauriTavern on Windows" width="760">
 </div>
 
-## 架构速览
+## Architecture at a Glance
 
-本项目 Rust 后端是遵循 Clean Architecture 的 Cargo workspace（`src-tauri/crates/`）：
+The Rust backend is a Clean Architecture Cargo workspace (`src-tauri/crates/`):
 
-- `tauritavern`：Tauri host、命令层与组合根
-- `tt-application` · `tt-ports` · `tt-domain` · `tt-contracts`：用例、端口、领域模型与跨 crate 契约
-- `tt-adapter-*`：存储、HTTP、媒体、同步、扩展、分词等具体实现
+- `tauritavern`: Tauri host, command layer, and composition root
+- `tt-application` · `tt-ports` · `tt-domain` · `tt-contracts`: use cases, ports, domain models, and cross-crate contracts
+- `tt-adapter-*`: concrete storage, HTTP, media, sync, extension, and tokenization implementations
 
-前端为上游 SillyTavern + 模块化 Tauri 注入层（`src/tauri/main/`），经 `window.__TAURITAVERN__` 平台 ABI 与 Rust 后端通信。详情请见 [docs/BackendStructure.md](docs/BackendStructure.md) 与 [docs/FrontendGuide.md](docs/FrontendGuide.md)。
+The frontend is upstream SillyTavern plus a modular Tauri injection layer (`src/tauri/main/`), talking to the Rust backend through the `window.__TAURITAVERN__` platform ABI. See [docs/BackendStructure.md](docs/BackendStructure.md) and [docs/FrontendGuide.md](docs/FrontendGuide.md) for details.
 
 <details>
-<summary><b>🛠 开发与构建</b>（前置要求 · 常用命令 · Tauri Pilot · 便携构建 · FasTools）</summary>
+<summary><b>🛠 Development</b> (prerequisites · common commands · Tauri Pilot · portable builds · FasTools)</summary>
 
-**前置要求**：Windows 10/11 x64 · Rust stable（支持 edition 2024）· Node.js 22.13+ · pnpm 11 · Tauri CLI · Visual Studio Build Tools（C++ 桌面开发）
+**Prerequisites**: Rust stable (edition 2024) · Node.js 22.13+ · pnpm 11 · Tauri CLI
 
 ```bash
 git clone https://github.com/Darkatse/TauriTavern.git
@@ -120,60 +115,60 @@ cd TauriTavern
 pnpm install
 ```
 
-**常用命令**：
+**Common commands**:
 
 ```bash
-pnpm run check         # 前端 guardrails/类型/契约 + Rust dev check
-pnpm run web:build     # 构建前端资源包（Rspack）
-pnpm run tauri:dev     # 桌面开发模式
-pnpm run tauri:build   # 构建 Windows 发行包（NSIS/MSI）
+pnpm run check         # frontend guardrails/types/contracts + Rust dev check
+pnpm run web:build     # build frontend bundles (Rspack)
+pnpm run tauri:dev     # desktop dev mode
+pnpm run tauri:build   # build desktop installers
 ```
 
-**Tauri Pilot（AI Agent 界面调试）**
+**Tauri Pilot (UI development with AI agents)**
 
-项目已接入 [Tauri Pilot](https://github.com/mpiton/tauri-pilot) 的开发专用插件与权限。它让 AI Agent 通过可访问性快照检查与操作 Windows WebView；普通开发与发行命令不会启用这项能力。
+The project already includes the development-only [Tauri Pilot](https://github.com/mpiton/tauri-pilot) plugin and capability. It lets an AI agent inspect and operate the WebView on desktop through accessibility snapshots. The standard development and release commands do not enable it.
 
 ```bash
-cargo install tauri-pilot-cli  # 仅首次需要
-pnpm run tauri:dev:pilot       # 桌面
+cargo install tauri-pilot-cli  # only needed once
+pnpm run tauri:dev:pilot       # desktop
 ```
 
-应用启动后，在另一终端按以下顺序操作：
+After the app starts, use another terminal for the basic workflow:
 
 ```bash
 tauri-pilot ping
 tauri-pilot snapshot -i
-tauri-pilot click @e3          # 使用当前 snapshot 返回的 ref
+tauri-pilot click @e3          # use a ref from the current snapshot
 tauri-pilot diff -i
 tauri-pilot logs --level error
 ```
 
-交互前先取得 snapshot，每次只执行一个操作；异步更新后使用 `wait`，并优先用 `assert` 验证结果。支持 MCP 的 Agent 可将 `tauri-pilot mcp` 注册为 stdio server。
+Take a snapshot before interacting and perform one action at a time. Use `wait` after asynchronous updates and prefer `assert` for verification. An MCP-capable agent can register `tauri-pilot mcp` as a stdio server.
 
-**便携版构建**：`pnpm run tauri:build:portable`（默认输出至 `release/`）；运行时可通过 `TAURITAVERN_RUNTIME_MODE=portable` 或 `portable.flag` 强制启用便携策略。
+**Portable builds**: `pnpm run tauri:build:portable` (outputs to `release/`); force portable runtime with `TAURITAVERN_RUNTIME_MODE=portable` or a `portable.flag` file.
 
-**FasTools**：超级好用的开发与部署调试工具箱，强烈推荐。`pnpm run fastools:build` 进行构建，`pnpm run fastools:run` 运行。
+**FasTools**: the recommended toolkit for development and deployment debugging. Build with `pnpm run fastools:build`, run with `pnpm run fastools:run`.
 
 </details>
 
-## 文档
+## Documentation
 
-- 📖 [在线文档站](https://tauritavern.github.io/)：中英双语，含指南、Agent、架构、API 与下载
-- [docs/FrontendGuide.md](docs/FrontendGuide.md)：前端架构与扩展指南
-- [docs/FrontendHostContract.md](docs/FrontendHostContract.md)：宿主层对外契约
-- [docs/BackendStructure.md](docs/BackendStructure.md)：后端 Clean Architecture 与 crate 边界
-- [docs/CurrentState/](docs/CurrentState/README.md)：已落地模块的实现状态
+- 📖 [Online docs](https://tauritavern.github.io/en/): guides covering usage, Agent, architecture, API, and downloads
+- [docs/FrontendGuide.md](docs/FrontendGuide.md): frontend architecture and extension guide
+- [docs/FrontendHostContract.md](docs/FrontendHostContract.md): public host-layer contract
+- [docs/BackendStructure.md](docs/BackendStructure.md): backend Clean Architecture and crate boundaries
+- [docs/CurrentState/](docs/CurrentState/README.md): implementation status of shipped modules
 
-## 贡献
+## Contributing
 
-欢迎 Issue 与 PR。提交前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。除紧急修复外，PR 请以 `dev` 为目标分支。
+Issues and PRs are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) first, target the `dev` branch unless it is an urgent fix.
 
-## 致谢与许可
+## Acknowledgements & License
 
-基于 [SillyTavern](https://github.com/SillyTavern/SillyTavern) 与 [Tauri](https://tauri.app/) 构建，并感谢 [Cocktail](https://github.com/Lianues/cocktail)、[Tavern-Helper](https://github.com/N0VI028/JS-Slash-Runner)、[LittleWhiteBox](https://github.com/RT15548/LittleWhiteBox)、[MikTik](https://github.com/Darkatse/MikTik)。
+Built on [SillyTavern](https://github.com/SillyTavern/SillyTavern) and [Tauri](https://tauri.app/), with thanks to [Cocktail](https://github.com/Lianues/cocktail), [Tavern-Helper](https://github.com/N0VI028/JS-Slash-Runner), [LittleWhiteBox](https://github.com/RT15548/LittleWhiteBox), [MikTik](https://github.com/Darkatse/MikTik), [@LX2000WASD](https://github.com/LX2000WASD) for maintaining the [TauriTavern AUR package](https://github.com/LX2000WASD/TauriTavern-aur), and [@LeenHawk](https://github.com/LeenHawk) for the HarmonyOS port.
 
-以 [AGPL-3.0](LICENSE) 许可发布（与 SillyTavern 同系列许可协议）。
+Released under [AGPL-3.0](LICENSE) (same license family as SillyTavern).
 
 [![Contributors](https://contrib.rocks/image?repo=Darkatse/TauriTavern)](https://github.com/Darkatse/TauriTavern/graphs/contributors)
 
-<p align="center"><sub><em>我们尽力用爱打造 ❤️ —— TauriTavern 团队</em></sub></p>
+<p align="center"><sub><em>Made with love and care ❤️ — The TauriTavern Team</em></sub></p>

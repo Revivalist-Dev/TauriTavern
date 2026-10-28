@@ -10,7 +10,7 @@ import { createInvokeService } from '../src/tauri/main/services/invokes/invoke-s
 test.beforeEach(t => t.after(installHostIdentity()));
 
 test('world info routes carry JSON text unchanged in both directions', async () => {
-    const document = '{ "z":9007199254740993,"entries":{},"originalData":{"b":"你好 👋","a":1} }';
+    const document = '{ "z":9007199254740993,"entries":{},"originalData":{"b":"Héllo 👋","a":1} }';
     const request = `{"name":" Lore ","data":${document}}`;
     const encoder = new TextEncoder();
     const frames = [];

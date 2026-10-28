@@ -1,33 +1,51 @@
 # Custom Endpoint Access
 
-## 边界
+## Boundaries
 
-`custom_url` 与 `reverse_proxy` 是必要的 SillyTavern 兼容能力，也是 WebView 中第三方扩展能够控制的网络出口。TauriTavern 对每个用户配置端点要求一次 Rust 原生 dialog 授权；公网、局域网、loopback、LAN hostname 与代理软件 Fake IP 使用同一规则。内置 provider 端点不需要授权。
+`custom_url` and `reverse_proxy` are required SillyTavern compatibility features, and they are also
+the network egress that third-party extensions running inside the WebView can control. TauriTavern
+requires a one-off native Rust dialog authorization for every user-configured endpoint; the public
+internet, the local network, loopback, LAN hostnames, and the fake IPs that proxy software hands out
+all follow the same rule. Built-in provider endpoints need no authorization.
 
-本机制不识别扩展身份。扩展可以触发 dialog，但不能替用户确认；用户授权后，同一 WebView 内的代码都能使用该端点。更细的 WebView/native capability 边界另行设计。
+This mechanism does not identify the extension. An extension can trigger the dialog, but it cannot
+confirm on the user's behalf; once the user authorizes, any code in the same WebView can use that
+endpoint. A finer WebView/native capability boundary is designed separately.
 
-## 授权与传输
+## Authorization and transport
 
-- 复用 `parse_user_http_endpoint` 规范化 URL，并拒绝非 HTTP(S)、userinfo、query 与 fragment。
-- grant 保存规范化端点字符串，精确包含 scheme、host、port 与 base path。
-- status、非流式 generate 与流式 start 三个 Rust command 共用一个原生授权 gate；兼容路由和扩展请求无需单独预检。
-- HTTP pool 对每次用户端点请求独立检查 grant，绕过 command gate 的调用会 fail closed。
-- 显式 loopback、RFC1918、IPv6 ULA 地址及 `localhost` 强制 Direct；其他端点遵循 Request Proxy 设置。
-- DNS 结果不参与授权或传输分类。LAN hostname 和 Fake IP 因此不会被解析地址误判。
-- 重定向最多 5 次且必须同源。
+- Reuses `parse_user_http_endpoint` to normalize the URL, and rejects anything that is not HTTP(S),
+  along with userinfo, query, and fragment components.
+- A grant stores the normalized endpoint string, covering scheme, host, port, and base path exactly.
+- The three Rust commands — status, non-streaming generate, and streaming start — share one native
+  authorization gate, so compatible routes and extension requests need no separate pre-check.
+- The HTTP pool checks the grant independently on every user-endpoint request, so a call that
+  bypasses the command gate fails closed.
+- Explicit loopback, RFC1918, and IPv6 ULA addresses, plus `localhost`, are forced to Direct; every
+  other endpoint follows the Request Proxy setting.
+- DNS results take no part in authorization or transport classification, so a LAN hostname or a fake
+  IP is never misjudged by the address it resolves to.
+- Redirects are capped at 5 and must be same-origin.
 
-原生 dialog 的安全文案和规范化端点由 Rust host 组装；WebView 只提供 locale，不提供实际展示文案或确认结果。用户取消是正常取消状态，不会被包装成连接错误。
+The Rust host composes the security copy and the normalized endpoint for the native dialog; the
+WebView supplies only a locale, never the displayed copy or the confirmation result. A user
+cancellation is an ordinary cancellation state and is not wrapped up as a connection error.
 
-## 持久化
+## Persistence
 
-grant 是一个 JSON 字符串数组，位置为：
+A grant is a JSON string array, stored at:
 
 ```text
 <app_root>/security/user-endpoint-grants.json
 ```
 
-它不随 `data_root`、数据备份或导入迁移。文件缺失或不可读时按空 grant 启动。原生确认会立即授权当前会话，然后原子持久化；写入失败只记录 warning，本次连接继续，重启后需要重新确认。
+It does not follow `data_root`, data backups, or import migration. A missing or unreadable file boots
+with empty grants. A native confirmation authorizes the current session immediately and then persists
+atomically; a write failure only records a warning, the current connection continues, and the user
+has to confirm again after a restart.
 
-旧的 `local-endpoint-grants.json` 不读取也不迁移。
+The old `local-endpoint-grants.json` is neither read nor migrated.
 
-iOS 的系统 Local Network permission 与本 grant 相互独立。Android 升到要求 `ACCESS_LOCAL_NETWORK` 的 target SDK 时，还需单独接入平台权限。
+The iOS system Local Network permission is independent of this grant. When Android moves to a target
+SDK that requires `ACCESS_LOCAL_NETWORK`, that platform permission must be wired up separately as
+well.

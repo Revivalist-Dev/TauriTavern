@@ -49,7 +49,7 @@ test('Tauri resource helpers encode stable Host Resource URLs', async () => {
         'space name.png',
         'plus+amp&hash#.png',
         'literal%percent.png',
-        '雪 😀.png',
+        'Café 😀.png',
     ]) {
         assert.equal(backgroundPathFn(file), `/backgrounds/${encodeURIComponent(file)}`);
         assert.equal(

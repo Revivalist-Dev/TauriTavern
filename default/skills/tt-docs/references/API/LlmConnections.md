@@ -1,24 +1,24 @@
 # LLM Connection API
 
-`api.llmConnections` 管理 Agent 可以引用的模型连接。连接保存 provider、端点、凭据引用和路由，Profile 另外选择模型 ID。
+`api.llmConnections` manages the model connections that agents can reference. A connection stores the provider, endpoint, secret reference and routing, while the profile separately chooses the model ID.
 
-## 入口与方法
+## Entry point and methods
 
 ```js
 await (window.__TAURITAVERN__?.ready ?? window.__TAURITAVERN_MAIN_READY__);
 const connections = window.__TAURITAVERN__.api.llmConnections;
 ```
 
-| 方法 | 返回值 |
+| Method | Returns |
 | --- | --- |
-| `list()` | `{ connections }`，连接摘要列表 |
-| `load(connectionId)` | `{ connection }`，不存在时为 `null` |
-| `save(connection)` | 保存完成后返回 |
-| `delete(connectionId)` | 删除完成后返回 |
+| `list()` | `{ connections }`, a list of connection summaries |
+| `load(connectionId)` | `{ connection }`, or `null` if it does not exist |
+| `save(connection)` | Resolves when the save completes |
+| `delete(connectionId)` | Resolves when the delete completes |
 
-`load`、`delete` 也接受 `{ connectionId }`，`save` 也接受 `{ connection }`。
+`load` and `delete` also accept `{ connectionId }`, and `save` also accepts `{ connection }`.
 
-## 连接内容
+## Connection contents
 
 ```ts
 type LlmConnectionDefinition = {
@@ -46,22 +46,22 @@ type LlmConnectionDefinition = {
 };
 ```
 
-`id` 使用小写字母、数字、`-` 或 `_`，最长 128 字符。直接连接通过 `auth.secretRef` 引用密钥；使用反向代理时可以保留 `auth: {}`。
+`id` uses lowercase letters, digits, `-` or `_`, up to 128 characters. A direct connection references its secret through `auth.secretRef`; when a reverse proxy is used, `auth: {}` can be left as is.
 
-`routing.reverseProxy.preset` 引用用户保存的反代预设。解析连接时读取其 URL 与密码，预设更新作用于后续解析；模型名按 Profile 指定的值传递。
+`routing.reverseProxy.preset` references a reverse-proxy preset saved by the user. Resolving the connection reads that preset's URL and password, and preset updates apply to later resolutions; the model name is passed as the profile specifies it.
 
-## Profile 与 Model Target
+## Profiles and Model Targets
 
-Profile 使用 `model.mode = "connectionRef"`，保存 `connectionRef` 和 `modelId`。具体配置见 [Profile 与预设](../Agent/ProfilesAndPreset.md)。
+A profile uses `model.mode = "connectionRef"` and stores `connectionRef` and `modelId`. For the configuration itself, see [Profiles and presets](../Agent/ProfilesAndPreset.md).
 
-Agent System 将 Connection Manager 的 Model Target 物化为 `model-target-<target.id>` 连接，在启动、Target 更新、Profile 保存和 Run 启动时同步。无法表示的 Target 配置会报告错误，并移除对应旧连接，供 Profile 诊断显示。
+Agent System materializes Connection Manager Model Targets as `model-target-<target.id>` connections and syncs them at startup, on target updates, on profile saves and on run start. Target configuration that cannot be represented reports an error and removes the corresponding old connection so that profile diagnostics can display it.
 
-连接同步会更新 provider、端点、凭据和 adapter 选项。`modelId` 属于 Profile，修改 Target 的模型名后，需要在 Profile 中重新选择才会采用新值。删除 Target 会保留已经物化的连接。
+Connection sync updates the provider, endpoint, secret and adapter options. `modelId` belongs to the profile, so after changing a target's model name you must reselect it in the profile before the new value is used. Deleting a target keeps the connection that has already been materialized.
 
-已经准备好的 Invocation 继续使用其模型请求，连接更新供后续解析使用。独立模型绑定导出时会移除本机引用，导入后重新配置。
+An invocation that has already been prepared keeps using its model request; connection updates apply to later resolutions. Exporting a standalone model binding strips local references, which have to be configured again after import.
 
-## 实现
+## Implementation
 
-- [llm_connection.rs](../../src-tauri/crates/tt-domain/src/models/llm_connection.rs)：连接结构。
-- [llm_connection_service.rs](../../src-tauri/crates/tt-application/src/services/llm_connection_service.rs)：解析与请求字段应用。
-- [model-target-llm-connection.js](../../src/scripts/tauritavern/agent/model-target-llm-connection.js)：Model Target 同步。
+- [llm_connection.rs](../../src-tauri/crates/tt-domain/src/models/llm_connection.rs): connection structures.
+- [llm_connection_service.rs](../../src-tauri/crates/tt-application/src/services/llm_connection_service.rs): resolution and application of request fields.
+- [model-target-llm-connection.js](../../src/scripts/tauritavern/agent/model-target-llm-connection.js): Model Target sync.

@@ -40,3 +40,6 @@ test-out.txt
 
 # Local upstream checkout (junction/symlink)
 sillytavern-*
+
+# Layout test output
+tests/layout/artifacts/

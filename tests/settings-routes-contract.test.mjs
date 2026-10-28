@@ -12,7 +12,7 @@ const revision = { token: 'loaded' };
 test('settings saves preserve the text and pass only an explicit revision to the host', async () => {
     for (const expected of [null, revision]) {
         const router = createRouteRegistry();
-        const text = '{ "extension_settings": { "history": "🍀世界书" } }';
+        const text = '{ "extension_settings": { "history": "🍀World Info" } }';
         const chunks = [];
         let size = 0;
         registerSettingsRoutes(router, {

@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use tauri::{Manager, WebviewWindow};
 use tauri_plugin_dialog::DialogExt;
@@ -37,6 +37,45 @@ pub(super) async fn pick(
         })
         .collect::<Result<Vec<_>, _>>()
         .map(Some)
+}
+
+pub(super) async fn pick_directory(window: &WebviewWindow) -> Result<Option<PathBuf>, DomainError> {
+    let dialog = window.dialog().file().set_parent(window);
+    let (sender, receiver) = tokio::sync::oneshot::channel();
+    dialog.pick_folder(move |folder| {
+        let _ = sender.send(folder);
+    });
+    let Some(folder) = receiver
+        .await
+        .map_err(|error| DomainError::InvalidData(error.to_string()))?
+    else {
+        return Ok(None);
+    };
+    folder
+        .into_path()
+        .map(Some)
+        .map_err(|error| DomainError::InvalidData(error.to_string()))
+}
+
+pub(super) async fn pick_save_path(
+    window: &WebviewWindow,
+    file_name: &str,
+) -> Result<Option<PathBuf>, DomainError> {
+    let mut dialog = window
+        .dialog()
+        .file()
+        .set_parent(window)
+        .set_file_name(file_name);
+    if let Ok(download_dir) = window.app_handle().path().download_dir() {
+        dialog = dialog.set_directory(download_dir);
+    }
+    let Some(target) = save_dialog(dialog).await? else {
+        return Ok(None);
+    };
+    target
+        .into_path()
+        .map(Some)
+        .map_err(|error| DomainError::InvalidData(error.to_string()))
 }
 
 pub(super) async fn deliver(

@@ -647,7 +647,7 @@ mod tests {
         for invalid in ["".to_string(), "a".repeat(65), "bad\nname".to_string()] {
             assert!(store.set_device_name(&invalid).await.is_err());
         }
-        store.set_device_name("书房 Mac").await.unwrap();
+        store.set_device_name("Studio Mac").await.unwrap();
         let reloaded = LanPeerStore::new(
             default_user_dir.clone(),
             tt_contracts::host::HostPlatform::Windows,
@@ -655,7 +655,7 @@ mod tests {
         .load_or_create_identity()
         .await
         .unwrap();
-        assert_eq!(reloaded.device_name, "书房 Mac");
+        assert_eq!(reloaded.device_name, "Studio Mac");
         assert_eq!(reloaded.device_id, before.device_id);
         assert_eq!(reloaded.ed25519_seed, before.ed25519_seed);
 
@@ -663,7 +663,7 @@ mod tests {
         let base_url = format!("https://127.0.0.1:{}", handle.addr.port());
         for pin in [None, Some(handle.spki_sha256.as_str())] {
             let device = pairing.probe_device(&base_url, pin).await.unwrap();
-            assert_eq!(device.device_name, "书房 Mac");
+            assert_eq!(device.device_name, "Studio Mac");
             assert_eq!(device.device_id, before.device_id);
             assert_eq!(device.platform.as_deref(), Some("windows"));
             assert_eq!(device.spki_sha256, handle.spki_sha256);

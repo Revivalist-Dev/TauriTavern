@@ -43,7 +43,6 @@ use tt_application::services::theme_service::ThemeService;
 use tt_application::services::tokenization_service::TokenizationService;
 use tt_application::services::translate_service::TranslateService;
 use tt_application::services::tt_sync_service::TtSyncService;
-use tt_application::services::tts_service::TtsService;
 use tt_application::services::update_service::UpdateService;
 use tt_application::services::user_directory_service::UserDirectoryService;
 use tt_application::services::user_endpoint_access_service::UserEndpointAccessService;
@@ -114,7 +113,6 @@ pub(crate) struct AppServices {
     pub(crate) tokenization_service: Arc<TokenizationService>,
     pub(crate) stable_diffusion_service: Arc<StableDiffusionService>,
     pub(crate) translate_service: Arc<TranslateService>,
-    pub(crate) tts_service: Arc<TtsService>,
     pub(crate) world_info_service: Arc<WorldInfoService>,
     pub(crate) lan_sync_service: Arc<LanSyncService>,
     pub(crate) tt_sync_service: Arc<TtSyncService>,

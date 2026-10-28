@@ -1,46 +1,46 @@
-# TauriTavern 后端结构
+# TauriTavern backend structure
 
-本文档说明 TauriTavern Rust 后端的 **Clean Architecture 原则、workspace crate 边界、依赖方向和代码落点**。
+This document describes the **Clean Architecture principles, workspace crate boundaries, dependency directions, and where code belongs** in the TauriTavern Rust backend.
 
-它不是 API 命令清单，也不是专题实现百科。具体 API 参考 `docs/API/`，当前实现快照参考 `docs/CurrentState/`，前端宿主契约参考 `docs/FrontendHostContract.md`。
+It is not an API command list, and not an encyclopedia of individual features. API details live in `docs/API/`, a snapshot of the current implementation lives in `docs/CurrentState/`, and the frontend host contract lives in `docs/FrontendHostContract.md`.
 
-## 1. 最高约束：Clean Architecture
+## 1. The highest constraint: Clean Architecture
 
-Clean Architecture 是 TauriTavern 后端最重要的长期约束。它不是一组漂亮的目录名，而是一条依赖规则：
+Clean Architecture is the most important long-term constraint on the TauriTavern backend. It is not a set of attractive directory names; it is a dependency rule:
 
-> 越稳定、越靠近业务语义的代码越靠内；越依赖框架、文件系统、网络、平台 API 的代码越靠外；源码依赖只能从外层指向内层。
+> Code that is more stable and closer to business semantics sits further in; code that depends on frameworks, the file system, the network, or platform APIs sits further out; source dependencies may only point from the outer layers to the inner ones.
 
-在本项目里，这条规则有几个直接含义：
+In this project the rule has several direct consequences:
 
-- 领域模型和纯规则不能知道 Tauri、文件系统、HTTP、async runtime 或 repository。
-- 用例可以表达“我需要某种外部能力”，但不能依赖具体实现。
-- 具体 IO、文件格式、网络请求、ZIP、PNG、tokenizer、sync runtime 都是外层细节。
-- host 可以知道所有实现，因为它负责启动和装配；但这种知识必须停留在 composition root 附近。
-- 浏览器可观察的 SillyTavern 兼容语义是外部契约，不能被 Rust 内部分层命名替代。
+- Domain models and pure rules cannot know about Tauri, the file system, HTTP, an async runtime, or repositories.
+- A use case can say "I need some kind of external capability" but cannot depend on a specific implementation.
+- Concrete IO, file formats, network requests, ZIP, PNG, tokenizer, and sync runtime are all outer-layer details.
+- The host may know every implementation, because it starts and assembles them; but that knowledge must stay near the composition root.
+- The browser-observable SillyTavern compatibility semantics are an external contract and cannot be replaced by the Rust internal layering names.
 
-因此，本项目的 Clean Architecture 不是靠约定俗成维护，而是被 Cargo workspace 和 `scripts/check-rust-crate-boundaries.mjs` 物理化、自动化地守住。
+As a result, Clean Architecture here is not maintained by convention. It is materialized and enforced automatically by the Cargo workspace and `scripts/check-rust-crate-boundaries.mjs`.
 
-## 2. 从原则到 crate
+## 2. From principles to crates
 
-当前 workspace crate 拆分，就是 Clean Architecture 的物理边界。理解这些 crate 时，不要先问“这个文件技术上用什么实现”，而要先问“这段代码属于哪一类变化原因”。
+The current workspace crate split is the physical boundary of Clean Architecture. When reading these crates, do not ask "what does this file technically use"; ask "which class of change does this code belong to".
 
-| Clean Architecture 概念 | 当前落点 | 稳定职责 | 不应承担 |
+| Clean Architecture concept | Current home | Stable responsibility | Must not own |
 | --- | --- | --- | --- |
-| Entities / 领域核心 | `tt-domain` | 领域模型、值对象、领域错误、纯规则、纯文本/JSON 工具 | repository trait、async runtime、文件系统、网络、Tauri |
-| Cross-crate contracts | `tt-contracts` | 跨 crate DTO、事件、payload、observability、通用值契约 | concrete IO、application service、Tauri |
-| Application ports | `tt-ports` | repository trait、gateway trait、event sink、runtime port、Host Resource opened-source port | concrete adapter、reqwest/axum/tauri/image/zip 实现 |
-| Use cases | `tt-application` | service、use case、job coordinator、策略编排 | Tauri、adapter、reqwest、具体 tokenizer、文件格式实现 |
-| Interface adapters | `tt-adapter-*` | Tauri-free 的具体 IO、运行时、持久化、文件格式、外部系统访问 | application service、Tauri host glue |
-| Frameworks / Drivers | `tauritavern` | Tauri builder、plugins、setup、window、commands、composition root、platform glue | 领域规则、用例实现、Tauri-free repository |
+| Entities / domain core | `tt-domain` | Domain models, value objects, domain errors, pure rules, pure text/JSON helpers | Repository traits, async runtime, file system, network, Tauri |
+| Cross-crate contracts | `tt-contracts` | Cross-crate DTOs, events, payloads, observability, shared value contracts | Concrete IO, application services, Tauri |
+| Application ports | `tt-ports` | Repository traits, gateway traits, event sink, runtime port, Host Resource opened-source port | Concrete adapters, reqwest/axum/tauri/image/zip implementations |
+| Use cases | `tt-application` | Services, use cases, job coordinator, policy orchestration | Tauri, adapters, reqwest, concrete tokenizer, file format implementations |
+| Interface adapters | `tt-adapter-*` | Tauri-free concrete IO, runtime, persistence, file formats, external system access | Application services, Tauri host glue |
+| Frameworks / Drivers | `tauritavern` | Tauri builder, plugins, setup, window, commands, composition root, platform glue | Domain rules, use case implementations, Tauri-free repositories |
 
-这里有两个容易混淆但很关键的点：
+Two points here are easy to confuse and matter:
 
-- `tt-domain` 不定义 repository trait。repository 是用例对外部世界的需求，属于 port，不属于领域实体本身。
-- `tt-adapter-*` 不是“比 application 更核心”的代码。它们可能很复杂，但复杂不等于内层。只要依赖文件系统、网络、第三方格式或运行时细节，就属于外层。
+- `tt-domain` does not define repository traits. A repository is a use case's need from the outside world, so it is a port, not a domain entity.
+- `tt-adapter-*` is not "more core" than application. It may be complex, but complexity is not inner-ness. Anything that depends on the file system, the network, third-party formats, or runtime details is an outer layer.
 
-## 3. Workspace 总览
+## 3. Workspace overview
 
-workspace 根目录是 `src-tauri/Cargo.toml`，默认 member 是 `crates/tauritavern`。
+The workspace root is `src-tauri/Cargo.toml`, and the default member is `crates/tauritavern`.
 
 ```text
 src-tauri/
@@ -68,32 +68,32 @@ src-tauri/
     └── tt-adapter-archive
 ```
 
-当前 host 不再承载所有后端实现；用例、端口、契约、领域和具体 adapter 已经被拆成独立 Cargo crate。后续维护重点不是继续追求更多 crate，而是避免边界回流，确保每个新增能力都落在正确变化轴上。
+The host no longer carries every backend implementation; use cases, ports, contracts, the domain, and concrete adapters have been split into separate Cargo crates. Future maintenance is not about chasing more crates, but about preventing the boundary from flowing back in and making sure every new capability lands on the correct axis of change.
 
-| crate | 当前职责 |
+| crate | Current responsibility |
 | --- | --- |
-| `tauritavern` | Tauri host、presentation command、composition root、host-bound infrastructure、platform glue |
-| `tt-domain` | 领域模型、值对象、领域错误、纯规则 |
-| `tt-contracts` | DTO、事件、payload、通用值契约、observability contract |
-| `tt-ports` | repository / gateway / runtime trait、Host Resource opened-source port |
-| `tt-application` | 用例服务、业务编排、任务协调、policy 执行 |
-| `tt-adapter-http` | 共享 HTTP client pool/profile/helper |
-| `tt-adapter-mcp` | RMCP client、协议版本策略与 Streamable HTTP lifecycle、tools/list pagination 与 tool validation |
-| `tt-adapter-provider-http` | LLM、SearXNG、SD、Translate、TTS、embedding、provider metadata 的 HTTP repository |
-| `tt-adapter-triviumdb` | 按命名空间管理 TriviumDB、阻塞执行、原生查询与持久化 |
-| `tt-adapter-vector` | Vector 的 ACID 本地索引与本地 embedding runtime；不承载 provider HTTP |
-| `tt-adapter-tokenization` | tokenizer concrete repository |
-| `tt-adapter-storage-core` | `DataDirectory`、基础文件系统与格式 helper、chat/settings/user/theme/secret/quick reply/prompt cache/asset/llm connection/extension-store |
-| `tt-adapter-storage-userdata` | character、world info、agent workspace、agent profile、skill local package store、PNG card metadata |
-| `tt-adapter-media` | persona/avatar/background/user media/image metadata、browser-visible host resource file store |
-| `tt-adapter-extension` | third-party extension 发现、安装、版本检查、更新、分支查询/切换、删除与移动；Gitoxide smart HTTP 与 embedded worktree |
-| `tt-adapter-workspace-shell` | Bashkit（含 jq/Python）与 QuickJS 执行；受限 `WorkspaceFs` 适配 |
-| `tt-adapter-sync` | LAN Sync、TT-Sync v2 runtime、stores、client/server、sync jobs |
-| `tt-adapter-archive` | data archive import/export executor、archive path safety |
+| `tauritavern` | Tauri host, presentation commands, composition root, host-bound infrastructure, platform glue |
+| `tt-domain` | Domain models, value objects, domain errors, pure rules |
+| `tt-contracts` | DTOs, events, payloads, shared value contracts, observability contract |
+| `tt-ports` | Repository / gateway / runtime traits, Host Resource opened-source port |
+| `tt-application` | Use case services, business orchestration, job coordination, policy execution |
+| `tt-adapter-http` | Shared HTTP client pool/profile/helpers |
+| `tt-adapter-mcp` | RMCP client, protocol version policy and Streamable HTTP lifecycle, tools/list pagination and tool validation |
+| `tt-adapter-provider-http` | HTTP repositories for LLM, SearXNG, SD, Translate, embedding, and provider metadata |
+| `tt-adapter-triviumdb` | Namespace-scoped TriviumDB management, blocking execution, native queries, and persistence |
+| `tt-adapter-vector` | Vector's ACID local index and local embedding runtime; carries no provider HTTP |
+| `tt-adapter-tokenization` | Tokenizer concrete repository |
+| `tt-adapter-storage-core` | `DataDirectory`, base file system and format helpers, chat/settings/user/theme/secret/quick reply/prompt cache/asset/llm connection/extension-store |
+| `tt-adapter-storage-userdata` | character, world info, agent workspace, agent profile, skill local package store, PNG card metadata |
+| `tt-adapter-media` | persona/avatar/background/user media/image metadata, browser-visible host resource file store |
+| `tt-adapter-extension` | Third-party extension discovery, installation, version checks, updates, branch queries/switching, deletion and moving; Gitoxide smart HTTP and the embedded worktree |
+| `tt-adapter-workspace-shell` | Bashkit (including jq/Python) and QuickJS execution; scoped `WorkspaceFs` adaptation |
+| `tt-adapter-sync` | LAN Sync, TT-Sync v2 runtime, stores, client/server, sync jobs |
+| `tt-adapter-archive` | Data archive import/export executor, archive path safety |
 
-## 4. 依赖方向
+## 4. Dependency directions
 
-箭头表示 Rust crate 依赖方向。它们应当始终指向更内层、更稳定的策略或契约。
+Arrows show the direction of Rust crate dependencies. They should always point at the more inner, more stable policies and contracts.
 
 ```mermaid
 flowchart TB
@@ -116,7 +116,7 @@ flowchart TB
     contracts --> domain
 ```
 
-当前允许少量 adapter helper 关系：
+A small number of adapter-to-adapter helper relationships are allowed today:
 
 ```text
 tt-adapter-provider-http    -> tt-adapter-http
@@ -127,29 +127,29 @@ tt-adapter-storage-userdata -> tt-adapter-storage-core
 tt-adapter-media            -> tt-adapter-storage-core
 ```
 
-禁止方向：
+Forbidden directions:
 
-- `tt-domain` 不依赖 `tt-ports`、`tt-contracts`、adapter、Tauri、网络或文件系统。
-- `tt-contracts` 不依赖 `tt-ports`、`tt-application`、adapter 或 Tauri。
-- `tt-ports` 不依赖 adapter、Tauri、网络/文件系统具体实现。
-- `tt-application` 不依赖任何 `tt-adapter-*`、`tauritavern`、`reqwest`、`axum`、`tauri`、`zip`、`image`。
-- 任何 `tt-adapter-*` 不依赖 `tt-application` 或 `tauritavern`。
-- host 的 `infrastructure` 与 `platform` 不下沉为 application 或 adapter 的隐式依赖；具体服务装配集中在 `app/composition`。
+- `tt-domain` does not depend on `tt-ports`, `tt-contracts`, adapters, Tauri, the network, or the file system.
+- `tt-contracts` does not depend on `tt-ports`, `tt-application`, adapters, or Tauri.
+- `tt-ports` does not depend on adapters, Tauri, or concrete network/file system implementations.
+- `tt-application` does not depend on any `tt-adapter-*`, `tauritavern`, `reqwest`, `axum`, `tauri`, `zip`, or `image`.
+- No `tt-adapter-*` depends on `tt-application` or `tauritavern`.
+- The host's `infrastructure` and `platform` do not leak downward as implicit dependencies of application or adapters; concrete service assembly is centralized in `app/composition`.
 
-如果新增代码需要违反这些方向，通常不是边界脚本太严格，而是抽象落点还没有想清楚。
+If new code would need to violate these directions, the usual cause is not an over-strict boundary script but an abstraction whose home has not been thought through.
 
-## 5. 上游兼容契约
+## 5. Upstream compatibility contract
 
-TauriTavern 不复刻 SillyTavern 的 Node/Express 实现细节。它复刻的是上游前端、扩展、脚本和角色卡能观察到的契约：
+TauriTavern does not replicate SillyTavern's Node/Express implementation details. It replicates the contract the upstream frontend, extensions, scripts, and character cards can observe:
 
-- 同源 URL、HTTP method、状态码、请求体解析、JSON/text/stream 响应形状。
-- 上传字段名和资源路径，例如 `/characters/*`、`/User Avatars/*`、`/backgrounds/*`、`/assets/*`、`/user/images/*`、`/user/files/*`、`/scripts/extensions/third-party/*`。
-- 聊天 JSONL、角色卡 PNG metadata、世界书、预设、主题、用户目录等文件布局。
-- 上游 `eventSource` 事件语义，例如生成、World Info、stream token、tool call 相关事件。
+- Same-origin URLs, HTTP methods, status codes, request body parsing, and JSON/text/stream response shapes.
+- Upload field names and resource paths, such as `/characters/*`, `/User Avatars/*`, `/backgrounds/*`, `/assets/*`, `/user/images/*`, `/user/files/*`, `/scripts/extensions/third-party/*`.
+- File layouts such as chat JSONL, character card PNG metadata, World Info, presets, themes, and user directories.
+- Upstream `eventSource` event semantics, such as generation, World Info, stream token, and tool call events.
 
-Rust command、Tauri Channel、repository/service 分层是内部实现，不能当成上游兼容 API 暴露给扩展作者。
+Rust commands, Tauri channels, and the repository/service layering are internal implementation. They are not a compatibility API exposed to extension authors.
 
-兼容流量的真实链路是：
+The real path of compatibility traffic is:
 
 ```text
 SillyTavern frontend / extension / script
@@ -163,147 +163,147 @@ SillyTavern frontend / extension / script
   -> tt-adapter-* concrete implementation
 ```
 
-新的 TauriTavern 能力优先通过 `window.__TAURITAVERN__.api.*` 暴露。只有行为确实对齐上游 SillyTavern 路由时，才进入 `/api/*` 兼容层。
+New TauriTavern capabilities are exposed through `window.__TAURITAVERN__.api.*` first. Only behavior that genuinely matches an upstream SillyTavern route enters the `/api/*` compatibility layer.
 
-## 6. Host 边界
+## 6. Host boundary
 
-`tauritavern` 是最外层 host crate。它可以知道所有 concrete implementation，但只应在明确边界处使用它们。
+`tauritavern` is the outermost host crate. It may know every concrete implementation, but should only use them at explicit boundaries.
 
-主要目录：
+Main directories:
 
 ```text
 src-tauri/crates/tauritavern/src/
-├── lib.rs                 # host lib entry，只转入 app::host::run()
+├── lib.rs                 # host lib entry, delegates to app::host::run() only
 ├── main.rs                # desktop entry
 ├── app/
-│   ├── host/              # Tauri builder、plugin、setup、window、resources、shutdown
-│   ├── composition.rs     # composition root 入口
-│   ├── composition/       # repositories、services、host adapters 装配
+│   ├── host/              # Tauri builder, plugin, setup, window, resources, shutdown
+│   ├── composition.rs     # composition root entry
+│   ├── composition/       # repositories, services, host adapters assembly
 │   ├── state.rs           # AppState / AppServices / lifecycle handles
-│   └── startup_profile.rs # 启动期 settings / policy snapshot
-├── presentation/          # Tauri commands、CommandError、web resource adapter
+│   └── startup_profile.rs # startup settings / policy snapshot
+├── presentation/          # Tauri commands, CommandError, web resource adapter
 ├── infrastructure/        # Tauri-bound infrastructure
-└── platform/              # 宿主身份与 WebView 传输预算（Windows 固定值）
+└── platform/              # host identity and WebView transport budget (fixed on Windows)
 ```
 
 ### 6.1 Host shell
 
-`app/host/*` 是 Tauri shell：
+`app/host/*` is the Tauri shell:
 
-- 安装 plugin。
-- 决议 runtime paths。
-- 初始化 logging、HTTP pool、bundled templates、host resource service。
-- 创建窗口并挂载 web resource request hook。
-- 启动异步 AppState 初始化。
+- Installs plugins.
+- Resolves runtime paths.
+- Initializes logging, the HTTP pool, bundled templates, and the host resource service.
+- Creates windows and installs the web resource request hook.
+- Starts asynchronous AppState initialization.
 
-这里可以触碰 `tauri::AppHandle`、window、plugin、platform API。这里不写业务用例。
+This code may touch `tauri::AppHandle`, windows, plugins, and platform APIs. It contains no business use cases.
 
 ### 6.2 Composition root
 
-`app/composition/*` 是唯一可以同时知道 application service 与 concrete adapter 的地方。
+`app/composition/*` is the only place that may know application services and concrete adapters at the same time.
 
-维护规则：
+Maintenance rules:
 
-- command 不直接构造 repository。
-- service 不直接构造 concrete adapter。
-- adapter 不调用 application service。
-- `AppState` 只持有长期运行的 service 包、lifecycle handle 和启动期策略快照，不作为全局 service locator 下沉到 application 或 adapter。
+- Commands do not construct repositories directly.
+- Services do not construct concrete adapters directly.
+- Adapters do not call application services.
+- `AppState` holds only the long-lived service bundle, lifecycle handles, and the startup policy snapshot; it does not sink into application or adapters as a global service locator.
 
 ### 6.3 Host-bound infrastructure
 
-只有确实依赖 `AppHandle`、WebView、Tauri plugin、bundled resources、runtime path、平台 API 或 host lifecycle 的代码才留在 `tauritavern/src/infrastructure` 或 `platform`。
+Only code that genuinely depends on `AppHandle`, the WebView, Tauri plugins, bundled resources, runtime paths, platform APIs, or the host lifecycle stays in `tauritavern/src/infrastructure` or `platform`.
 
-当前合理留在 host 的例子：
+Examples that legitimately stay in the host today:
 
-- runtime path 和数据目录选择引导配置。
-- bundled resource 读取。
-- logging / Dev observability 中需要 Tauri event 或 AppHandle 的部分。
-- Data Archive 的 Tauri file picker/share glue。
-- `file_content_repository` 与 `file_preset_repository`，因为它们仍依赖 packaged default content / bundled resources。
-- 小型 host-bound API glue，例如更新检查和外部导入下载器。
+- Runtime paths and the data directory selection bootstrap configuration.
+- Reading bundled resources.
+- The parts of logging and Dev observability that need Tauri events or the AppHandle.
+- The Tauri file picker/share glue for Data Archive.
+- `file_content_repository` and `file_preset_repository`, which still depend on packaged default content and bundled resources.
+- Small host-bound API glue, such as the update check and the external import downloader.
 
-新的 Tauri-free repository 不应再放回 host infrastructure。
+New Tauri-free repositories should not go back into host infrastructure.
 
-### 6.4 平台事实
+### 6.4 Platform facts
 
-本分支只构建 Windows x64 桌面版。`platform/identity.rs` 的 `HOST_IDENTITY` 是唯一来源，固定为 `windows` + `desktop`，并注入前端（见 `docs/FrontendHostContract.md` §2.2）。
+This branch builds the Windows x64 desktop app only. `HOST_IDENTITY` in `platform/identity.rs` is the single source of truth, fixed to `windows` plus `desktop`, and is injected into the frontend (see `docs/FrontendHostContract.md` §2.2).
 
-- host crate 内不再保留按 `target_os` / `target_env` 分叉的平台代码；Windows 之外的构建目标不受支持。
-- 非 host crate 不读平台；行为差异由 composition root 注入事实（如 `HostKind`）或数值（如 IPC 帧预算）。
-- 新增平台相关代码时应直接写 Windows 实现，不再引入条件编译。
+- The host crate no longer keeps platform code that branches on `target_os` / `target_env`; build targets other than Windows are unsupported.
+- Non-host crates do not read the platform; the composition root injects the difference either as a fact (such as `HostKind`) or as a number (such as the IPC frame budget).
+- New platform-specific code should be written as a Windows implementation directly, with no new conditional compilation.
 
-## 7. Adapter 边界
+## 7. Adapter boundaries
 
-adapter 是外层细节，但不是可以任意堆放的 common bucket。一个 adapter crate 应当对应一个清晰的 bounded context 或一组稳定变化原因。
+Adapters are outer-layer details, but they are not a common bucket where anything may pile up. One adapter crate should correspond to one clear bounded context, or to one stable set of change reasons.
 
-当前实践：
+Current practice:
 
-- `tt-adapter-storage-core` 只承载基础 data root 能力和较底层的文件系统 helper。它不是“所有文件仓储”的新大桶。
-- `tt-adapter-storage-userdata` 承载长期用户数据仓储，例如角色卡、世界书、Agent workspace/profile、Skill package。它关心 data root / user data 语义，而不是泛泛的“文件”。
-- `tt-adapter-extension` 承载 third-party extension 发现、安装、版本检查、更新、分支查询/切换、删除与移动，以及 Git transport、repository 与 worktree 物化边界。扩展仓库不是普通 user data JSON。
-- `tt-adapter-media` 承载浏览器可见的 avatar/background/user media 资源契约。
-- `tt-adapter-workspace-shell` 通过 `WorkspaceShell` 提供执行，经 `WorkspaceFs` 访问文件；权限、Skill 绑定、冻结宏投影与发布策略由 application 拥有。
-- `tt-adapter-provider-http`、`tt-adapter-mcp` 和 `tt-adapter-tokenization` 可以复用 `tt-adapter-http`，但协议/provider 规则不能下沉到通用 HTTP helper。
-- `tt-adapter-sync` 与 `tt-adapter-archive` 是独立运行时/执行器边界，Tauri UI glue 仍留在 host。
+- `tt-adapter-storage-core` carries only base data root capabilities and the lower-level file system helpers. It is not the new big bucket for "all file repositories".
+- `tt-adapter-storage-userdata` carries long-lived user data repositories, such as character cards, world info, Agent workspace/profile, and skill packages. It cares about data root and user data semantics, not about "files" in general.
+- `tt-adapter-extension` carries third-party extension discovery, installation, version checks, updates, branch queries/switching, deletion and moving, plus the Git transport, repository, and worktree materialization boundary. An extension repository is not ordinary user data JSON.
+- `tt-adapter-media` carries the browser-visible avatar/background/user media resource contract.
+- `tt-adapter-workspace-shell` provides execution through `WorkspaceShell` and file access through `WorkspaceFs`; permissions, skill binding, frozen macro projection, and publication policy belong to application.
+- `tt-adapter-provider-http`, `tt-adapter-mcp`, and `tt-adapter-tokenization` may reuse `tt-adapter-http`, but protocol and provider rules must not sink into the shared HTTP helpers.
+- `tt-adapter-sync` and `tt-adapter-archive` are independent runtime/executor boundaries, while the Tauri UI glue stays in the host.
 
-如果一个新 adapter 只是为了两个调用点提前抽象，先不要建 crate。等它有明确 bounded context、独立依赖成本或稳定变化原因时再拆。
+If a new adapter exists only to abstract two call sites ahead of time, do not create the crate yet. Split it out when it has a clear bounded context, an independent dependency cost, or a stable set of change reasons.
 
-## 8. Presentation 边界
+## 8. Presentation boundary
 
-`presentation` 是前端可调用的 Tauri command 与 WebView resource 边界。
+`presentation` is the boundary for Tauri commands the frontend can call and for WebView resources.
 
-规则：
+Rules:
 
-- `#[tauri::command]` 只放在 `presentation/commands/*`。
-- command 做参数解析、policy gate、错误映射和 service 调用，不写复杂业务流程。
-- command registry 集中在 `presentation/commands/registry.rs`。
-- 对上游兼容的 `/api/*` 行为主要由前端 route shim 维持，Rust command 名不是第三方稳定 API。
-- 浏览器子资源必须通过真实可加载的 URL/Response 语义提供，不用 IPC/base64 假装资源加载。
+- `#[tauri::command]` lives only in `presentation/commands/*`.
+- A command parses arguments, gates policy, maps errors, and calls services; it contains no complex business flow.
+- The command registry is centralized in `presentation/commands/registry.rs`.
+- Upstream-compatible `/api/*` behavior is maintained mainly by the frontend route shims; Rust command names are not a stable third-party API.
+- Browser subresources must be served through real, loadable URL/Response semantics; do not fake resource loading with IPC/base64.
 
-## 9. 代码落点决策表
+## 9. Code placement decision table
 
-| 需求 | 放置位置 | 注意 |
+| Need | Location | Notes |
 | --- | --- | --- |
-| 新领域模型、值对象、纯验证 | `tt-domain` | 不引入 async、IO、repository trait |
-| 新跨 crate payload/event/DTO | `tt-contracts` | 只放契约，不放 service |
-| 新 repository/gateway/runtime trait | `tt-ports` | trait 面向 application；具体实现不在这里 |
-| 新用例、业务编排、job coordinator | `tt-application` | 依赖 port，不依赖 adapter |
-| 新 Tauri command | `tauritavern/src/presentation/commands` | 调 service，不直接操作仓储细节 |
-| 新 service/adapter 装配 | `tauritavern/src/app/composition` | 显式构造，避免 DI 容器或自动注册魔法 |
-| 需要 AppHandle/WebView/plugin/platform API | `tauritavern/src/app`、`infrastructure` 或 `platform` | 不下沉到 adapter |
-| 按平台区分的行为 | `tauritavern/src/app/composition` 注入 | 非 host crate 不读平台，见 §6.4 |
-| data root/default-user 的基础文件仓储 | `tt-adapter-storage-core` | chat/settings/user/theme/secret 等基础存储 |
-| 角色卡、世界书、Agent workspace/profile、Skill package | `tt-adapter-storage-userdata` | skill 是 local package store，不是普通 JSON repo |
-| 第三方扩展安装、更新、发现 | `tt-adapter-extension` | 不归入 storage-userdata |
-| avatar/background/user media/host resource 文件读取 | `tt-adapter-media` | 保持浏览器资源契约 |
-| LLM/SearXNG/SD/Translate/TTS/provider metadata/embedding HTTP | `tt-adapter-provider-http` | 复用 `tt-adapter-http` |
-| Vector 索引与本地 embedding runtime | `tt-adapter-vector` | 独立持久化/推理依赖，不下沉到 storage-core |
-| 通用 HTTP pool/profile/helper | `tt-adapter-http` | 不放 provider 业务规则 |
-| LAN/TT Sync runtime | `tt-adapter-sync` | Tauri event/UI adapter 留 host composition |
-| Data Archive import/export executor | `tt-adapter-archive` | Tauri picker/share 留 host infrastructure |
-| 工作区 Shell、jq、Python 与 JavaScript 执行 | `tt-adapter-workspace-shell` | 依赖 `WorkspaceShell` / `WorkspaceFs` port，复用调用方的文件范围；不接触物理路径 |
+| New domain model, value object, pure validation | `tt-domain` | No async, IO, or repository traits |
+| New cross-crate payload/event/DTO | `tt-contracts` | Contracts only, no services |
+| New repository/gateway/runtime trait | `tt-ports` | Traits face application; concrete implementations do not belong here |
+| New use case, business orchestration, job coordinator | `tt-application` | Depends on ports, not adapters |
+| New Tauri command | `tauritavern/src/presentation/commands` | Calls services, never touches repository details directly |
+| New service/adapter assembly | `tauritavern/src/app/composition` | Construct explicitly; avoid DI containers or auto-registration magic |
+| Needs AppHandle/WebView/plugin/platform APIs | `tauritavern/src/app`, `infrastructure`, or `platform` | Do not sink into adapters |
+| Behavior that differs by platform | Injected in `tauritavern/src/app/composition` | Non-host crates do not read the platform; see §6.4 |
+| Base file repositories for data root/default-user | `tt-adapter-storage-core` | Base storage such as chat/settings/user/theme/secret |
+| Character cards, world info, Agent workspace/profile, skill packages | `tt-adapter-storage-userdata` | A skill is a local package store, not an ordinary JSON repo |
+| Third-party extension install, update, discovery | `tt-adapter-extension` | Not part of storage-userdata |
+| avatar/background/user media/host resource file reads | `tt-adapter-media` | Keep the browser resource contract |
+| LLM/SearXNG/SD/Translate/provider metadata/embedding HTTP | `tt-adapter-provider-http` | Reuses `tt-adapter-http` |
+| Vector index and local embedding runtime | `tt-adapter-vector` | Independent persistence/inference dependencies; does not sink into storage-core |
+| Shared HTTP pool/profile/helpers | `tt-adapter-http` | No provider business rules |
+| LAN/TT Sync runtime | `tt-adapter-sync` | Tauri event/UI adapters stay in host composition |
+| Data Archive import/export executor | `tt-adapter-archive` | Tauri picker/share stays in host infrastructure |
+| Workspace shell, jq, Python, and JavaScript execution | `tt-adapter-workspace-shell` | Depends on the `WorkspaceShell` / `WorkspaceFs` ports and reuses the caller's file scope; never touches physical paths |
 
-## 10. 添加后端能力的最小流程
+## 10. Minimum path for adding a backend capability
 
-新增能力时，先从契约和变化原因出发，再决定文件位置：
+When adding a capability, start from the contract and the reason for change, then decide where the file belongs:
 
-1. 判断这是上游兼容行为，还是 TauriTavern 新能力。
-2. 上游兼容行为保持 `/api/*`、资源路径、stream 和事件语义。
-3. 新能力优先走 `window.__TAURITAVERN__.api.*`。
-4. 如有新业务概念，先放 `tt-domain`。
-5. 如有外部 IO 或持久化边界，在 `tt-ports` 定义最小 trait。
-6. 在 `tt-application` 写 service/use case。
-7. 在合适的 `tt-adapter-*` 写 concrete implementation。
-8. 在 `tauritavern/src/app/composition` 装配。
-9. 在 `tauritavern/src/presentation` 增加 command。
-10. 在前端 route 或 Host ABI 层接入。
-11. 更新相关文档和 guard/test。
+1. Decide whether this is upstream-compatible behavior or a new TauriTavern capability.
+2. Upstream-compatible behavior keeps `/api/*`, resource paths, stream, and event semantics.
+3. New capabilities go through `window.__TAURITAVERN__.api.*` first.
+4. If there is a new business concept, put it in `tt-domain` first.
+5. If there is an external IO or persistence boundary, define the smallest trait in `tt-ports`.
+6. Write the service/use case in `tt-application`.
+7. Write the concrete implementation in the appropriate `tt-adapter-*`.
+8. Assemble it in `tauritavern/src/app/composition`.
+9. Add the command in `tauritavern/src/presentation`.
+10. Wire it up in the frontend route or Host ABI layer.
+11. Update the related documentation and guards/tests.
 
-如果一个新抽象只有一个实现，先不要加。Rust 项目里显式构造通常比通用 DI、factory、inventory/linkme 更容易维护。
+If a new abstraction has only one implementation, do not add it yet. In a Rust project, explicit construction is usually easier to maintain than generic DI, factories, or inventory/linkme.
 
-## 11. 数据目录与文件布局
+## 11. Data directory and file layout
 
-数据目录布局是 SillyTavern 兼容契约的一部分。目录名大小写和空格不能随意改，例如：
+The data directory layout is part of the SillyTavern compatibility contract. Directory name casing and spaces must not be changed casually, for example:
 
 - `default-user`
 - `characters`
@@ -314,49 +314,49 @@ adapter 是外层细节，但不是可以任意堆放的 common bucket。一个 
 - `OpenAI Settings`
 - `TextGen Settings`
 
-TauriTavern 用户数据中的私有状态放在 `_tauritavern` 下，例如 agent workspace、agent profiles、skills、prompt cache、legacy extension source metadata、LLM connections。能够授予宿主权限的安全状态不属于用户数据：自定义端点 grant 存在 `app_root/security`，不会随可切换的 `data_root`、备份或导入迁移。
+Private TauriTavern state in user data lives under `_tauritavern`, for example agent workspace, agent profiles, skills, prompt cache, legacy extension source metadata, and LLM connections. Security state that can grant host permissions is not user data: custom endpoint grants live in `app_root/security` and do not move with the switchable `data_root`, a backup, or an import.
 
-权威代码入口：
+Authoritative code entry points:
 
 - `src-tauri/crates/tt-adapter-storage-core/src/file_system.rs`
 - `src-tauri/crates/tt-domain/src/models/user_directory.rs`
-- 桌面数据目录选择现状见 `docs/CurrentState/DataDirectorySelection.md`
+- For the current state of desktop data directory selection, see `docs/CurrentState/DataDirectorySelection.md`
 
-设置分区与迁移归 `tt-adapter-storage-core` 的设置仓储，前端 API 保持完整设置对象。同步约定见 [Sync](CurrentState/Sync.md#独立设置范围)。
+Settings partitioning and migration belong to the settings repository in `tt-adapter-storage-core`, and the frontend API keeps receiving the complete settings object. See [Sync](CurrentState/Sync.md#independent-settings-scope) for the synchronization agreement.
 
-设置保存复用共享字节提交；领域层定义修复与 revision 规则，应用层协调保存、恢复及 Persona 独立确认。仓储与归档共用文件清单和修复规则，读取及归档投影不回写源数据。
+Settings saves reuse shared byte commits; the domain layer defines repair and revision rules, and the application layer coordinates saving, restoring, and the separate Persona confirmation. Repositories and archives share the file manifest and repair rules, and reads and archive projections never write back to the source data.
 
-文件写入以单文件原子发布为边界，持久化写入在发布前同步文件；失败不回退为覆盖复制。具体保证见[文件系统实现](../src-tauri/crates/tt-adapter-storage-core/src/file_system.rs)。跨 adapter 不为复用文件 helper 引入仓储依赖。
+File writes are bounded by atomic single-file publication, and persistent writes sync the file before publication; a failure is not retried as an overwrite copy. See [the file system implementation](../src-tauri/crates/tt-adapter-storage-core/src/file_system.rs) for the exact guarantees. No repository dependency is introduced across adapters just to reuse a file helper.
 
-## 12. 专题文档导航
+## 12. Topic document map
 
-`BackendStructure.md` 只保留总边界。细节进入专题文档：
+`BackendStructure.md` keeps only the overall boundaries. Details live in the topic documents:
 
-| 主题 | 文档 |
+| Topic | Document |
 | --- | --- |
-| 前端 Host ABI、请求拦截、资源契约 | `docs/FrontendHostContract.md` |
-| 前端集成结构 | `docs/FrontendGuide.md` |
-| 扩展作者 API | `docs/API/README.md` |
-| Chat payload（完整历史、原子提交、只读分页） | `docs/CurrentState/ChatPayload.md` |
-| Third-party extension 资源和发现 | `docs/CurrentState/ThirdPartyExtensions.md` |
-| 媒体 Range / browser resource contract | `docs/CurrentState/MediaAssetContract.md` |
+| Frontend Host ABI, request interception, resource contracts | `docs/FrontendHostContract.md` |
+| Frontend integration structure | `docs/FrontendGuide.md` |
+| Extension author API | `docs/API/README.md` |
+| Chat payload (full history, atomic commits, read-only pagination) | `docs/CurrentState/ChatPayload.md` |
+| Third-party extension resources and discovery | `docs/CurrentState/ThirdPartyExtensions.md` |
+| Media Range / browser resource contract | `docs/CurrentState/MediaAssetContract.md` |
 | Logging / Dev observability | `docs/CurrentState/LoggingObservability.md` |
 | Native provider API formats | `docs/CurrentState/NativeApiFormats.md` |
-| Custom endpoint SSRF 与用户授权 | `docs/CurrentState/UserEndpointAccess.md` |
-| Vector 兼容层 | `docs/CurrentState/VectorApi.md` |
+| Custom endpoint SSRF and user authorization | `docs/CurrentState/UserEndpointAccess.md` |
+| Vector compatibility layer | `docs/CurrentState/VectorApi.md` |
 | Sync | `docs/CurrentState/Sync.md` |
-| Agent 总览 | [Agent](Agent/README.md) |
-| Agent 细节 | `docs/Agent/README.md` |
+| Agent overview | [Agent](Agent/README.md) |
+| Agent details | `docs/Agent/README.md` |
 
-## 13. 验证
+## 13. Verification
 
-架构边界变更至少运行：
+After changing an architectural boundary, at minimum run:
 
 ```bash
 pnpm run check:rust-boundaries
 ```
 
-按影响面追加：
+Add the following according to the blast radius:
 
 ```bash
 pnpm run test:rust
@@ -364,7 +364,7 @@ pnpm run check:rust:dev
 cargo test --manifest-path src-tauri/Cargo.toml -p <affected-crate> <focused-test>
 ```
 
-涉及前端 route shim、Host ABI 或资源端点时，还要运行前端 contract/guard：
+When frontend route shims, the Host ABI, or resource endpoints are involved, also run the frontend contract/guards:
 
 ```bash
 pnpm run check:frontend
@@ -372,19 +372,19 @@ pnpm run check:types
 pnpm run test:contracts
 ```
 
-## 14. 常见误区
+## 14. Common mistakes
 
-- 不要把 Clean Architecture 理解成“多建几层目录”。真正的边界是依赖方向和变化原因。
-- 不要把 repository trait 放回 `tt-domain`。
-- 不要让 `tt-application` 依赖 concrete adapter。
-- 不要让 adapter 依赖 `tauritavern`、`AppState` 或 presentation command。
-- 不要把 Tauri-free 文件仓储塞回 host infrastructure。
-- 不要把 `tt-adapter-storage-core` 变成新的 common 大桶。
-- 不要为了两个 ZIP 调用提前抽一个泛化 `common-archive` crate；等第三个真实 bounded context 出现再说。
-- 不要把 Tauri command 名当作扩展公共 API。
-- 不要用 IPC/base64 替代浏览器原生子资源语义。
-- 不要静默降级上游契约。字段无法保真、provider metadata 无法表达、目录状态不可恢复时，应显式失败。
+- Do not read Clean Architecture as "create a few more directory layers". The real boundary is dependency direction and reason for change.
+- Do not put repository traits back into `tt-domain`.
+- Do not let `tt-application` depend on concrete adapters.
+- Do not let adapters depend on `tauritavern`, `AppState`, or presentation commands.
+- Do not push Tauri-free file repositories back into host infrastructure.
+- Do not turn `tt-adapter-storage-core` into a new common bucket.
+- Do not extract a generic `common-archive` crate ahead of time for two ZIP call sites; wait for a third real bounded context.
+- Do not treat Tauri command names as a public extension API.
+- Do not replace native browser subresource semantics with IPC/base64.
+- Do not silently degrade an upstream contract. When a field cannot be preserved faithfully, provider metadata cannot express something, or a directory state cannot be recovered, fail explicitly.
 
-### 移动窗口背景边界
+### Moving-window background boundary
 
-`tt-contracts::window_layout` 定义窗口快照与背景请求。主 WebView 布局与过期结果的丢弃属于 `tauritavern::platform` 的 shell glue。`tt-adapter-media::window_backdrop` 负责 Tauri-free 的资源读取、解码与条带裁切，复用 Host Resource Store。
+`tt-contracts::window_layout` defines the window snapshot and the background request. Main WebView layout and the discarding of stale results belong to the shell glue in `tauritavern::platform`. `tt-adapter-media::window_backdrop` performs the Tauri-free resource read, decode, and strip cropping, reusing the Host Resource Store.

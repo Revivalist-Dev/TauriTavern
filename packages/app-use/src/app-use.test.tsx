@@ -130,17 +130,17 @@ test('selectors reach a replaced region beyond pagination without choosing hidde
 });
 
 test('long formatted messages leave embedded controls and following swipes actionable without text pagination', () => {
-    const paragraph = '<p>故事正文' + '内容'.repeat(350) + '<strong>强调</strong></p>';
+    const paragraph = '<p>Story text ' + 'content'.repeat(85) + '<strong>emphasis</strong></p>';
     document.body.innerHTML = `<section aria-label="Chat">
         <div class="mes_text">
             <span style="display:none">hidden-body-text</span><span data-private>sensitive-body-text</span>
-            <h2>故事开头</h2>${paragraph.repeat(120)}
-            <ul>${'<li>正文列表项</li>'.repeat(100)}</ul>
+            <h2>Story opening</h2>${paragraph.repeat(120)}
+            <ul>${'<li>body item</li>'.repeat(100)}</ul>
             <p>end-of-long-body</p>
             <a href="#details">Details</a><button>Embedded action</button>
         </div>
         <button>Previous swipe</button><span>11/11</span>
-        <div class="mes_text"><p>第二条消息</p><p>仍然可读</p></div>
+        <div class="mes_text"><p>Second message</p><p>Still readable</p></div>
     </section>`;
     const observation = createObservation(observationOptions);
     observation.enterRun('run');
@@ -149,12 +149,12 @@ test('long formatted messages leave embedded controls and following swipes actio
     expect(snapshot.nextCursor).toBeUndefined();
     expect(snapshot.truncated).toBe(true);
     expect(snapshot.tree).toContain('textTruncated=true');
-    expect(snapshot.tree).toContain('故事开头');
+    expect(snapshot.tree).toContain('Story opening');
     expect(snapshot.tree).not.toContain('end-of-long-body');
     expect(snapshot.tree).not.toContain('hidden-body-text');
     expect(snapshot.tree).not.toContain('sensitive-body-text');
     expect(snapshot.tree).toContain('11/11');
-    expect(snapshot.tree).toContain('第二条消息 仍然可读');
+    expect(snapshot.tree).toContain('Second message Still readable');
     expect(snapshot.tree.length).toBeLessThan(3_000);
     expect(observation.resolve({ ref: ref(snapshot.tree, 'Details') }).element).toBe(screen.getByRole('link'));
     for (const name of ['Embedded action', 'Previous swipe']) {

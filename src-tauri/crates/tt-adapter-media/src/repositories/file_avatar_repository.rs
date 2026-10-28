@@ -326,9 +326,9 @@ mod tests {
         let legacy = json!({
             "other_setting": "keep",
             "power_user": {
-                "personas": {"alice.png": "爱丽丝", "broken.png": "Recovered", "missing.png": "Missing"},
+                "personas": {"alice.png": "Alice", "broken.png": "Recovered", "missing.png": "Missing"},
                 "persona_descriptions": {
-                    "alice.png": {"description": "原文 🌸", "extension_field": {"keep": [true]}},
+                    "alice.png": {"description": "original text 🌸", "extension_field": {"keep": [true]}},
                     "broken.png": {"description": "Keep this text"}
                 }
             }
@@ -363,7 +363,7 @@ mod tests {
         let source = dir.path().join("incoming.png");
         write_png(&source);
         let mut persona = Persona {
-            name: Some("中文 🌸".into()),
+            name: Some("café 🌸".into()),
             description: Some(serde_json::json!({"description":"Keep", "title":"Title"})),
         };
         let tagged = persona_cards::with_persona(&fs::read(&source).unwrap(), &persona).unwrap();

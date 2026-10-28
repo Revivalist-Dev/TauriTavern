@@ -76,7 +76,7 @@ mod tests {
     #[test]
     fn sanitize_filename_removes_illegal_characters() {
         assert_eq!(sanitize_filename("a:b*c?.png"), "abc.png");
-        assert_eq!(sanitize_filename("中文/测试"), "中文测试");
+        assert_eq!(sanitize_filename("café/naïve"), "cafénaïve");
     }
 
     #[test]
@@ -110,7 +110,7 @@ mod tests {
     fn sanitize_filename_preserves_leading_spaces_like_upstream() {
         assert_eq!(sanitize_filename(" name "), " name");
         assert_eq!(sanitize_filename("/ name"), " name");
-        assert_eq!(sanitize_filename("中文/ 测试"), "中文 测试");
+        assert_eq!(sanitize_filename("café/ naïve"), "café naïve");
     }
 
     #[test]
@@ -119,9 +119,9 @@ mod tests {
         let sanitized = sanitize_filename(&long_ascii);
         assert_eq!(sanitized.len(), 255);
 
-        let long_cjk = "中".repeat(200);
-        let sanitized = sanitize_filename(&long_cjk);
-        assert_eq!(sanitized, "中".repeat(85));
+        let long_multibyte = "€".repeat(200);
+        let sanitized = sanitize_filename(&long_multibyte);
+        assert_eq!(sanitized, "€".repeat(85));
         assert_eq!(sanitized.len(), 255);
     }
 }

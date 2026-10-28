@@ -218,8 +218,7 @@
             "stable-diffusion",
             "token-counter",
             "vectors",
-            "translate",
-            "tts"
+            "translate"
         ],
         "expressionOverrides": [],
         "memory": {
@@ -275,14 +274,6 @@
         },
         "dice": {},
         "regex": [],
-        "tts": {
-            "voiceMap": "",
-            "ttsEnabled": false,
-            "currentProvider": "System",
-            "auto_generation": true,
-            "ElevenLabs": {},
-            "System": {}
-        },
         "sd": {
             "scale_min": 1,
             "scale_max": 30,

@@ -1,64 +1,64 @@
-# Bootstrap Optimization（现状）
+# Bootstrap optimization (current state)
 
-本文记录 **已经落地** 的 bootstrap / 启动阶段优化中，与“冷启动内存基线”强相关的部分实现快照。
+This page records the implementation snapshot of the **already landed** bootstrap / startup optimizations that are most closely tied to the "cold-start memory baseline".
 
-> 完整的分阶段启动（Shell/Core/Full/APP_READY）链路请看：`docs/CurrentState/StartupOptimization.md`。
+> For the full staged startup chain (Shell/Core/Full/APP_READY), see: `docs/CurrentState/StartupOptimization.md`.
 
-## TokenCache（Chat Completions）避免 cold-start whole-load
+## TokenCache (Chat Completions) avoids a cold-start whole-load
 
-### 解决的问题
+### Problem being solved
 
-历史实现会在 `initTokenizers()` 中把 IndexedDB 里的 `tokenCache`（整库大对象）一次性读入 JS 内存，导致移动端冷启动常驻集膨胀。
+The historical implementation read the entire `tokenCache` object (the whole database) from IndexedDB into JS memory inside `initTokenizers()`, which inflated the resident set of a mobile cold start.
 
-### 当前实现（契约）
+### Current implementation (contract)
 
-- **存储分区**：不再使用整库 key `tokenCache`，改为按 chat 分区持久化 `tokenCache:${chatId}`。
-- **启动不加载**：`loadTokenCache()` 只做 legacy key 清理（删除 `tokenCache`），不再读取整库对象。
-- **只常驻当前桶**：内存只持有“当前 chat 的一个桶”（`tokenCacheState`），切换 chat 会重置到新桶并按需懒加载。
-- **事件语义一致**：
-  - `CHAT_CHANGED`：预热当前 chat 桶（懒加载触发点）
-  - `CHAT_DELETED` / `GROUP_CHAT_DELETED`：删除对应 `tokenCache:${chatId}`，避免磁盘堆积
-- **写回策略**：`saveTokenCache()` 仅 flush 当前 chat 桶（dirty 才写回），不再整库写回。
+- **Storage partitioning**: the whole-database key `tokenCache` is no longer used; the cache is persisted per chat as `tokenCache:${chatId}`.
+- **Nothing loaded at startup**: `loadTokenCache()` only performs legacy key cleanup (deleting `tokenCache`) and no longer reads the whole-database object.
+- **Only the current bucket stays resident**: memory holds nothing but "one bucket for the current chat" (`tokenCacheState`); switching chats resets to the new bucket and lazily loads it on demand.
+- **Consistent event semantics**:
+  - `CHAT_CHANGED`: preloads the current chat bucket (the lazy-load trigger)
+  - `CHAT_DELETED` / `GROUP_CHAT_DELETED`: deletes the corresponding `tokenCache:${chatId}` so the disk copy does not pile up
+- **Write-back policy**: `saveTokenCache()` flushes only the current chat bucket (written back when dirty) and no longer writes the whole database back.
 
-### 兼容性边界
+### Compatibility boundaries
 
-- cache 是性能优化，不影响 token 计数正确性；升级后旧整库缓存会被清理，短期缓存会重新变冷（可接受的 tradeoff）。
+- The cache is a performance optimization and does not affect the correctness of token counting; after an upgrade the legacy whole-database cache is cleaned up, so caches go cold again for a while (an acceptable tradeoff).
 
-### 关键代码位置
+### Key code locations
 
-- `src/scripts/tokenizers.js`：`loadTokenCache()` / `saveTokenCache()` / `resetTokenCache()` / `tokenCacheState` / `initTokenizers()` 事件挂载
+- `src/scripts/tokenizers.js`: `loadTokenCache()` / `saveTokenCache()` / `resetTokenCache()` / `tokenCacheState` / event wiring in `initTokenizers()`
 
 ---
 
-## ItemizedPrompts（Prompt Inspector）避免 chat-open whole-load
+## ItemizedPrompts (Prompt Inspector) avoids a whole-load on chat open
 
-### 解决的问题
+### Problem being solved
 
-历史实现会在打开聊天时执行 `loadItemizedPrompts(getCurrentChatId())`，并从 IndexedDB 一次性加载 `chatId -> itemizedPrompts[]` 整包数组。
+The historical implementation ran `loadItemizedPrompts(getCurrentChatId())` when a chat was opened, loading the entire `chatId -> itemizedPrompts[]` array from IndexedDB in one go.
 
-该数组的单条 record 内含大量长字符串（`rawPrompt/finalPrompt/worldInfo/...`），体积通常远大于聊天正文，导致移动端 WebView renderer 常驻集显著膨胀。
+Each record in that array carries a large number of long strings (`rawPrompt/finalPrompt/worldInfo/...`); the array is usually far larger than the chat body itself, which significantly inflated the resident set of the mobile WebView renderer.
 
-### 当前实现（契约）
+### Current implementation (contract)
 
-- **存储形态（Index + Record）**：
-  - Index：`tt_prompts_index:${chatId}` → `Array<{ mesId, recordId }>`
-  - Record：`tt_prompts_record:${chatId}:${recordId}` → 单条 prompt artifacts（原 record 全量）
-- **打开聊天只加载 Index**：`loadItemizedPrompts(chatId)` 仅恢复 `mesId -> recordId` 映射，不加载任何 record。
-- **点击才加载 Record**：`.mes_prompt` 点击后，`promptItemize()` 按 `mesId` 懒加载对应 record（以及可选的上一条 record 用于 diff）并渲染 Inspector。
-- **生成链路不再常驻 records**：生成结束写入 record + 更新 index，不再把 record `push` 到全局数组里常驻。
-- **消息编辑语义保持**：
-  - `swapItemizedPrompts()`：仅交换 index 的 `mesId` 映射
-  - `deleteItemizedPromptForMessage()`：按上游语义 shift 后续 `mesId`，并删除被删除消息的 record
-- **删除/清理覆盖完整**：
-  - chat 删除会清理 Index + Records（不留磁盘残留）
-  - `clearPrompts` 会清空整个实例
+- **Storage shape (Index + Record)**:
+  - Index: `tt_prompts_index:${chatId}` → `Array<{ mesId, recordId }>`
+  - Record: `tt_prompts_record:${chatId}:${recordId}` → one prompt artifact (the original record in full)
+- **Opening a chat loads only the index**: `loadItemizedPrompts(chatId)` restores just the `mesId -> recordId` mapping and loads no record at all.
+- **Records load on click**: after `.mes_prompt` is clicked, `promptItemize()` lazily loads the matching record by `mesId` (plus, optionally, the previous record for the diff) and renders the Inspector.
+- **The generation path no longer keeps records resident**: when generation finishes it writes the record and updates the index, and no longer `push`es the record into a global array that stays resident.
+- **Message-edit semantics preserved**:
+  - `swapItemizedPrompts()`: swaps only the `mesId` mapping in the index
+  - `deleteItemizedPromptForMessage()`: shifts the subsequent `mesId` values the way upstream does, and deletes the record of the removed message
+- **Deletion and cleanup fully covered**:
+  - Deleting a chat cleans up the index and the records (no residue left on disk)
+  - `clearPrompts` empties the whole instance
 
-### 兼容性边界
+### Compatibility boundaries
 
-- 仍复用 `localforage` 实例名 `SillyTavern_Prompts`，保证与上游/生态对存储实例名的假设一致。
-- legacy 格式（`chatId -> array`）在首次进入该 chat 且 index 不存在时，会被迁移为 Index + Records 并删除旧 key（一次性成本，后续打开聊天不再 whole-load）。
+- The `localforage` instance name `SillyTavern_Prompts` is still reused, so the assumption upstream and the ecosystem make about the storage instance name holds.
+- The legacy format (`chatId -> array`) is migrated to Index + Records, and the old key deleted, the first time that chat is entered and no index exists (a one-time cost; later opens no longer whole-load).
 
-### 关键代码位置
+### Key code locations
 
-- `src/scripts/itemized-prompts.js`：Index/Record keys、加载/迁移、Inspector 懒加载、swap/delete 语义
-- `src/script.js`：生成写入、按钮显示（index presence）
+- `src/scripts/itemized-prompts.js`: index/record keys, loading and migration, Inspector lazy loading, swap/delete semantics
+- `src/script.js`: generation write, button visibility (index presence)

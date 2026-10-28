@@ -58,7 +58,6 @@ const SYSTEM_EXTENSIONS: &[&str] = &[
     "in-app-agent",
     "mcp-manager",
     "translate",
-    "tts",
 ];
 const THIRD_PARTY_EXTENSION_NAME_PREFIX: &str = "third-party/";
 

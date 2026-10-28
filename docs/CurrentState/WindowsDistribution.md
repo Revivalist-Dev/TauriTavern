@@ -1,55 +1,63 @@
-# Windows 分发现状
+# Windows distribution status
 
-TauriTavern 的 Windows Stable Release 以 GitHub Release 为唯一安装包来源。WinGet
-只发布指向该 Release 的元数据，不重新构建或托管二份安装包。
+TauriTavern's Windows Stable Release uses GitHub Releases as the only source of installers. WinGet
+publishes only metadata that points at that Release; it neither rebuilds nor hosts a second copy of
+the installer.
 
-## WinGet 契约
+## WinGet contract
 
-- Package ID：`TauriTavern.TauriTavern`
-- 安装包：`TauriTavern-<version>-windows-x64-setup.exe`
-- 类型：NSIS（WinGet manifest 中为 `nullsoft`）
-- 架构与范围：`x64`、`user`
-- 静默参数：`/S`；带进度的无人值守参数：`/P`
-- 升级行为：`install`
-- 仅发布 Stable；Canary、MSI 和 portable zip 不进入这个 Package ID
+- Package ID: `TauriTavern.TauriTavern`
+- Installer: `TauriTavern-<version>-windows-x64-setup.exe`
+- Type: NSIS (`nullsoft` in the WinGet manifest)
+- Architecture and scope: `x64`, `user`
+- Silent switch: `/S`; unattended with progress: `/P`
+- Upgrade behaviour: `install`
+- Publishes Stable only; Canary, MSI, and the portable zip never enter this Package ID
 
-用户目录安装与当前 NSIS 默认行为一致。Portable 版本依赖 Scoop 的 `persist`
-语义，不能把它等价映射为 WinGet portable package。
+A per-user directory install matches the current NSIS default behaviour. The portable build relies on
+Scoop's `persist` semantics, so it cannot be mapped onto a WinGet portable package as an equivalent.
 
-## 发布链路
+## Release pipeline
 
-`.github/workflows/stable-release.yml` 在全部 Release 资产上传成功后调用
-`.github/workflows/winget-release.yml`。后者：
+`.github/workflows/stable-release.yml` calls `.github/workflows/winget-release.yml` once every Release
+asset has uploaded successfully. The latter:
 
-1. 校验 tag、仓库版本与已发布的非 prerelease Release 一致；
-2. 精确选择一个 x64 NSIS setup 资产；
-3. 若目标版本已合入或已有开放 PR，则幂等成功；
-4. 下载固定版本的 WingetCreate 并校验 SHA256；
-5. 从官方仓库中的上一版 manifest 生成更新并上传为 Actions artifact；
-6. 使用提交令牌对应账号，将其 `winget-pkgs` fork 的 `master` 快进同步到上游，再提交 PR。
+1. verifies that the tag, the repository version, and the published non-prerelease Release all agree;
+2. selects exactly one x64 NSIS setup asset;
+3. succeeds idempotently when the target version is already merged or already has an open PR;
+4. downloads a pinned WingetCreate version and verifies its SHA256;
+5. generates an update from the previous version's manifest in the official repository and uploads it
+   as an Actions artifact;
+6. fast-forwards `master` on the `winget-pkgs` fork owned by the commit token's account to upstream,
+   then opens the PR.
 
-同步不使用强制覆盖；fork 有分歧或权限不足时，停止发布并报告错误。
+The sync never force-overwrites; if the fork has diverged or the token lacks permission, the release
+stops and reports an error.
 
-工作流可以按 `release_tag` 手动运行，因此 WinGet 失败时只重试 manifest 发布，
-不需要重新构建 Stable Release。Stable 的资产上传仍保留 `--clobber`；发布契约是
-每个 Stable tag 只构建、上传一次，WinGet 始终读取上传完成后的最终资产。
+The workflow can be run manually with `release_tag`, so a WinGet failure only needs the manifest
+publication retried, without rebuilding the Stable Release. Stable asset uploads keep `--clobber`; the
+release contract is that each Stable tag is built and uploaded exactly once, and WinGet always reads
+the final assets after the upload completes.
 
-## 一次性启用
+## One-time enablement
 
-自动更新依赖官方 `microsoft/winget-pkgs` 仓库中已有 Package ID。首次启用需要：
+Automatic updates depend on the Package ID already existing in the official `microsoft/winget-pkgs`
+repository. Enabling it the first time requires:
 
-1. 以一个已经发布的 Stable 版本提交并合入
-   `TauriTavern.TauriTavern` multi-file seed manifest；
-2. 确认 seed manifest 满足上面的 installer 契约，并在真实 Windows 用户环境验证
-   install、silent install、upgrade 与 uninstall；
-3. 使用完成 Microsoft CLA 的专用 GitHub 账号创建 classic PAT，仅授予
-   `public_repo`，保存为仓库 secret `WINGET_CREATE_GITHUB_TOKEN`；
-4. 手动运行 `WinGet Release` 验证更新 PR，再让后续 Stable 自动调用。
+1. submitting and merging the `TauriTavern.TauriTavern` multi-file seed manifest under an
+   already-published Stable version;
+2. confirming that the seed manifest satisfies the installer contract above, and verifying install,
+   silent install, upgrade, and uninstall in a real Windows user environment;
+3. creating a classic PAT from a dedicated GitHub account that has completed the Microsoft CLA,
+   granting it only `public_repo`, and storing it as the repository secret
+   `WINGET_CREATE_GITHUB_TOKEN`;
+4. running `WinGet Release` manually to verify the update PR, then letting subsequent Stable releases
+   call it automatically.
 
-seed manifest 合入并同步到 WinGet source 后，安装命令为：
+Once the seed manifest is merged and synced into the WinGet source, the install command is:
 
 ```powershell
 winget install --id TauriTavern.TauriTavern --exact
 ```
 
-在官方 source 尚未可查询前，不应把该命令加入面向用户的 README。
+Do not add that command to the user-facing README before it resolves in the official source.

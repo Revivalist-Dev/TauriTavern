@@ -94,7 +94,7 @@ function updateSubtitle() {
     }
     const character = document.getElementById('character_name_pole')?.textContent?.trim();
     const count = messageElements().length;
-    const label = character ? `${character} · ${count} 条消息` : `${count} 条消息`;
+    const label = character ? `${character} · ${count} ${count === 1 ? 'message' : 'messages'}` : `${count} ${count === 1 ? 'message' : 'messages'}`;
     subtitle.textContent = label;
 }
 
@@ -112,7 +112,7 @@ function renderTimeline({ forceScroll = false } = {}) {
     if (nodes.length === 0) {
         const empty = document.createElement('p');
         empty.className = 'sb-conversation-empty';
-        empty.textContent = '还没有消息。选择角色后开始对话。';
+        empty.textContent = 'No messages yet. Select a character to start chatting.';
         fragment.append(empty);
     } else {
         for (const node of nodes) {

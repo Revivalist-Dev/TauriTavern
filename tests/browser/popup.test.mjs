@@ -103,8 +103,8 @@ test('Popup naming and result controls', async context => {
             ];
             const popups = Array.from(Popup.util.popups);
             assert.deepEqual(popups.map(popup => computeAccessibleName(popup.dlg)), ['Rename device', 'Confirm change']);
-            popups[0].content.firstElementChild.textContent = '重命名设备';
-            assert.deepEqual(popups.map(popup => computeAccessibleName(popup.dlg)), ['重命名设备', 'Confirm change']);
+            popups[0].content.firstElementChild.textContent = 'Rename the device';
+            assert.deepEqual(popups.map(popup => computeAccessibleName(popup.dlg)), ['Rename the device', 'Confirm change']);
             for (const popup of popups.toReversed()) await popup.completeCancelled();
             await Promise.all(pending);
         });

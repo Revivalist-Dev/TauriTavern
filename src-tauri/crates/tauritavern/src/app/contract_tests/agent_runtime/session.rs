@@ -446,7 +446,7 @@ async fn session_compacts_at_the_point_and_rebuilds_before_continuing() {
     let mut tool_response = model_tool_response(vec![model_tool_call(
         "large-result",
         "workspace_shell",
-        json!({"command":format!("printf '{}'", "界".repeat(2000))}),
+        json!({"command":format!("printf '{}'", "€".repeat(2000))}),
     )]);
     tool_response["usage"] = json!({"prompt_tokens":6900,"completion_tokens":100});
     let mut invalid_summary = model_tool_response(vec![model_tool_call(
@@ -600,7 +600,7 @@ async fn session_recovers_an_overflow_and_retries_the_original_round() {
             Ok(model_tool_response(vec![model_tool_call(
                 "large-result",
                 "workspace_shell",
-                json!({"command":format!("printf '{}'", "界".repeat(2000))}),
+                json!({"command":format!("printf '{}'", "€".repeat(2000))}),
             )])),
             Ok(json!({"choices":[{"message":{"role":"assistant","content":"Inspected."}}]})),
             Err(ApplicationError::ValidationError(
@@ -688,7 +688,7 @@ async fn session_compacts_on_request_without_a_new_message() {
             model_tool_response(vec![model_tool_call(
                 "large-result",
                 "workspace_shell",
-                json!({"command":format!("printf '{}'", "界".repeat(2000))}),
+                json!({"command":format!("printf '{}'", "€".repeat(2000))}),
             )]),
             json!({"choices":[{"message":{"role":"assistant","content":"Inspected."}}]}),
             json!({"choices":[{"message":{"role":"assistant","content":summary}}]}),

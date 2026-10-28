@@ -1,6 +1,6 @@
 # ChatSurface Project Contract v1
 
-ChatSurface 只建立一个边界：完整 `chat[]` 是数据事实，`#chat > .mes` 是可丢弃的有界投影。扩展在消息、内容或重型 runtime 存活期间持有的资源，必须在相应寿命结束时同步释放。投影变化不是消息业务变化，因此不会伪造 SillyTavern 事件。
+ChatSurface establishes exactly one boundary: the full `chat[]` is the data fact, and `#chat > .mes` is a discardable, bounded projection. Any resource an extension holds for the lifetime of a message, a piece of content or a heavy runtime must be released synchronously when that lifetime ends. A projection change is not a message business change, so no SillyTavern events are fabricated for it.
 
 ## Host API
 
@@ -13,7 +13,7 @@ window.__TAURITAVERN__.api.chatSurface = {
 };
 ```
 
-TauriTavern 不提供第二套 kit 或 wrapper。扩展直接 feature-detect raw API，从而仍可在上游 SillyTavern 中加载：
+TauriTavern ships no second kit or wrapper. Extensions feature-detect the raw API, so they still load in upstream SillyTavern:
 
 ```js
 const api = window.__TAURITAVERN__?.api?.chatSurface;
@@ -47,27 +47,27 @@ const registration = managed ? api.registerParticipant({
     },
 }) : null;
 
-registration?.fault(error); // participant 已无法继续履约
+registration?.fault(error); // the participant can no longer keep its contract
 ```
 
-`isManagedOwnershipRequired()` 是本页启动时冻结的决策：
+`isManagedOwnershipRequired()` is a decision frozen when the page starts:
 
-- `true`：只启用 participant owner，不再启动 legacy DOM watcher；
-- `false` 或 API 不存在：保留上游 static renderer。
+- `true`: only participant owners are enabled, and the legacy DOM watcher is no longer started;
+- `false`, or the API is missing: the upstream static renderer is kept.
 
-扩展不能从当前 DOM 形状推断 ownership。所有 participant 必须在第一次 projection 前完成注册；本页不支持热注册或热注销。
+Extensions must not infer ownership from the current DOM shape. Every participant must be registered before the first projection; hot registration and hot unregistration are not supported on a page.
 
-## 异步内容预处理
+## Asynchronous content preprocessing
 
-异步模板通过 `registerContentProcessor()` 计算显示 HTML，在 participant 申领 runtime source 之前完成。只处理内容的扩展无需注册 participant，也不参与通用代码块 renderer 的互斥判断。
+An asynchronous template computes its display HTML through `registerContentProcessor()`, before any participant claims a runtime source. An extension that only processes content does not need to register a participant, and it does not take part in the mutual-exclusion decision for the generic code-block renderer.
 
-扩展在 manifest 中声明独立的启动 hook：
+An extension declares its own startup hook in the manifest:
 
 ```json
 { "hooks": { "chatSurface": "registerChatSurface" } }
 ```
 
-bounded 启动会提前激活这些扩展，按现有 manifest 顺序等待 hook 完成，再允许首次聊天投影。hook 必须是 JS 入口的真实命名导出；初始化失败会阻止启动，不使用普通 activation 的诊断超时继续执行。上游 SillyTavern 忽略此 hook，扩展仍需保留自己的 static 路径。
+A bounded startup activates those extensions early, waits for the hooks to finish in the existing manifest order, and only then allows the first chat projection. The hook must be a real named export of the JS entry point; an initialization failure blocks startup rather than continuing after the ordinary activation diagnostic timeout. Upstream SillyTavern ignores this hook, so the extension still needs to keep its own static path.
 
 ```js
 let registration;
@@ -84,21 +84,21 @@ export async function registerChatSurface() {
     });
 }
 
-// 世界书、设置或其他模板依赖发生变化。
+// World Info, settings or another template dependency changed.
 await registration.refresh();
 ```
 
-- `prepare` 接收稳定的消息对象、本次请求的 `mesid` 和 `AbortSignal`，返回 HTML 字符串；不读写 live DOM，也不创建运行中的 iframe、observer 或 timer。
-- `renderBase()` 取得后续处理器和宿主格式化的结果；同一次 `prepare` 中重复读取共用同一个 Promise，不会重复执行下游。先注册的处理器包裹后注册的处理器；消息请求串行执行。需要修改原文时，在首次调用 `renderBase()` 前完成；不要在 hook 中调用 `updateMessageBlock()`、重绘或 `refresh()`。
-- 异步处理结果按消息对象缓存，内容与宿主格式化输出不变时可在重挂载时复用；同步格式化仍可重跑。世界书、变量等外部依赖变化须由扩展调用 `refresh()`。
-- 宿主仅保存 participant 加入 wrapper/runtime 之前的 HTML 字符串，不保存 DOM、不写回 `extra.display_text`，聊天 epoch 结束后释放结果。
-- 首次准备或更新等待期间，`.mes_text` 为空且标记 `aria-busy`；`didMount` 仍表达楼层挂载。准备完成后，通过现有内容事务提交，再运行 `prepareContent`、`didCommitContent` 与 runtime admission。
-- 编辑与流式中间内容不执行处理器或启动 runtime。核心生成路径在 `MESSAGE_RECEIVED` 处理完成后提交最终内容，再发送 rendered 事件；同步 `addOneMessage()` / `updateMessageBlock()` 仍同步返回，异步显示完成以 `didCommitContent` 为准。
-- `refresh()` 更新已挂载的正文与 reasoning，保留 root 和 mount lease；编辑/流式内容延至结束后更新。reasoning 不进入正文异步处理链。
-- 内容被替代、处理中消息被删除或重编号、聊天切换时，signal abort，旧结果不得回写。扩展需要配合取消自己的异步操作；宿主无法回滚模板已经产生的业务副作用。
-- 注册必须早于首次投影；重复 id、非法返回值与处理异常立即报错，处理异常带处理器 id 和消息位置并 fault 当前 epoch。`refresh()` 返回的 Promise 等待当前挂载消息完成准备并传播错误。
+- `prepare` receives the stable message object, the `mesid` for this request and an `AbortSignal`, and returns an HTML string; it neither reads nor writes the live DOM, and it creates no running iframe, observer or timer.
+- `renderBase()` obtains the result of later processors and of host formatting; repeated reads within one `prepare` share a single Promise and do not run downstream processors twice. A processor registered earlier wraps one registered later, and requests for a message run serially. To change the source text, do it before the first call to `renderBase()`; do not call `updateMessageBlock()`, re-render or `refresh()` inside the hook.
+- Results of asynchronous processing are cached per message object and reused on remount while the content and the host's formatted output are unchanged; synchronous formatting may still run again. When an external dependency such as World Info or a variable changes, the extension must call `refresh()`.
+- The host stores only the HTML string from before participants add wrappers or runtimes; it stores no DOM, does not write back to `extra.display_text`, and releases the result when the chat epoch ends.
+- While the first preparation, or an update, is pending, `.mes_text` is empty and marked `aria-busy`; `didMount` still expresses that the message is mounted. Once preparation finishes, the content is committed through the existing content transaction, and then `prepareContent`, `didCommitContent` and runtime admission run.
+- Edits and intermediate streaming content neither run processors nor start runtimes. The core generation path commits the final content after `MESSAGE_RECEIVED` handlers finish and then emits the rendered event; synchronous `addOneMessage()` / `updateMessageBlock()` still return synchronously, and completion of the asynchronous display is signalled by `didCommitContent`.
+- `refresh()` updates the mounted body and reasoning while keeping the root and the mount lease; edited or streaming content is updated after it finishes. Reasoning does not enter the body's asynchronous processing chain.
+- When content is replaced, a message that is being processed is deleted or renumbered, or the chat changes, the signal is aborted and old results must not be written back. The extension has to cooperate by cancelling its own asynchronous work; the host cannot roll back business side effects a template has already produced.
+- Registration must happen before the first projection; a duplicate id, an illegal return value or a processing exception reports an error immediately, and a processing exception carries the processor id and the message position and faults the current epoch. The Promise returned by `refresh()` waits for the currently mounted messages to finish preparing and propagates errors.
 
-生成普通 HTML 代码块后，JSR 可继续按 participant v1 申领它们。扩展若有自己的 iframe 功能，也必须输出可申领的惰性 source，并通过现有 participant 的 grant/revoke 生命周期创建和释放 iframe。
+After producing ordinary HTML code blocks, JSR can keep claiming them under participant v1. An extension with its own iframe feature must also emit a claimable lazy source, and create and release its iframes through the existing participant grant/revoke lifecycle.
 
 ## Participant
 
@@ -114,70 +114,70 @@ interface ChatSurfaceParticipantV1 {
 
 ### `prepareContent`
 
-`DetachedContext` 只包含 `mesid` 与 detached `.mes_text` `content`。该 hook 可以同步改写内容并声明 runtime source，但不得创建 iframe、timer、observer 或启动异步任务。
+`DetachedContext` contains only `mesid` and the detached `.mes_text` `content`. The hook may rewrite the content synchronously and declare runtime sources, but it must not create iframes, timers or observers, or start asynchronous work.
 
 ```ts
 claims.claim(source, activate)
 ```
 
-- `source` 必须是当前 detached content 的后代；
-- 同一 source 只能由一个 participant claim；
-- claims 只在 `prepareContent` 同步调用期间有效；
-- hook 必须返回 `undefined`，不得返回 Promise；
-- source 会保留对象身份并随内容提交到 live DOM。
+- `source` must be a descendant of the current detached content;
+- a source may be claimed by only one participant;
+- claims are valid only during the synchronous `prepareContent` call;
+- the hook must return `undefined` and must not return a Promise;
+- the source keeps its object identity and is committed to the live DOM along with the content.
 
-### `didMount` 与 `didCommitContent`
+### `didMount` and `didCommitContent`
 
-connected context 包含：
+A connected context contains:
 
 ```ts
 { mesid, element, content, signal }
 ```
 
-hook 可以返回一个 cleanup function 或带 `dispose()` 的对象。宿主先 abort `signal`，再同步调用 disposer：
+A hook may return a cleanup function or an object with `dispose()`. The host aborts `signal` first and then calls the disposer synchronously:
 
-| hook | 寿命 | 适合持有 |
+| hook | Lifetime | Good for holding |
 | --- | --- | --- |
-| `didMount` | 整楼 mount → unmount | root observer、楼层按钮、element 引用 |
-| `didCommitContent` | 当前内容版本 → 替换或 unmount | 内容 decorator、wrapper/source 引用 |
+| `didMount` | whole message mount → unmount | root observers, message buttons, element references |
+| `didCommitContent` | current content version → replacement or unmount | content decorators, wrapper and source references |
 
-扩展只有一种 cleanup 交付方式：返回 disposer。内部 lease stack 不属于 Host API。
+There is one way for an extension to deliver cleanup: return a disposer. The internal lease stack is not part of the Host API.
 
 ### Runtime activation
 
-被 claim 的 source 只有获得 runtime grant 后才会 activation：
+A claimed source is activated only after it receives a runtime grant:
 
 ```ts
 activate({ source, mesid, element, content, signal }) => Disposable
 ```
 
-- activation 时 source 已 connected，且仍属于对应内容；
-- activation 必须同步返回 disposer，不得返回 `void` 或 Promise；
-- 每次 `grant → revoke → grant` 都获得新的 signal 与 disposer；
-- revoke 返回时必须已经撤销 iframe、timer、listener、observer 和强引用；
-- active runtime 被 revoke 时，其稳定 host 应留下不持有上述资源的等高 `inert` placeholder；regrant 先把该高度交给新 runtime，再由 renderer 自己的高度协议校准；
-- source 是可重建 runtime 的锚点，不得转移给 detached stash 或其他消息。
+- at activation the source is already connected and still belongs to the content it was claimed for;
+- activation must return a disposer synchronously, never `void` or a Promise;
+- every `grant → revoke → grant` cycle gets a new signal and a new disposer;
+- by the time revoke returns, iframes, timers, listeners, observers and strong references must all be gone;
+- when an active runtime is revoked, its stable host should leave behind an `inert` placeholder of matching height that holds none of those resources; a regrant first hands that height to the new runtime, which the renderer's own height protocol then calibrates;
+- the source is the anchor from which the runtime can be rebuilt and must not be moved into a detached stash or into another message.
 
-宿主可以不 activation 某个 candidate。DOM residency 与 runtime admission 是两个独立上限，预算、顺序和 viewport policy 不进入 participant API。
+The host may decline to activate a candidate. DOM residency and runtime admission are two separate limits, and budget, ordering and viewport policy are not part of the participant API.
 
-## 错误与事件边界
+## Error and event boundaries
 
-- registration 字段、协议版本和 hook 参数不合法时立即抛错；
-- 必需 renderer 激活失败时向启动调用者传播原始错误；只有激活流程正常返回后才检查 required participant，避免掩盖加载或 hook 的实际失败原因；
-- duplicate claim、ownership 分歧、异步 disposer 或同步写重入会 fault 当前有界 epoch；
-- participant 在 hook 外无法继续履约时调用 `registration.fault(error)`；
-- fault 保留完整 `chat[]` 和当前有界 DOM，不自动展开完整历史；
-- mount/remount/content/runtime lifecycle 不发送 `MESSAGE_UPDATED`、`MORE_MESSAGES_LOADED`、`USER_MESSAGE_RENDERED` 或 `CHARACTER_MESSAGE_RENDERED`。
+- invalid registration fields, protocol version or hook arguments throw immediately;
+- when a required renderer fails to activate, the original error propagates to the startup caller; required participants are checked only after the activation flow returns normally, so the real cause of a load or hook failure is not masked;
+- a duplicate claim, a disagreement about ownership, an asynchronous disposer or a re-entrant synchronous write faults the current bounded epoch;
+- a participant that can no longer keep its contract outside a hook calls `registration.fault(error)`;
+- a fault keeps the full `chat[]` and the current bounded DOM and does not expand the full history automatically;
+- the mount, remount, content and runtime lifecycles do not emit `MESSAGE_UPDATED`, `MORE_MESSAGES_LOADED`, `USER_MESSAGE_RENDERED` or `CHARACTER_MESSAGE_RENDERED`.
 
-## Capability 与发布边界
+## Capability and release boundaries
 
-已知 renderer 必须在第一次聊天投影前注册精确 identity：
+Known renderers must register their exact identity before the first chat projection:
 
-| Extension | required participant id |
+| Extension | Required participant id |
 | --- | --- |
 | JS-Slash-Runner | `js-slash-runner/message-runtime` |
 | LittleWhiteBox | `littlewhitebox/message-runtime` |
 
-缺少 required participant、协议不匹配或 participant fault 会拒绝 bounded epoch，不会退回 full DOM。static 策略仍运行原 renderer。
+A missing required participant, a protocol mismatch or a participant fault rejects the bounded epoch and does not fall back to full DOM. The static strategy still runs the original renderer.
 
-managed 首版只承诺 capability matrix 中已经验证的核心 frontend/iframe runtime；不宣称支持 JSR managed streaming renderer，也不宣称支持 LWB immersive、TTS、draw、story-outline 或 custom-template 等未接入能力。
+The first managed release covers only the core frontend and iframe runtimes validated in the capability matrix; it does not claim support for the JSR managed streaming renderer, nor for LWB capabilities that are not wired up, such as immersive, draw, story-outline or custom-template.

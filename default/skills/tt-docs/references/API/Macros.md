@@ -1,53 +1,53 @@
-# 宏求值
+# Macro evaluation
 
-`SillyTavern.getContext().macros` 提供宏注册、引擎和独立求值接口。
+`SillyTavern.getContext().macros` exposes macro registration, the engine, and the standalone evaluation interface.
 
-普通 `substituteParams()` 读取当前聊天、角色和变量，本文称之为 live 环境。需要按一份固定输入求值时，可以先用 `captureContext()` 保存输入，再调用 `evaluateWithContext()`。这些方法都同步执行，求值时不会切换当前聊天或预设。
+Plain `substituteParams()` reads the current chat, character and variables; this document calls that the live environment. When you need to evaluate against a fixed set of inputs, capture them with `captureContext()` first and then call `evaluateWithContext()`. All of these methods run synchronously, and evaluating does not switch the current chat or preset.
 
 ```js
 const { macros } = SillyTavern.getContext();
 const context = macros.captureContext();
 
-macros.evaluateWithContext('{{setvar::topic::调查}}', context);
+macros.evaluateWithContext('{{setvar::topic::investigation}}', context);
 const text = macros.evaluateWithContext('{{getvar::topic}} / {{char}}', context);
-// topic 写入 context.variables.local，当前聊天变量不变。
+// topic is written to context.variables.local; the current chat variables are unchanged.
 
-const other = structuredClone(context); // 从当前结果另开一个独立分支
+const other = structuredClone(context); // start an independent branch from the current result
 ```
 
-## 捕获与求值
+## Capture and evaluation
 
-`captureContext()` 保存当时的名称、原始角色模板、聊天数据、设置、时间、local/global 变量原值及模块数据。捕获本身不展开角色模板，也不调用已注册的宏 handler。
+`captureContext()` saves the names, raw character template, chat data, settings, time, original local and global variables, and module data as they stand at that moment. Capture itself neither expands the character template nor calls any registered macro handler.
 
-`evaluateWithContext(text, context, options?)` 返回展开后的字符串。`text` 必须是字符串；传入空字符串时直接返回，不执行角色卡中的宏。`context` 可以使用捕获结果，也可以由调用者按 [MacroContext 类型](../../src/scripts/macros/engine/MacroEnv.types.js) 提供完整数据。
+`evaluateWithContext(text, context, options?)` returns the expanded string. `text` must be a string; an empty string returns immediately without evaluating macros from the character card. `context` can be a capture result, or complete data supplied by the caller following the [MacroContext type](../../src/scripts/macros/engine/MacroEnv.types.js).
 
-`options` 与 `substituteParams()` 对应：
+`options` mirror those of `substituteParams()`:
 
-- `original`：本段文本的原始内容，可由 `{{original}}` 取用一次。
-- `dynamicMacros`：本次调用使用的动态宏。
-- `postProcessFn`：宏结果的后处理函数。
-- `name1Override`、`name2Override`、`groupOverride`：用户、角色和群组的名称覆盖。
-- `replaceCharacterCard`：是否展开角色卡字段。
+- `original`: the original content of this piece of text, available once through `{{original}}`.
+- `dynamicMacros`: the dynamic macros used for this call.
+- `postProcessFn`: a post-processing function for macro results.
+- `name1Override`, `name2Override`, `groupOverride`: name overrides for the user, the character and the group.
+- `replaceCharacterCard`: whether to expand character card fields.
 
-context 记录捕获时选择的新或旧引擎。两种引擎各自的语法和求值顺序保持不变，之后切换 UI 开关不会改变这份 context 的引擎。
+The context records which engine, new or legacy, was selected at capture time. Each engine keeps its own syntax and evaluation order, and toggling the UI switch afterwards does not change the engine of an existing context.
 
-直接使用低层接口的扩展仍可调用 `macros.envBuilder.buildFromRawEnv()`，再交给 `macros.engine.evaluate()`。builder 默认按新引擎准备环境；普通 `substituteParams()` 和 `captureContext()` 使用当前 UI 选择的引擎。
+Extensions that use the low-level interface directly can still call `macros.envBuilder.buildFromRawEnv()` and hand the result to `macros.engine.evaluate()`. The builder prepares environments for the new engine by default; plain `substituteParams()` and `captureContext()` use whichever engine the UI currently selects.
 
-## 上下文与运行环境
+## Context and environment
 
-MacroContext 是调用者持有、可以保存的数据；MacroEnv 是处理一段文本时传给宏 handler 的运行环境。
+MacroContext is caller-held data that can be stored; MacroEnv is the runtime environment passed to macro handlers while a piece of text is processed.
 
-对同一个 context 连续求值，会共享变量和禁用词列表 `bannedWords`。每段文本分别记录自己的内容和 hash，`original` 的使用次数也重新计算。角色字段在首次读取时展开，结果只在这一段文本内缓存。需要用同一份输入分别组装多次时，在每次组装开始前复制 context。
+Evaluating repeatedly against the same context shares variables and the `bannedWords` banned-word list. Each piece of text records its own content and hash, and the number of times `original` has been used is recalculated. Character fields are expanded on first read, and the result is cached only for that piece of text. If you need to assemble several times from the same inputs, clone the context before each assembly begins.
 
-handler 内的 `resolve()` 处理嵌套内容，继续使用当前 MacroEnv。处理另一段文本时，使用 `evaluateWithContext()`，或调用 `env.functions.substitute()` 沿用当前输入和变量。
+`resolve()` inside a handler processes nested content and keeps using the current MacroEnv. To process a different piece of text, use `evaluateWithContext()`, or call `env.functions.substitute()` to reuse the current inputs and variables.
 
-变量操作由 `env.variables.local` 和 `env.variables.global` 提供，包括 `get`、`set`、`add`、`inc`、`dec`、`has`、`del`。普通 live 变量 API 每次操作都读取当前存储，因此扩展整体替换变量对象后，后续宏能读到新对象。
+Variable operations come from `env.variables.local` and `env.variables.global`: `get`, `set`, `add`, `inc`, `dec`, `has`, `del`. The plain live variable API reads current storage on every operation, so once an extension replaces the whole variable object, later macros see the new object.
 
-live 环境中的聊天数据和运行状态是只读的，每次读取都取当前值。`captureContext()` 会把这些值复制为普通数据。名称、model 覆盖、`extra` 容器及每段文本的状态仍按调用准备。live 角色字段使用现有的惰性展开函数；显式上下文从保存的模板展开，两种路径使用相同的宏定义和变量规则。
+In the live environment, chat data and run state are read-only, and every read returns the current value. `captureContext()` copies those values into ordinary data. Names, model overrides, the `extra` container and per-text state are still prepared per call. Live character fields use the existing lazy expansion function; an explicit context expands from the saved template. Both paths use the same macro definitions and variable rules.
 
-## 扩展宏
+## Extension macros
 
-需要支持独立求值的宏，应从 handler 收到的 `env` 读取上下文。扩展可以注册 provider，将自身数据放入 `env.extra`；这些数据需要能被 `structuredClone` 复制。下面的 `extensionSettings` 表示扩展自己的配置对象：
+A macro that must support standalone evaluation should read its context from the `env` its handler receives. Extensions can register providers that place their own data in `env.extra`; that data must be copyable by `structuredClone`. `extensionSettings` below stands for the extension's own settings object:
 
 ```js
 const liveData = Object.freeze({
@@ -61,22 +61,22 @@ macros.register('myLabel', {
 });
 ```
 
-provider 在准备 live 环境和捕获 context 时运行。它可以提供普通值，也可以提供可枚举的 getter：live 求值按需调用 getter，捕获时则保存 getter 返回的值。上例的只读对象不保存求值状态，可以在调用间共享；只属于某段文本的状态应放在该次 env 中。
+Providers run when a live environment is prepared and when a context is captured. They can supply plain values or enumerable getters: live evaluation calls the getter on demand, while capture stores the value the getter returns. The read-only object in the example above holds no evaluation state and can be shared between calls; state that belongs to one piece of text should live in that call's env.
 
-`evaluateWithContext()` 不重新运行 provider。例如，provider 在捕获时设置的角色昵称会随 context 保存，之后切换聊天不会改变它。Session 使用自己的输入构造上下文，不调用当前聊天的 provider。
+`evaluateWithContext()` does not rerun providers. A character nickname that a provider set at capture time, for example, is stored with the context, and switching chats afterwards does not change it. A session builds its context from its own inputs and does not call the current chat's providers.
 
-现有 registry、processor、dynamic 宏和 legacy 注册接口继续可用。`MacrosParser.registerMacro()` 的回调仍以 nonce 为第一个参数，第二个参数为 MacroEnv；在新引擎中调用 legacy 回调时，也会传入这两个参数。
+The existing registry, processor, dynamic macro and legacy registration interfaces remain available. The `MacrosParser.registerMacro()` callback still takes the nonce as its first argument and a MacroEnv as its second; when the new engine calls a legacy callback, it passes both as well.
 
-扩展回调仍按普通 JavaScript 执行。回调直接访问全局变量、操作 DOM，或调用普通 `substituteParams()` 时，访问的仍是 live 环境。第一方宏及其下游函数从 `env` 读取数据；第三方回调的全局读写不会自动转移到 context。
+Extension callbacks still run as ordinary JavaScript. When a callback reads globals directly, manipulates the DOM, or calls plain `substituteParams()`, it still touches the live environment. First-party macros and the functions downstream of them read data from `env`; global reads and writes in third-party callbacks do not move to the context automatically.
 
-宏的错误展示与恢复方式沿用现有行为。显式求值缺少必要上下文时会报错，不从当前聊天补齐。
+Macro errors are displayed and recovered exactly as before. Explicit evaluation raises an error when required context is missing rather than filling it in from the current chat.
 
-## Agent 与请求模板
+## Agents and request templates
 
-Chat Agent 在 `GENERATE_AFTER_DATA` 的异步处理完成后、dry-run 返回前捕获输入。首次独立预设组装，以及后续子 Agent 和交接，都使用各自的工作副本。`CHAT_COMPLETION_SETTINGS_READY` 可以修改最终请求，在此事件中写入的 live 变量不会进入已保存的输入。组装流程见 [Prompt assembly](../Agent/PromptAssembly.md)。
+The chat agent captures its inputs after asynchronous `GENERATE_AFTER_DATA` handlers finish and before a dry run returns. The first standalone preset assembly, and every later sub-agent and handoff, use their own working copy. `CHAT_COMPLETION_SETTINGS_READY` can modify the final request, and live variables written in that event do not enter the saved inputs. For the assembly flow, see [Prompt assembly](../Agent/PromptAssembly.md).
 
-Additional Parameters 模板原样保存在对应 source 的配置中，准备请求时展开。生成、连接状态检查（status）和自定义图片描述（Custom Caption）使用同一个请求准备函数。status 只展开 headers；Caption 使用 custom 渠道配置和本次图片描述的模型。
+Additional Parameters templates are stored verbatim in the configuration of their source and expanded when a request is prepared. Generation, connection status checks, and custom image captions (Custom Caption) all use the same request preparation function. Status expands headers only; a caption uses the custom channel configuration and the model of the image description in flight.
 
-同次组装中的提示词、stop、prefill 和 Additional Parameters 共享工作变量。请求重试和后续模型轮次复用已准备的请求，不重复执行模板中的宏。
+Prompts, stop sequences, prefill and Additional Parameters in the same assembly share working variables. Request retries and later model turns reuse the prepared request and do not re-run macros in the template.
 
-原生 LLM Connection 的 `adapterHints`、扩展自行构造的 payload，以及扩展在准备完成后覆盖的参数，均按字面值使用。Rust 只做已有的只读文本替换，不执行前端宏引擎。
+`adapterHints` on a native LLM connection, payloads an extension builds itself, and parameters an extension overrides after preparation are all used as literal values. Rust performs only the existing read-only text substitutions and does not run the frontend macro engine.

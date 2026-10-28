@@ -64,7 +64,7 @@ function skillText() {
         '',
         '# TauriTavern documentation',
         '',
-        'These are TauriTavern\'s own documents, from the same source revision as this app. They are written in Chinese. The layout under `references/` mirrors the project\'s `docs/` folder, so links between the documents listed here resolve; links to any other document point to files that are not included.',
+        'These are TauriTavern\'s own documents, from the same source revision as this app. They are written in English. The layout under `references/` mirrors the project\'s `docs/` folder, so links between the documents listed here resolve; links to any other document point to files that are not included.',
     ];
     for (const group of GROUPS) {
         lines.push('', `## ${group.title}`, '');

@@ -1328,7 +1328,7 @@ async fn character_chat_listing_reads_legacy_alias_directory() {
     fs::create_dir_all(&legacy_chat_dir)
         .await
         .expect("create legacy chat directory");
-    let full_text = "完整正文".repeat(125);
+    let full_text = "full text".repeat(125);
     let message = json!({
         "mes": full_text,
         "send_date": "2026-01-01T00:00:00.000Z",

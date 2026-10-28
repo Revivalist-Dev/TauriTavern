@@ -1,4 +1,4 @@
-//! 编译期内嵌、通过 `@tauritavern/kit/*` 暴露的脚本工具箱。
+//! Script toolbox embedded at compile time and exposed through `@tauritavern/kit/*`.
 
 pub(crate) const MODULES: &[(&str, &str)] = &[
     (

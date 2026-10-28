@@ -1,0 +1,18 @@
+[package]
+name = "tt-adapter-local-vault"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { version = "1", default-features = false, features = ["fs", "rt", "sync"] }
+trash = "5"
+uuid = { workspace = true }
+image = { version = "0.25", default-features = false, features = ["gif", "jpeg", "png", "webp"] }
+
+[dev-dependencies]
+tempfile = "3"
+tokio = { version = "1", default-features = false, features = ["fs", "macros", "rt"] }

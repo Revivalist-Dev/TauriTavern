@@ -91,10 +91,9 @@ upstream merges are manual and reviewable.
 
 - Deleted platform-only docs: `AndroidDevelopment.md`, `iOSDevelopment.md`,
   `OpenHarmonyDevelopment.md`, `CurrentState/iOSPolicy.md`, `CurrentState/LinuxRepository.md`,
-  `CurrentState/MobileStyleAdaptation.md`, `CurrentState/TTS.md`.
+  `CurrentState/MobileStyleAdaptation.md`, plus the removed `CurrentState/TTS.md`.
 - The Windows build guide, README, frontend contract, frontend guide, backend structure and the
-  built-in skills describe Windows only. The translated READMEs remain upstream text until a later
-  documentation pass.
+  built-in skills describe Windows only.
 
 ### SillyBunny desktop UI
 

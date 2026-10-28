@@ -3,6 +3,7 @@ import { installWindowBackdrop } from '../../scripts/window-backdrop.js';
 import { invoke } from '../../tauri-bridge.js';
 import { eventSource, event_types } from '../../scripts/events.js';
 import { createTauriMainContext } from './context.js';
+import { installVaultApi, createVaultApi } from './api/vault.js';
 import { createDownloadBridge } from './download-bridge.js';
 import { createInterceptors } from './interceptors.js';
 import { createRouteRegistry } from './router.js';
@@ -133,6 +134,12 @@ function installHostAbi(context) {
             thumbnailUrl: window.__TAURITAVERN_THUMBNAIL__,
             backgroundPath: window.__TAURITAVERN_BACKGROUND_PATH__,
         },
+        dialog: {
+            pickDirectory: async options => {
+                const { open } = await import('@tauri-apps/plugin-dialog');
+                return open({ directory: true, multiple: false, ...options });
+            },
+        },
     };
 }
 
@@ -251,6 +258,7 @@ export function bootstrapTauriMain() {
 
     const context = createTauriMainContext({ invoke });
     installHostAbi(context); installLayoutApi(); installChatApi(context); installChatSurfaceApi(); installCharacterCardsApi(context);
+    installVaultApi(createVaultApi({ safeInvoke: context.safeInvoke }));
     const restoreAgentAssemblyBridges = installAgentApi(context);
     installLlmConnectionsApi(context); installMcpApi(context); installSkillApi(context); installDevApi(context); installExtensionStoreApi(context); installDbApi(context); installWorldInfoApi();
     installMainApiOptionParking();
@@ -389,6 +397,9 @@ export function bootstrapTauriMain() {
         void import('./ui/sillybunny-shell/index.js')
             .then(({ installSillyBunnyShell }) => installSillyBunnyShell())
             .catch((error) => { console.error('TauriTavern: Failed to install the SillyBunny shell:', error); });
+        void import('./ui/file-explorer/index.js')
+            .then(({ installFileExplorer }) => installFileExplorer())
+            .catch((error) => { console.error('TauriTavern: Failed to install the file explorer:', error); });
     });
 
     if (perfEnabled) {

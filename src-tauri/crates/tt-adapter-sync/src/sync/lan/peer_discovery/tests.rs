@@ -54,12 +54,12 @@ fn discovery_preserves_unicode_names_and_remaining_interfaces_when_a_service_dis
     );
 
     let mut renamed = device.clone();
-    renamed.device_name = "新设备名".to_string();
+    renamed.device_name = "New Device".to_string();
     renamed.platform = Some("ios".to_string());
     update_peer(&inner, "ethernet", Some((renamed, second)));
     let snapshot = discovery.snapshot();
     assert_eq!(snapshot.len(), 1);
-    assert_eq!(snapshot[0].device_name, "新设备名");
+    assert_eq!(snapshot[0].device_name, "New Device");
     assert_eq!(snapshot[0].platform.as_deref(), Some("ios"));
     update_peer(&inner, "wifi", None);
     assert_eq!(
@@ -69,4 +69,3 @@ fn discovery_preserves_unicode_names_and_remaining_interfaces_when_a_service_dis
     update_peer(&inner, "ethernet", None);
     assert!(discovery.snapshot().is_empty());
 }
-

@@ -5751,10 +5751,6 @@ body:not(.caption) .mes_img_caption {
     min-height: 20dvh;
 }
 
-#ui_language_select {
-    width: 8em;
-}
-
 #extensions_settings .inline-drawer-toggle.inline-drawer-header:hover,
 #extensions_settings2 .inline-drawer-toggle.inline-drawer-header:hover,
 .standoutHeader.inline-drawer-header:hover {

@@ -7,38 +7,38 @@ pub enum UpdateChannel {
     Canary,
 }
 
-/// GitHub Release 中与更新相关的核心字段。
+/// Core GitHub Release fields that the updater cares about.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReleaseInfo {
-    /// Release tag，例如 "v2.1.1" 或 "Canary"。
+    /// Release tag, for example "v2.1.1" or "Canary".
     pub tag_name: String,
-    /// Stable Release 的语义化版本号；Canary 使用 source_revision 判别。
+    /// Semantic version of a Stable release; Canary is identified by source_revision instead.
     pub version: Option<String>,
-    /// Canary tag 指向的 commit SHA；Stable 不需要该字段。
+    /// Commit SHA the Canary tag points at; Stable releases leave this unset.
     pub source_revision: Option<String>,
-    /// Release 标题。
+    /// Release title.
     pub name: String,
-    /// Release body（Markdown 变更日志）。
+    /// Release body (the Markdown changelog).
     pub body: String,
-    /// GitHub Release 页面 URL。
+    /// URL of the GitHub Release page.
     pub html_url: String,
-    /// 是否为预发布。
+    /// Whether this release is a pre-release.
     pub prerelease: bool,
-    /// 发布时间（ISO 8601）。
+    /// Publication time (ISO 8601).
     pub published_at: String,
 }
 
-/// 更新检查结果。
+/// Outcome of an update check.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateCheckResult {
-    /// 是否有可用更新。
+    /// Whether an update is available.
     pub has_update: bool,
-    /// 当前版本。
+    /// Currently installed version.
     pub current_version: String,
-    /// 本次检查使用的渠道。
+    /// Channel used for this check.
     pub channel: UpdateChannel,
-    /// 用于启动弹窗去重的稳定发布身份。
+    /// Stable release identity, used to de-duplicate the startup prompt.
     pub release_token: Option<String>,
-    /// 最新版本的 Release 信息，仅当 has_update 为 true 时有值。
+    /// Release information for the newest version; only set when has_update is true.
     pub latest_release: Option<ReleaseInfo>,
 }

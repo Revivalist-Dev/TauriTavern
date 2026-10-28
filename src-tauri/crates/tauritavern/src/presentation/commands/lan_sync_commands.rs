@@ -6,8 +6,7 @@ use tauri::State;
 use ttsync_contract::sync::{OverwritePolicy, SyncMode};
 
 use crate::app::AppState;
-use crate::presentation::commands::helpers::{ log_command, map_command_error,
-};
+use crate::presentation::commands::helpers::{log_command, map_command_error};
 use crate::presentation::errors::CommandError;
 use tt_contracts::lan_discovery::LanDiscoveredDevice;
 use tt_contracts::sync::{SyncJobReport, SyncOperationOptions};

@@ -55,6 +55,7 @@
     <link rel="stylesheet" type="text/css" href="css/macros.css">
     <link rel="stylesheet" type="text/css" href="css/tauritavern-oled-background.css">
     <link rel="stylesheet" type="text/css" href="css/tauritavern-sillybunny-shell.css">
+<link rel="stylesheet" type="text/css" href="css/file-explorer.css">
     <link rel="stylesheet" type="text/css" href="css/user.css">
     <!-- Module scripts are loaded by init.js; avoid modulepreload on mobile WebView to prevent cached preload failures. -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -5211,13 +5212,6 @@ Using a draft model is preferred. Speculative ngram is not as effective." id="sp
                                 </h3>
                             </div>
                         </div>
-                        <div id="UI-language-block" class="flex-container alignItemsBaseline">
-                            <span data-i18n="UI Language">Language:</span>
-                            <select id="ui_language_select" class="flex1 margin0 text_pole">
-                                <option value="" data-i18n="Default">Default</option>
-                                <option value="en">English</option>
-                            </select>
-                        </div>
                         <small id="version_display"></small>
                     </div>
                     <div name="UserSettingsRowTwo" class="flex-container flexFlowRow">
@@ -6114,7 +6108,6 @@ Using a draft model is preferred. Speculative ngram is not as effective." id="sp
                         <div id="typing_indicator_container" class="extension_container"></div>
                         <div id="expressions_container" class="extension_container"></div>
                         <div id="sd_container" class="extension_container"></div>
-                        <div id="tts_container" class="extension_container"></div>
                         <div id="rvc_container" class="extension_container"></div>
                         <div id="stt_container" class="extension_container"></div>
                         <div id="audio_container" class="extension_container"></div>
@@ -6126,6 +6119,7 @@ Using a draft model is preferred. Speculative ngram is not as effective." id="sp
                         <div id="timelines_container" class="extension_container"></div>
                         <div id="webllm_container" class="extension_container"></div>
                         <div id="rss_container" class="extension_container"></div>
+                        <div id="in_chat_agents_container" class="extension_container"></div>
                     </div>
                     <div id="extensions_settings2" class="flex1 wide50p">
                         <div id="websearch_container" class="extension_container"></div>
@@ -7903,12 +7897,6 @@ Using a draft model is preferred. Speculative ngram is not as effective." id="sp
         <div id="onboarding_template" class="template_element">
             <div class="onboarding">
                 <h3 data-i18n="Welcome to TauriTavern!">Welcome to TauriTavern!</h3>
-                <div id="onboarding-UI-language-block" class="flex-container alignItemsBaseline">
-                    <span data-i18n="UI Language">Language:</span>
-                    <select id="onboarding_ui_language_select" class="flex1 margin0">
-                        <option value="en">English</option>
-                    </select>
-                </div>
                 <b data-i18n="TauriTavern is aimed at advanced users.">
                     TauriTavern is aimed at advanced users.
                 </b>

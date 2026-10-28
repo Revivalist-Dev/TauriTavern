@@ -325,8 +325,8 @@ mod tests {
                     attempt: 1,
                 },
                 invocation_exit_policy: AgentInvocationExitPolicy::RunFinishAllowed,
-                text: "正文".to_string(),
-                reasoning: "思考".to_string(),
+                text: "Hello".to_string(),
+                reasoning: "Notes".to_string(),
                 tool_ids: Vec::new(),
             },
         );
@@ -335,7 +335,7 @@ mod tests {
         assert_eq!(
             snapshot["responses"],
             json!([{
-                "invocationId": "inv_root", "invocationExitPolicy": "run_finish_allowed", "round": 1, "attempt": 1, "text": "正文", "reasoning": "思考", "toolIds": []
+                "invocationId": "inv_root", "invocationExitPolicy": "run_finish_allowed", "round": 1, "attempt": 1, "text": "Hello", "reasoning": "Notes", "toolIds": []
             }])
         );
         projection
@@ -343,19 +343,19 @@ mod tests {
             .get_mut("inv_root")
             .unwrap()
             .text
-            .push_str("一下😀");
+            .push_str(" world😀");
         projection
             .responses
             .get_mut("inv_root")
             .unwrap()
             .reasoning
-            .push_str("再想😀");
+            .push_str(" again😀");
         assert_eq!(
             presenter.updates(&projection).unwrap(),
             vec![AgentRunLiveUpdateDto::ResponseAppend {
                 invocation_id: "inv_root".to_string(),
-                text: "一下😀".to_string(),
-                reasoning: "再想😀".to_string(),
+                text: " world😀".to_string(),
+                reasoning: " again😀".to_string(),
                 tool_ids: Vec::new(),
             }]
         );
@@ -401,7 +401,7 @@ mod tests {
             tool_call_index: 0,
         };
         let mut presenter = AgentRunLivePresenter::default();
-        let snapshot = presenter.snapshot(&write_projection(&key, 1, "out", "你"));
+        let snapshot = presenter.snapshot(&write_projection(&key, 1, "out", "caf"));
         assert_eq!(
             serde_json::to_value(snapshot).unwrap(),
             json!({
@@ -412,7 +412,7 @@ mod tests {
                     "invocationExitPolicy": "run_finish_allowed",
                     "toolCallIndex": 0,
                     "path": "out",
-                    "content": "你",
+                    "content": "caf",
                     "contentWords": 1
                 }],
                 "responses": []
@@ -421,7 +421,7 @@ mod tests {
 
         assert_eq!(
             presenter
-                .updates(&write_projection(&key, 1, "output/a.md", "你好"))
+                .updates(&write_projection(&key, 1, "output/a.md", "café"))
                 .unwrap(),
             vec![
                 AgentRunLiveUpdateDto::Append {
@@ -435,7 +435,7 @@ mod tests {
                     invocation_id: "inv_root".to_string(),
                     tool_call_index: 0,
                     field: AgentRunLiveFieldDto::Content,
-                    text: "好".to_string(),
+                    text: "é".to_string(),
                     word_delta: 1,
                 },
             ]

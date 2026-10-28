@@ -1,0 +1,10 @@
+{
+    "display_name": "Layout Tall Panel",
+    "loading_order": 101,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "TauriTavern layout tests",
+    "version": "1.0.0"
+}

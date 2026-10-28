@@ -117,7 +117,7 @@ async fn agent_runtime_executes_cached_mcp_tool_through_readable_alias() {
         .expect("MCP result returned to model");
     assert!(mcp_result.content.contains("preview"));
     assert!(mcp_result.content.contains("workspace_read_file"));
-    assert_eq!(mcp_result.content.matches('界').count(), 3_000);
+    assert_eq!(mcp_result.content.matches('€').count(), 3_000);
     assert!(!mcp_result.content.contains("End of result."));
     assert!(mcp_result.content.chars().count() < 10_000);
     assert_eq!(mcp_result.structured["externalized"], true);
@@ -140,7 +140,7 @@ async fn agent_runtime_executes_cached_mcp_tool_through_readable_alias() {
     );
     let stored = read_workspace_json(&fixture.agent_repository, &handle.run_id, audit_path).await;
     assert_eq!(
-        stored["content"].as_str().unwrap().matches('界').count(),
+        stored["content"].as_str().unwrap().matches('€').count(),
         60_000
     );
     assert_eq!(stored["structured"]["structuredContent"]["issueId"], 42);
@@ -172,7 +172,7 @@ async fn agent_runtime_executes_cached_mcp_tool_through_readable_alias() {
         })
         .expect("Agent can read the externalized MCP result through workspace VFS");
     assert_eq!(read_result.structured["fullRead"], true);
-    assert_eq!(read_result.content.matches('界').count(), 60_000);
+    assert_eq!(read_result.content.matches('€').count(), 60_000);
     assert!(read_result.content.contains("End of result."));
 
     let _ = fs::remove_dir_all(root).await;

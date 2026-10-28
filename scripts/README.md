@@ -1,19 +1,19 @@
 # Scripts
 
-这个目录存放仓库内的开发、构建、迁移导出与 CI 辅助脚本。本分支只支持 Windows x64。
+This directory holds the repository's development, build, migration-export and CI helper scripts. This branch supports Windows x64 only.
 
-## SillyTavern 迁移导出
+## SillyTavern migration export
 
-这两个脚本会交互式生成一个可直接导入 TauriTavern `data-migration` 扩展的 zip：
+These two scripts interactively produce a zip that can be imported directly into the TauriTavern `data-migration` extension:
 
-- 自动检测当前目录是否为 SillyTavern 根目录
-- 可选是否导出 `data/default-user/backups`
-- 自动将 `public/scripts/extensions/third-party` 映射到 `data/extensions/third-party`
-- 提供明显的压缩进度提示
+- Detect automatically whether the current directory is a SillyTavern root
+- Choose whether to export `data/default-user/backups`
+- Map `public/scripts/extensions/third-party` to `data/extensions/third-party` automatically
+- Show clear compression progress
 
-### 一键执行
+### One-line run
 
-一键执行需要在可交互终端中运行；脚本通过终端读取选项，避免与 `curl | sh` 的脚本输入流冲突。
+The one-line form must run in an interactive terminal, because the script reads its options from the terminal. That keeps it clear of the script input stream used by `curl | sh`.
 
 Windows PowerShell:
 
@@ -21,7 +21,7 @@ Windows PowerShell:
 iex (iwr 'https://get.tauritavern.com/export.ps1').Content
 ```
 
-### 本地执行
+### Local run
 
 Windows PowerShell:
 
@@ -29,29 +29,29 @@ Windows PowerShell:
 powershell -ExecutionPolicy Bypass -File .\scripts\export-sillytavern-migration.ps1
 ```
 
-## 目录说明
+## Directory guide
 
 - `export-sillytavern-migration.ps1`
-  面向 Windows PowerShell 的 SillyTavern 迁移导出脚本。
+  The Windows PowerShell SillyTavern migration export script.
 - `build-portable.mjs`
-  构建 Windows portable 二进制，并将产物复制到指定输出目录。对应 `pnpm run tauri:build:portable`。
+  Builds the Windows portable binary and copies the artifacts to the requested output directory. Backs `pnpm run tauri:build:portable`.
 - `tauri-before-build.mjs`
-  统一生成 Tauri 打包所需的前端 bundle。
+  Generates the frontend bundle Tauri packaging needs, in one place.
 - `tauri-app.mjs`
-  设置 `TAURI_APP_PATH` 与 `TAURI_FRONTEND_PATH` 后调用本地 Tauri CLI；Windows 是唯一目标。
+  Sets `TAURI_APP_PATH` and `TAURI_FRONTEND_PATH`, then invokes the local Tauri CLI; Windows is the only target.
 - `tauri-dev-server.mjs`
-  为 `tauri dev` 提供轻量静态前端服务器和页面刷新通道，并注入[开发资源桥](../docs/CurrentState/ThirdPartyExtensions.md)引导脚本；端口取自 `tauri.conf.json` 的 `devUrl`。静态文件通过 `@parcel/watcher` 的原生事件监听，Rspack 依赖在成功重编译后刷新。
+  Provides `tauri dev` with a lightweight static frontend server and a page-refresh channel, and injects the [development asset bridge](../docs/CurrentState/ThirdPartyExtensions.md) bootstrap script; the port comes from `devUrl` in `tauri.conf.json`. Static files are watched through `@parcel/watcher` native events, and Rspack dependencies refresh after a successful recompile.
 - `check-frontend-guardrails.mjs`
-  校验前端宿主层文件规模和依赖边界，避免 Host Kernel 持续膨胀。对应 `pnpm run check:frontend`。
+  Validates frontend host-layer file size and dependency boundaries so the Host Kernel does not keep growing. Backs `pnpm run check:frontend`.
 - `ci/verify-release-version.mjs`
-  校验 Stable Release tag 与前端、Cargo、Tauri 和 Cargo lock 版本一致。
+  Validates that the Stable Release tag matches the frontend, Cargo, Tauri and Cargo lock versions.
 - `ci/collect-release-assets.mjs`
-  校验必需的 Windows 构建产物，并按 Stable 与 Canary 共用的用户可见命名契约收集 Release 资产。
+  Validates the required Windows build artifacts and collects release assets under the user-visible naming contract shared by Stable and Canary.
 - `guardrails/frontend-lines-baseline.json`
-  `check-frontend-guardrails.mjs` 使用的基线数据文件，文件行数硬性限制指标。
+  The baseline data file used by `check-frontend-guardrails.mjs`, holding the hard line-count limits.
 
-## 维护约定
+## Maintenance conventions
 
-- 面向最终用户的一次性脚本，优先保持交互友好、依赖少、失败直出。
-- 面向仓库内部的脚本，优先通过 `pnpm` script 或 CI 调用，不额外扩散入口。
-- 如果修改迁移导出脚本涉及归档结构，请同步确认它仍符合当前 `data-migration` 导入器的 `data/...` 契约。
+- One-off scripts meant for end users should stay interactive-friendly, depend on little, and fail loudly.
+- Scripts meant for the repository itself should be reached through a `pnpm` script or CI, without spreading extra entry points.
+- If a change to the migration export script touches the archive layout, confirm that it still matches the `data/...` contract of the current `data-migration` importer.

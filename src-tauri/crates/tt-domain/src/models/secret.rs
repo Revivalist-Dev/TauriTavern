@@ -21,7 +21,7 @@ impl SecretEntry {
     }
 }
 
-/// 表示用户的 API 密钥集合，结构与 SillyTavern 的 secrets.json 一致：
+/// The user's collection of API keys, structured like SillyTavern's secrets.json:
 /// `{ "api_key_xxx": [{ id, value, label, active }], ... }`
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Secrets {
@@ -159,7 +159,7 @@ impl Secrets {
     }
 }
 
-/// 定义常用密钥名称（与 SillyTavern 对齐）
+/// Defines the common secret names (aligned with SillyTavern)
 pub struct SecretKeys;
 
 impl SecretKeys {
@@ -300,7 +300,7 @@ impl SecretKeys {
         ]
     }
 
-    /// 即使 `allowKeysExposure` 为 false 也可导出的密钥
+    /// Keys that may be exported even when `allowKeysExposure` is false
     pub fn get_exportable_keys() -> &'static [&'static str] {
         &[
             Self::LIBRE_URL,

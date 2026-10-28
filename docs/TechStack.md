@@ -1,108 +1,108 @@
-# TauriTavern 技术栈
+# TauriTavern tech stack
 
-本文档说明 TauriTavern 当前采用的主要技术、架构约束和工程守护。它不是完整依赖清单；精确版本以 `package.json`、`src-tauri/Cargo.toml` 和各 crate 的 `Cargo.toml` 为准。
+This document describes the main technologies, architectural constraints, and engineering guards TauriTavern uses today. It is not an exhaustive dependency list; exact versions come from `package.json`, `src-tauri/Cargo.toml`, and each crate's `Cargo.toml`.
 
-## 1. 项目定位
+## 1. Project positioning
 
-TauriTavern 将 SillyTavern 前端移植到 Tauri v2 原生应用中，当前已同步至 1.19.0，并用 Rust 后端替代上游 Node/Express 后端。
+TauriTavern ports the SillyTavern frontend into a Tauri v2 native app, currently synced to 1.19.0, and replaces the upstream Node/Express backend with a Rust backend.
 
-核心取舍：
+Core trade-offs:
 
-- 保留上游前端体验、数据格式、资源路径和扩展可观察行为。
-- 后端采用 Rust workspace crate 拆分，Clean Architecture 是最高层架构约束。
-- 前端通过 Tauri 注入层拦截 `fetch` 与 `jQuery.ajax`，把上游同源请求转到本地 Rust 能力。
-- 新的 TauriTavern 扩展能力优先暴露在 `window.__TAURITAVERN__.api.*`，不污染上游 `/api/*` 兼容层。
+- Keep the upstream frontend experience, data formats, asset paths, and behavior that extensions can observe.
+- Split the backend into Rust workspace crates, with Clean Architecture as the highest-level architectural constraint.
+- Have the frontend intercept `fetch` and `jQuery.ajax` through a Tauri injection layer, turning upstream same-origin requests into local Rust capabilities.
+- Expose new TauriTavern capabilities in `window.__TAURITAVERN__.api.*` first, without polluting the upstream `/api/*` compatibility layer.
 
-## 2. 基础运行栈
+## 2. Base runtime stack
 
-| 技术 | 当前用途 |
+| Technology | Current use |
 | --- | --- |
-| Tauri v2 | 原生应用 shell、WebView、插件、跨平台打包、移动端入口 |
-| Rust stable / edition 2024 | Rust 后端、workspace crate、native integration |
-| Cargo workspace | 后端 crate 边界、依赖方向、focused tests |
-| Node.js `>=22.13.0` | 前端工具链与 guard scripts |
-| pnpm | JavaScript 包管理与项目脚本 |
-| Rspack | 前端 vendor、Agent、Settings 与 first-party React extension 构建 |
-| TypeScript | Tauri Host Kernel 与 first-party React UI 的严格类型检查 |
+| Tauri v2 | Native app shell, WebView, plugins, cross-platform packaging, mobile entry points |
+| Rust stable / edition 2024 | Rust backend, workspace crates, native integration |
+| Cargo workspace | Backend crate boundaries, dependency direction, focused tests |
+| Node.js `>=22.13.0` | Frontend toolchain and guard scripts |
+| pnpm | JavaScript package management and project scripts |
+| Rspack | Building the frontend vendor, Agent, Settings, and first-party React extensions |
+| TypeScript | Strict type checking for the Tauri Host Kernel and first-party React UI |
 
-## 3. 后端架构
+## 3. Backend architecture
 
-后端以 Clean Architecture 为主轴：越靠近领域语义的代码越靠内，越依赖框架、文件系统、网络、平台 API 的代码越靠外，源码依赖只能从外层指向内层。
+The backend is built around Clean Architecture: code closer to domain semantics sits further in, code that depends on frameworks, the file system, the network, or platform APIs sits further out, and source dependencies may only point from the outer layers to the inner ones.
 
-当前主要 crate：
+Main crates today:
 
-| crate | 职责 |
+| crate | Responsibility |
 | --- | --- |
-| `tauritavern` | Tauri host、commands、composition root、host-bound infrastructure、platform glue |
-| `tt-domain` | 领域模型、值对象、领域错误、纯规则 |
-| `tt-contracts` | 跨 crate DTO、事件、payload、host resource 契约 |
-| `tt-ports` | repository / gateway / runtime trait |
-| `tt-application` | use case、service、job coordinator、policy 编排 |
-| `tt-adapter-http` | 共享 HTTP client pool/profile/helper |
-| `tt-adapter-mcp` | RMCP Streamable HTTP discovery、协议版本策略、分页与 schema validation |
-| `tt-adapter-provider-http` | LLM、SD、Translate、TTS、provider metadata 的 HTTP repository |
-| `tt-adapter-tokenization` | tokenizer concrete repository |
-| `tt-adapter-storage-core` | `DataDirectory`、基础文件系统 helper、chat/settings/user/theme/secret 等基础存储 |
-| `tt-adapter-storage-userdata` | character、world info、agent workspace/profile、skill local package store、PNG card metadata |
-| `tt-adapter-media` | avatar/background/user media/image metadata、browser-visible host resource file store |
-| `tt-adapter-extension` | third-party extension 发现、安装、版本检查、更新、分支查询/切换、删除与移动；Gitoxide smart HTTP 与 embedded worktree |
-| `tt-adapter-sync` | LAN Sync、TT-Sync v2 runtime、client/server、sync jobs |
-| `tt-adapter-archive` | data archive import/export executor、archive path safety |
+| `tauritavern` | Tauri host, commands, composition root, host-bound infrastructure, platform glue |
+| `tt-domain` | Domain models, value objects, domain errors, pure rules |
+| `tt-contracts` | Cross-crate DTOs, events, payloads, host resource contracts |
+| `tt-ports` | Repository / gateway / runtime traits |
+| `tt-application` | Use cases, services, job coordinator, policy orchestration |
+| `tt-adapter-http` | Shared HTTP client pool/profile/helpers |
+| `tt-adapter-mcp` | RMCP Streamable HTTP discovery, protocol version policy, pagination and schema validation |
+| `tt-adapter-provider-http` | HTTP repositories for LLM, SD, Translate, and provider metadata |
+| `tt-adapter-tokenization` | Tokenizer concrete repository |
+| `tt-adapter-storage-core` | `DataDirectory`, base file system helpers, and base storage for chat/settings/user/theme/secret |
+| `tt-adapter-storage-userdata` | Character, world info, agent workspace/profile, skill local package store, PNG card metadata |
+| `tt-adapter-media` | Avatar/background/user media/image metadata, browser-visible host resource file store |
+| `tt-adapter-extension` | Third-party extension discovery, installation, version checks, updates, branch queries/switching, deletion and moving; Gitoxide smart HTTP and the embedded worktree |
+| `tt-adapter-sync` | LAN Sync, TT-Sync v2 runtime, client/server, sync jobs |
+| `tt-adapter-archive` | Data archive import/export executor, archive path safety |
 
-详细边界以 `docs/BackendStructure.md` 为准。
+`docs/BackendStructure.md` is the authority on the detailed boundaries.
 
-## 4. Rust 依赖分组
+## 4. Rust dependency groups
 
-| 依赖 | 主要用途 |
+| Dependency | Main use |
 | --- | --- |
-| `tauri` / Tauri plugins | host shell、文件/通知/打开器/对话框/window state/barcode scanner 等平台能力 |
-| `serde` / `serde_json` / `serde_yaml` | DTO、配置、SillyTavern 兼容数据格式 |
-| `tokio` / `tokio-util` | 异步任务、文件 IO、取消与运行时能力 |
-| `reqwest` / `tokio-tungstenite` / `jsonwebtoken` | provider HTTP/stream/WebSocket、Service Account JWT 签名 |
-| `rmcp` / `jsonschema` | MCP lifecycle/protocol 与离线 JSON Schema 2020-12 校验 |
-| `gix` / `gix-transport` | third-party extension Git smart HTTP、embedded repository/worktree |
-| `tracing` / `tracing-subscriber` / `tracing-appender` | 后端日志、过滤、rolling file、Dev observability |
-| `thiserror` | 分层错误类型 |
-| `async-trait` | repository / gateway async trait |
-| `miktik` | tokenizer 计数与编解码 |
-| `image` / `mime_guess` | 角色卡、媒体、图片 metadata |
-| `zip` / `tar` / `flate2` / `async-compression` | skill、archive、Dev bundle、压缩数据处理 |
+| `tauri` / Tauri plugins | Host shell, and platform capabilities such as files/notifications/opener/dialogs/window state/barcode scanner |
+| `serde` / `serde_json` / `serde_yaml` | DTOs, configuration, SillyTavern-compatible data formats |
+| `tokio` / `tokio-util` | Async tasks, file IO, cancellation, and runtime capabilities |
+| `reqwest` / `tokio-tungstenite` / `jsonwebtoken` | Provider HTTP/stream/WebSocket, Service Account JWT signing |
+| `rmcp` / `jsonschema` | MCP lifecycle/protocol and offline JSON Schema 2020-12 validation |
+| `gix` / `gix-transport` | Third-party extension Git smart HTTP, embedded repository/worktree |
+| `tracing` / `tracing-subscriber` / `tracing-appender` | Backend logging, filtering, rolling files, Dev observability |
+| `thiserror` | Layered error types |
+| `async-trait` | Repository / gateway async traits |
+| `miktik` | Tokenizer counting and encoding/decoding |
+| `image` / `mime_guess` | Character cards, media, image metadata |
+| `zip` / `tar` / `flate2` / `async-compression` | Skills, archives, Dev bundles, compressed data handling |
 | `axum` / `axum-server` / `ttsync-*` | LAN Sync / TT-Sync v2 |
-| `uuid` / `chrono` / `rand` | 标识、时间、随机值 |
+| `uuid` / `chrono` / `rand` | Identifiers, time, random values |
 
-当前主存储不是 SQLite。用户数据以 SillyTavern 兼容文件布局为主，必要的 TauriTavern 私有状态放在 `_tauritavern` 下。
+The primary store is not SQLite today. User data mostly uses the SillyTavern-compatible file layout, and the necessary TauriTavern private state lives under `_tauritavern`.
 
-## 5. 前端技术栈
+## 5. Frontend stack
 
-前端主体来自 SillyTavern，保留其 HTML/CSS/JavaScript 组织方式和上游依赖生态。
+The frontend body comes from SillyTavern, keeping its HTML/CSS/JavaScript organization and upstream dependency ecosystem.
 
-常见技术：
+Common technologies:
 
-| 技术 | 用途 |
+| Technology | Use |
 | --- | --- |
-| jQuery / jQuery UI | DOM、事件、legacy UI 行为 |
-| Bootstrap | UI 组件和响应式布局 |
-| Handlebars | 模板渲染 |
-| Showdown | Markdown 渲染 |
-| DOMPurify | HTML 净化 |
-| Highlight.js | 代码高亮 |
-| localForage | 浏览器侧存储 |
-| React / React DOM | TauriTavern first-party 状态型 UI 的统一表示层 |
-| strict TypeScript / TSX | React presentation、typed actions 与组件测试 |
+| jQuery / jQuery UI | DOM, events, legacy UI behavior |
+| Bootstrap | UI components and responsive layout |
+| Handlebars | Template rendering |
+| Showdown | Markdown rendering |
+| DOMPurify | HTML sanitization |
+| Highlight.js | Code highlighting |
+| localForage | Browser-side storage |
+| React / React DOM | The unified presentation layer for TauriTavern first-party stateful UI |
+| strict TypeScript / TSX | React presentation, typed actions, and component tests |
 
-first-party React UI 采用 client island，SillyTavern 继续拥有文档与扩展生命周期，Tauri/Rust 与 Host ABI 继续拥有平台能力和数据事实，React 只挂载到独立 extension container。
+The first-party React UI uses client islands: SillyTavern still owns the document and the extension lifecycle, Tauri/Rust and the Host ABI still own platform capabilities and data facts, and React mounts only into its own extension container.
 
-TauriTavern 自己维护的前端集成层位于 `src/tauri/main/*`，按 `context/kernel/services/adapters/routes` 拆分：
+The frontend integration layer TauriTavern maintains itself lives in `src/tauri/main/*`, split by `context/kernel/services/adapters/routes`:
 
-- `context` 暴露稳定 Host Kernel facade 和类型。
-- `kernel` 放纯逻辑，例如策略、追踪、键生成、格式化。
-- `services` 放有状态能力。
-- `adapters` 触碰 `window`、DOM 或上游 SillyTavern 对象。
-- `routes` 处理被 host 接管的同源请求。
+- `context` exposes the stable Host Kernel facade and its types.
+- `kernel` holds pure logic, such as policies, tracking, key generation, and formatting.
+- `services` holds stateful capabilities.
+- `adapters` touch `window`, the DOM, or upstream SillyTavern objects.
+- `routes` handle the same-origin requests the host has taken over.
 
-## 6. 前后端通信
+## 6. Frontend-backend communication
 
-兼容流量的主要链路：
+The main path for compatibility traffic:
 
 ```text
 SillyTavern frontend / extension / script
@@ -116,29 +116,29 @@ SillyTavern frontend / extension / script
   -> tt-adapter-* concrete implementation
 ```
 
-维护原则：
+Maintenance principles:
 
-- `/api/*` 只承载上游 SillyTavern 兼容行为。
-- TauriTavern 新能力优先走 `window.__TAURITAVERN__.api.*`。
-- Rust command 名是内部实现细节，不是扩展作者的稳定 API。
-- 浏览器子资源使用真实 URL/Response 语义，不用 IPC/base64 伪装资源加载。
+- `/api/*` carries upstream SillyTavern-compatible behavior only.
+- New TauriTavern capabilities go through `window.__TAURITAVERN__.api.*` first.
+- Rust command names are internal implementation details, not a stable API for extension authors.
+- Browser subresources use real URL/Response semantics; do not disguise resource loading with IPC/base64.
 
-## 7. 数据与兼容性
+## 7. Data and compatibility
 
-TauriTavern 的数据兼容目标是浏览器、扩展和用户数据可观察的 SillyTavern 语义，而不是 Node/Express 内部实现。
+TauriTavern's data compatibility target is the SillyTavern semantics that browsers, extensions, and user data can observe, not the Node/Express internals.
 
-必须保持稳定的内容包括：
+The following must stay stable:
 
-- `default-user`、`characters`、`chats`、`group chats` 等目录语义。
-- `User Avatars`、`QuickReplies`、`OpenAI Settings`、`TextGen Settings` 等大小写和空格。
-- 聊天 JSONL、角色卡 PNG metadata、世界书、预设、主题、用户目录等格式。
-- 第三方扩展资源路径和 host resource 响应语义。
+- Directory semantics such as `default-user`, `characters`, `chats`, and `group chats`.
+- The exact capitalization and spaces of `User Avatars`, `QuickReplies`, `OpenAI Settings`, and `TextGen Settings`.
+- Formats such as chat JSONL, character card PNG metadata, World Info, presets, themes, and user directories.
+- Third-party extension asset paths and host resource response semantics.
 
-数据目录选择与当前状态见 `docs/CurrentState/DataDirectorySelection.md`。
+For the data directory selection and its current state, see `docs/CurrentState/DataDirectorySelection.md`.
 
-## 8. 工程守护
+## 8. Engineering guards
 
-常用入口：
+Common entry points:
 
 ```bash
 pnpm run check
@@ -151,33 +151,33 @@ pnpm run test:rust
 pnpm run check:rust:dev
 ```
 
-架构相关 guard：
+Architecture-related guards:
 
-- `scripts/check-rust-crate-boundaries.mjs` 守住 Rust crate 依赖方向。
-- `scripts/check-frontend-guardrails.mjs` 守住前端注入层边界。
-- `scripts/check-first-party-ui-guardrails.mjs` 守住 React + strict TS/TSX 边界。
-- `scripts/check-logging-boundaries.mjs` 守住 logging target 使用边界。
-- `tsconfig.host.json` 为 Host Kernel 提供 TypeScript 检查。
-- `tsconfig.ui.json` 为 Agent、MCP 与 Tauri Settings owned UI 提供 strict TS/TSX 检查。
+- `scripts/check-rust-crate-boundaries.mjs` guards the Rust crate dependency direction.
+- `scripts/check-frontend-guardrails.mjs` guards the frontend injection layer boundaries.
+- `scripts/check-first-party-ui-guardrails.mjs` guards the React plus strict TS/TSX boundaries.
+- `scripts/check-logging-boundaries.mjs` guards how logging targets are used.
+- `tsconfig.host.json` supplies TypeScript checking for the Host Kernel.
+- `tsconfig.ui.json` supplies strict TS/TSX checking for the Agent, MCP, and Tauri Settings owned UI.
 
-## 9. 平台与分发
+## 9. Platform and distribution
 
-本分支只构建 Windows x64：
+This branch builds Windows x64 only:
 
-- Windows：MSI / EXE 安装包与 portable 单文件
-- 要求 Windows 10/11 x64 与 WebView2 运行时
+- Windows: MSI / EXE installers and a portable single file
+- Requires Windows 10/11 x64 and the WebView2 runtime
 
-便携模式通过 `TAURITAVERN_RUNTIME_MODE=portable` 或 `portable.flag` 启用。
+Portable mode is enabled with `TAURITAVERN_RUNTIME_MODE=portable` or `portable.flag`.
 
-## 10. 相关文档
+## 10. Related documents
 
-| 主题 | 文档 |
+| Topic | Document |
 | --- | --- |
-| 后端 Clean Architecture 与 crate 边界 | `docs/BackendStructure.md` |
-| 前端集成结构 | `docs/FrontendGuide.md` |
-| Host ABI / 请求拦截 / 资源契约 | `docs/FrontendHostContract.md` |
-| 当前实现状态 | `docs/CurrentState/README.md` |
-| First-party UI 工程基线 | `docs/CurrentState/FirstPartyUI.md` |
-| Windows 分发 | `docs/CurrentState/WindowsDistribution.md` |
-| 扩展 API | `docs/API/README.md` |
-| Agent 架构 | [Agent](Agent/README.md) |
+| Backend Clean Architecture and crate boundaries | `docs/BackendStructure.md` |
+| Frontend integration structure | `docs/FrontendGuide.md` |
+| Host ABI / request interception / resource contracts | `docs/FrontendHostContract.md` |
+| Current implementation state | `docs/CurrentState/README.md` |
+| First-party UI engineering baseline | `docs/CurrentState/FirstPartyUI.md` |
+| Windows distribution | `docs/CurrentState/WindowsDistribution.md` |
+| Extension API | `docs/API/README.md` |
+| Agent architecture | [Agent](Agent/README.md) |

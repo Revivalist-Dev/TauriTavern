@@ -1,64 +1,64 @@
-# 数据目录选择（现状）
+# Data directory selection (current state)
 
-本文记录 **已经落地** 的桌面端数据目录选择能力：它解决什么问题、当前链路如何工作、支持/不支持什么，以及后续开发最容易误改的契约。
+This page records the desktop data directory selection capability that has **already landed**: what problem it solves, how the current chain works, what it supports and does not, and which contracts later development is most likely to break by accident.
 
-> 设计背景与方案说明见：`docs/DataDirectorySelection.md`。本文只写“现在怎么运行”。
+> For the design background and the proposal, see: `docs/DataDirectorySelection.md`. This page covers only "how it runs now".
 
-## 1. 解决的问题
+## 1. The problem being solved
 
-桌面端用户现在可以把应用数据根目录（`data_root`）迁移到自选路径，而不再被固定在标准 `app_data_dir()/data` 或 portable 模式下的可执行目录旁。
+Desktop users can now migrate the application data root (`data_root`) to a path of their choosing instead of being pinned to the standard `app_data_dir()/data` or, in portable mode, to a location beside the executable.
 
-该能力的目标不是“运行期热切换”，而是：
+The capability is not about "hot switching at runtime". Its goals are:
 
-- 在应用内写入一次运行时引导配置；
-- 下次启动早期完成数据根决议；
-- 若需要，先迁移数据，再让后续所有子系统读取同一个 `data_root`。
+- write a runtime bootstrap configuration once, from inside the application;
+- settle the data root early on the next launch;
+- if needed, migrate the data first, and then have every later subsystem read the same `data_root`.
 
-## 2. 当前端到端链路
+## 2. The current end-to-end chain
 
-### 2.1 前端设置面板
+### 2.1 Frontend settings panel
 
-- 位置：`src/scripts/tauri/setting/setting-panel/settings-popup.js`
-- 仅桌面宿主显示 `System -> Data Directory`（折叠区块），与后端只在 `cfg(desktop)` 下注册相关命令同源
-- 通过 `src/tauri-bridge.js` 的 `openDialog(...)` 调用 `plugin:dialog|open` 打开系统目录选择器（避免裸模块导入）
-- 选择后调用后端命令：
+- Location: `src/scripts/tauri/setting/setting-panel/settings-popup.js`
+- Only the desktop host shows `System -> Data Directory` (a collapsible block), matching the backend, which registers these commands only under `cfg(desktop)`
+- The system directory picker opens through `plugin:dialog|open`, called via `openDialog(...)` in `src/tauri-bridge.js` (to avoid a bare module import)
+- After a selection, the backend commands are called:
   - `get_runtime_paths`
   - `set_data_root`
 
-### 2.2 运行时配置文件
+### 2.2 Runtime configuration file
 
-- 文件：`{app_root}/tauritavern-runtime.json`
-- 解析入口：`src-tauri/crates/tauritavern/src/infrastructure/paths.rs`
-- 字段：
+- File: `{app_root}/tauritavern-runtime.json`
+- Parse entry point: `src-tauri/crates/tauritavern/src/infrastructure/paths.rs`
+- Fields:
   - `version`
   - `data_root`
   - `migration`
   - `migration_error`
 
-该文件是 **启动引导配置**，不属于常规 settings；目的是避免“必须先知道 data_root，才能去读 settings”的自举循环。
+That file is a **startup bootstrap configuration** and is not part of the regular settings; the point is to avoid the bootstrapping loop where `data_root` has to be known before settings can be read.
 
-### 2.3 启动期路径决议
+### 2.3 Startup path resolution
 
-- `src-tauri/crates/tauritavern/src/lib.rs` 在 `setup` 早期调用 `resolve_runtime_paths(...)`
-- `RuntimePaths` 一旦确定，就被作为 managed state 注入并用于：
-  - asset protocol 与 plugin-fs runtime scope
-  - Host Resource Service 的用户资源与第三方扩展目录
-  - 数据归档目录
-  - 后端初始化
+- `src-tauri/crates/tauritavern/src/lib.rs` calls `resolve_runtime_paths(...)` early in `setup`
+- Once `RuntimePaths` is determined, it is injected as managed state and used for:
+  - the asset protocol and the plugin-fs runtime scope
+  - the Host Resource Service user resources and third-party extension directories
+  - the data archive directory
+  - backend initialization
 
-结论：**数据目录切换只能在重启后生效**。
+In short: **a change of data directory takes effect only after a restart**.
 
-## 3. 当前已支持的语义
+## 3. Semantics currently supported
 
-### 3.1 目录校验
+### 3.1 Directory validation
 
-- `set_data_root` 要求目标路径：
-  - 必须是绝对路径
-  - 必须已存在且是目录
-  - 必须是 **effectively empty**
-  - Windows 上会通过 `dunce` 规整路径，避免把 `\\?\\C:\\...` 这类 UNC/extended-length 前缀写入 runtime 配置
+- `set_data_root` requires the target path to:
+  - be an absolute path
+  - already exist and be a directory
+  - be **effectively empty**
+  - be normalized through `dunce` on Windows, so a UNC/extended-length prefix such as `\\?\\C:\\...` is not written into the runtime configuration
 
-“effectively empty” 当前允许仅包含系统元数据文件：
+"Effectively empty" currently permits a target holding only system metadata files:
 
 - `.DS_Store`
 - `.localized`
@@ -66,60 +66,60 @@
 - `Thumbs.db`
 - `Icon\r`
 
-这套语义在：
+These semantics hold on both sides:
 
-- 设置命令校验
-- 启动期迁移目标检查
+- validation in the settings command
+- the migration target check at startup
 
-两侧保持一致。
+The two sides must agree.
 
-### 3.2 迁移策略
+### 3.2 Migration strategy
 
-- 优先整目录 `rename`（同盘）
-- `rename` 失败后回退到递归复制
-- 递归复制当前支持：
-  - 普通文件
-  - 普通目录
-  - 软链接（会在目标侧重建链接，而不是降级成普通文件）
+- Prefer a whole-directory `rename` (same volume)
+- Fall back to a recursive copy when `rename` fails
+- The recursive copy currently supports:
+  - regular files
+  - regular directories
+  - symlinks (recreated as links on the target side rather than downgraded to regular files)
 
-### 3.3 失败恢复
+### 3.3 Failure recovery
 
-- 若迁移失败但旧 `data_root` 仍存在：
-  - 启动继续使用旧目录
-  - `tauritavern-runtime.json` 保留 `migration`
-  - 写入 `migration_error`
-- 若旧 `data_root` 已不存在，但目标目录已经像一个初始化完成的数据根（当前以存在 `default-user/` 为判定）：
-  - 启动自动视为“上次迁移已完成但标记未清理”
-  - 清除 `migration`
-  - 切换到目标目录
-- 若旧 `data_root` 已不存在，且目标目录也不像一个已完成的数据根：
-  - 视为不可恢复状态
-  - 启动直接报错（fail-fast）
+- If the migration fails but the old `data_root` still exists:
+  - startup keeps using the old directory
+  - `tauritavern-runtime.json` keeps `migration`
+  - `migration_error` is written
+- If the old `data_root` no longer exists but the target directory already looks like an initialized data root (currently decided by the presence of `default-user/`):
+  - startup takes it that "the previous migration finished but its marker was not cleared"
+  - `migration` is cleared
+  - the target directory is switched to
+- If the old `data_root` no longer exists and the target directory does not look like a finished data root either:
+  - the state is treated as unrecoverable
+  - startup fails fast
 
-## 4. 当前明确不支持的内容
+## 4. What is explicitly not supported
 
-- Android / iOS 数据目录选择
-- 运行期热切换 `data_root`
-- 对任意目标目录做自动合并迁移
-- 自动忽略未知文件/目录后继续迁移
+- Data directory selection on Android / iOS
+- Hot switching `data_root` at runtime
+- Automatic merge migration into an arbitrary target directory
+- Continuing a migration after silently ignoring unknown files and directories
 
-这些边界是刻意保守的：目的是降低数据分叉和静默损坏风险。
+These boundaries are deliberately conservative: the goal is to reduce the risk of data forking and silent corruption.
 
-## 5. 持续开发约束
+## 5. Constraints for continued development
 
-- **路径策略必须继续收敛在 `src-tauri/crates/tauritavern/src/infrastructure/paths.rs`**
-  - 不要把 `data_root` 决议逻辑散落到 command、service、frontend 多处
-- **`tauritavern-runtime.json` 是唯一的启动引导配置**
-  - 不要把 `data_root` 写回常规 settings
-- **“effectively empty” 语义必须前后端一致**
-  - 改一处时必须同步改启动期迁移检查
-- **迁移失败恢复与不可恢复状态要分开**
-  - “旧目录还在”可以恢复
-  - “旧目录没了且目标不可用”必须 fail-fast
-- **配置文件替换逻辑复用基础设施公共实现**
-  - 避免再复制一套 temp+rename/copy fallback 逻辑
+- **Path policy must keep converging in `src-tauri/crates/tauritavern/src/infrastructure/paths.rs`**
+  - do not scatter `data_root` resolution logic across commands, services, and the frontend
+- **`tauritavern-runtime.json` is the only startup bootstrap configuration**
+  - do not write `data_root` back into the regular settings
+- **The "effectively empty" semantics must be identical on both sides**
+  - a change in one place must be mirrored in the startup migration check
+- **Migration failure recovery and the unrecoverable state must stay separate**
+  - "the old directory is still there" is recoverable
+  - "the old directory is gone and the target is unusable" must fail fast
+- **Configuration file replacement reuses the shared infrastructure implementation**
+  - do not copy another temp+rename/copy fallback implementation
 
-## 6. 关键代码位置
+## 6. Key code locations
 
 - `src-tauri/crates/tauritavern/src/infrastructure/paths.rs`
 - `src-tauri/crates/tauritavern/src/presentation/commands/runtime_paths_commands.rs`

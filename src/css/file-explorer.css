@@ -1,0 +1,500 @@
+:root {
+    --tt-fe-width: 340px;
+    --tt-fe-min-width: 260px;
+    --tt-fe-max-width: 50vw;
+    --tt-fe-header-height: 42px;
+    --tt-fe-row-height: 28px;
+}
+
+#tt-file-explorer {
+    position: fixed;
+    z-index: 3010;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: var(--tt-fe-width);
+    min-width: var(--tt-fe-min-width);
+    max-width: var(--tt-fe-max-width);
+    display: flex;
+    flex-direction: column;
+    background: var(--SmartThemeBlurTintColor, #202226);
+    color: var(--SmartThemeBodyColor, #e8e8e8);
+    border-left: 1px solid var(--SmartThemeBorderColor, #444);
+    box-shadow: -8px 0 24px rgb(0 0 0 / 24%);
+    font-size: 13px;
+    overflow: hidden;
+}
+
+#tt-file-explorer[hidden] {
+    display: none;
+}
+
+body.tt-fe-open #sheld,
+body.tt-fe-open #top-bar {
+    right: var(--tt-fe-width);
+    width: min(var(--sheldWidth), calc(100vw - var(--tt-fe-width) - 48px));
+    margin-inline: auto;
+}
+
+body.tt-fe-open #right-nav-panel {
+    visibility: hidden;
+}
+
+.tt-fe-resizer {
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    bottom: 0;
+    left: -3px;
+    width: 7px;
+    cursor: col-resize;
+    touch-action: none;
+}
+
+.tt-fe-resizer:hover,
+.tt-fe-resizer:focus-visible {
+    background: var(--SmartThemeQuoteColor, #5da9e9);
+    outline: none;
+}
+
+#tt-file-explorer .tt-fe-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: var(--tt-fe-header-height);
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #444);
+    background: var(--SmartThemeBlurTintColor, #202226);
+}
+
+#tt-file-explorer .tt-fe-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#tt-file-explorer button,
+#tt-file-explorer select {
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 3px 6px;
+    cursor: pointer;
+}
+
+#tt-file-explorer button:hover,
+#tt-file-explorer button:focus-visible,
+#tt-file-explorer select:hover {
+    background: rgb(255 255 255 / 8%);
+    border-color: var(--SmartThemeBorderColor, #555);
+    outline: none;
+}
+
+#tt-file-explorer button:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+#tt-file-explorer .tt-fe-icon-button {
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.tt-fe-mounts {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 30vh;
+    overflow: auto;
+    padding: 6px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #444);
+}
+
+.tt-fe-mounts-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--SmartThemeEmColor, #aaa);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0 2px 4px;
+}
+
+.tt-fe-mount {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 26px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.tt-fe-mount:hover {
+    background: rgb(255 255 255 / 6%);
+}
+
+.tt-fe-mount.tt-fe-primary {
+    background: rgb(93 169 233 / 12%);
+}
+
+.tt-fe-mount-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tt-fe-mount-path {
+    color: var(--SmartThemeEmColor, #999);
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 55%;
+}
+
+.tt-fe-badge {
+    font-size: 10px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--SmartThemeQuoteColor, #5da9e9);
+    color: #111;
+}
+
+.tt-fe-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #444);
+}
+
+.tt-fe-breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+    overflow: auto;
+    white-space: nowrap;
+}
+
+.tt-fe-breadcrumb {
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.tt-fe-breadcrumb:hover {
+    background: rgb(255 255 255 / 8%);
+}
+
+.tt-fe-separator {
+    color: var(--SmartThemeEmColor, #888);
+}
+
+.tt-fe-search {
+    width: 100%;
+    min-height: 26px;
+    padding: 2px 6px;
+    color: inherit;
+    background: rgb(0 0 0 / 18%);
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 4px;
+}
+
+.tt-fe-content {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 4px;
+}
+
+.tt-fe-tree,
+.tt-fe-tree ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.tt-fe-tree ul {
+    padding-left: 14px;
+    border-left: 1px solid rgb(255 255 255 / 7%);
+    margin-left: 9px;
+}
+
+.tt-fe-node {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-height: var(--tt-fe-row-height);
+    padding: 1px 4px;
+    border-radius: 4px;
+    cursor: default;
+    user-select: none;
+}
+
+.tt-fe-node:hover {
+    background: rgb(255 255 255 / 7%);
+}
+
+.tt-fe-node.tt-fe-selected {
+    background: rgb(93 169 233 / 22%);
+}
+
+.tt-fe-node.tt-fe-drop-target {
+    outline: 1px dashed var(--SmartThemeQuoteColor, #5da9e9);
+    outline-offset: -1px;
+}
+
+.tt-fe-chevron {
+    width: 16px;
+    color: var(--SmartThemeEmColor, #aaa);
+    text-align: center;
+}
+
+.tt-fe-node-icon {
+    width: 16px;
+    text-align: center;
+    color: var(--SmartThemeEmColor, #bbb);
+}
+
+.tt-fe-node-icon.tt-fe-folder {
+    color: #e3b341;
+}
+
+.tt-fe-node-icon.tt-fe-image {
+    color: #7ee787;
+}
+
+.tt-fe-node-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tt-fe-node-meta {
+    color: var(--SmartThemeEmColor, #888);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.tt-fe-empty {
+    color: var(--SmartThemeEmColor, #999);
+    padding: 18px 12px;
+    text-align: center;
+    line-height: 1.5;
+}
+
+.tt-fe-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 8px;
+    padding: 4px;
+}
+
+.tt-fe-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 6px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    text-align: center;
+    cursor: default;
+}
+
+.tt-fe-card:hover {
+    background: rgb(255 255 255 / 6%);
+    border-color: var(--SmartThemeBorderColor, #444);
+}
+
+.tt-fe-card.tt-fe-selected {
+    background: rgb(93 169 233 / 18%);
+    border-color: var(--SmartThemeQuoteColor, #5da9e9);
+}
+
+.tt-fe-card-thumb {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 5px;
+    background: rgb(0 0 0 / 18%);
+    color: var(--SmartThemeEmColor, #aaa);
+    font-size: 26px;
+}
+
+.tt-fe-card-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.tt-fe-card-name {
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+}
+
+.tt-fe-footer {
+    min-height: 30px;
+    padding: 5px 8px;
+    border-top: 1px solid var(--SmartThemeBorderColor, #444);
+    color: var(--SmartThemeEmColor, #999);
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+}
+
+.tt-fe-footer span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tt-fe-preview {
+    position: absolute;
+    inset: var(--tt-fe-header-height) 0 0;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    background: var(--SmartThemeBlurTintColor, #202226);
+}
+
+.tt-fe-preview-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #444);
+}
+
+.tt-fe-preview-body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 10px;
+}
+
+.tt-fe-preview-body pre {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.tt-fe-preview-body img {
+    max-width: 100%;
+    height: auto;
+}
+
+.tt-fe-context-menu {
+    position: fixed;
+    z-index: 3020;
+    min-width: 190px;
+    padding: 4px;
+    border: 1px solid var(--SmartThemeBorderColor, #555);
+    border-radius: 6px;
+    background: var(--SmartThemeBlurTintColor, #202226);
+    box-shadow: 0 10px 30px rgb(0 0 0 / 45%);
+}
+
+.tt-fe-context-menu button {
+    display: flex;
+    width: 100%;
+    text-align: left;
+    padding: 5px 8px;
+}
+
+.tt-fe-context-menu button + button {
+    margin-top: 1px;
+}
+
+.tt-fe-context-menu .tt-fe-danger {
+    color: #ff7b72;
+}
+
+#tt-file-explorer-toggle.tt-fe-active {
+    color: var(--SmartThemeQuoteColor, #5da9e9);
+    background: rgb(93 169 233 / 16%);
+}
+
+#tt-file-explorer-toggle.tt-fe-edge-toggle {
+    position: fixed;
+    z-index: 3009;
+    top: 45%;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 64px;
+    padding: 0;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-right: 0;
+    border-radius: 6px 0 0 6px;
+    color: var(--SmartThemeBodyColor, #ddd);
+    background: var(--SmartThemeBlurTintColor, #202226);
+    box-shadow: -4px 0 12px rgb(0 0 0 / 20%);
+    cursor: pointer;
+}
+
+#tt-file-explorer-toggle.tt-fe-edge-toggle:hover {
+    background: var(--SmartThemeQuoteColor, #5da9e9);
+    color: #111;
+}
+
+#tt-file-explorer-toggle.tt-fe-edge-toggle i {
+    font-size: 16px;
+}
+
+body.tt-fe-open #tt-file-explorer-toggle {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    body.tt-fe-open #sheld,
+    body.tt-fe-open #top-bar {
+        right: 0;
+        width: var(--sheldWidth);
+    }
+
+    #tt-file-explorer {
+        width: min(var(--tt-fe-width), 86vw);
+        max-width: 86vw;
+        box-shadow: -12px 0 40px rgb(0 0 0 / 55%);
+    }
+
+    #tt-file-explorer::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        background: rgb(0 0 0 / 35%);
+    }
+}

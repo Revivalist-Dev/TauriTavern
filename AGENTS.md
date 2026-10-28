@@ -1,32 +1,38 @@
-# TauriTavern Workspace Guidelines for AI Agent/Chat
+# TauriTavern Workspace Guidelines for AI Agents and Chats
 
-## 道：项目哲学
+## Read this first: English-only, Windows-only
 
-完整说明见 `CONTRIBUTING.md` 的“项目哲学”。下面七条原则用于指导需求分析、设计、实现和评审。遇到取舍时，应结合用户需求、SillyTavern 生态、平台条件和能够验证的事实作出判断。
+- Every file in this repository is English: UI copy, documentation, comments, commit messages, test names, CLI output and error messages. Do not add Chinese or any other non-English prose. The non-English locale files have been removed and the application always runs in English. Non-English characters are permitted only in provider API values and Unicode fixtures listed under "Exemptions" in `docs/TranslationGlossary.md`.
+- This fork targets Windows 10/11 x64 desktop only. Never pull, merge or cherry-pick upstream content that exists only for macOS, Linux, Android, iOS, OpenHarmony, Flatpak or TestFlight. If an upstream merge reintroduces a non-Windows path, remove it in the same change. The gate is `pnpm run check:windows-only`; the runbook is `docs/UpstreamSync.md`.
+- Read this section before touching anything under `tauri-tavern/`.
 
-1. **通用大于特判。** 先判断若干需求是否共享同一语义，优先扩展一处共同机制。真实差异应当清楚保留；缺少共同需求时，不要提前建立万能抽象。
-2. **从第一性原理出发。** 先确认用户希望得到什么、哪些行为已经成为外部契约、现有判断有多少证据，以及哪些条件必须长期成立。完成这些确认后，再选择具体技术和改动位置。
-3. **Fail fast，避免静默降级。** 约束失效或结果无法确认时，停止相关操作并传播带有上下文的错误。预期内的恢复路径需要语义明确且对调用者可见；面对未知状态时，不要猜测默认结果。
-4. **可维护性优先。** 软件工程没有魔法。代码和文档应让后来的维护者能够理解、验证和修改系统，无需依赖未写下来的历史。额外复杂度需要现实问题和测量结果支撑。
-5. **KISS 与 60/95 原则。** 选择能够完整解决当前问题的最简单方案。60/95 表示用约 60% 的复杂度覆盖约 95% 的现实边界；缺少现实依据的罕见场景可以留待真正出现时处理。
-6. **简洁与优雅。** 概念应当清楚，责任应当放在拥有相关事实的地方，数据流和错误路径应当容易追踪。实现应尊重用户选择和既有生态，并让 Rust、Tauri 与现代软件工程实践服务于问题本身。
-7. **遵循，但不拘泥。** 原则之间可能产生张力。遇到冲突时，回到原始目标和已有证据，说明取舍，运用第一性原理和实践判断选择当前合适的方案；新事实推翻旧判断时，应当修改设计。
+## The Way: project philosophy
 
-## 术：工程实践
+The full statement lives in the "Project philosophy" section of `CONTRIBUTING.md`. The seven principles below guide requirement analysis, design, implementation and review. When principles conflict, weigh the user's request, the SillyTavern ecosystem, the platform constraints and the facts that can actually be verified.
 
-- **核心架构:** 严格遵循 `docs/BackendStructure.md` 中定义的 workspace crate 边界。`tauritavern` host 只承载 Tauri shell、composition、commands、AppHandle/WebView/resource/platform glue；Tauri-free concrete IO 应放入对应 `tt-adapter-*` crate。
-- **Rust 哲学:** 编写符合 Rust 习惯的惯用代码（idiomatic code）。优先使用 `Result` 和 `thiserror`/`anyhow` 进行错误处理。注意所有权和借用规则。
-- **模块化与抽象:** repository trait / outbound port 放在 `tt-ports`；具体实现放在 adapter crate。不要为单个实现新增无意义 trait、factory 或 facade。
-- **代码复用 (DRY):** 先复用项目已有 helper；不要为了“看起来通用”抽出跨 bounded context 的清洗器、格式库或抽象层。
-- **文档优先:** 在开始编码前，务必查阅 `docs/` 目录下的相关文档（特别是 `BackendStructure.md`, `FrontendGuide.md`, `FrontendHostContract.md`），理解需求、架构和计划。
-- **代码一致性:** 在实现新功能前，检查项目中是否已有类似功能的代码或定义，尽可能复用或保持一致。
-- **收尾标准:** 逐路径自审概念、职责、状态归属和数据链路，确保代码可读且易维护；测试通过只是行为核对，不能作为收尾依据。可读性、可维护性与认知一致性是硬性收尾门控。交付后由维护者从第一性原理审核，通过审核才算收尾。
-- **错误处理:** 必须实现清晰的错误传播。遵循 fail-fast，避免静默降级；Tauri command 边界使用 `CommandError`，领域/仓储侧使用 `DomainError`。
-- **异步处理:** 对于 I/O 密集型或需要并发的操作（如文件读写、网络请求），必须使用 `async`/`await` 和 `tokio` 运行时。
-- **数据传输对象 (DTO):** 在应用层和表示层（Tauri 命令）之间传递数据时，必须使用 DTO。DTO 的定义需参考文档并保持前后端一致。
-- **Tauri 命令:** `#[tauri::command]` 只能存在于 `presentation` 层，并且应该调用 `application` 层的服务来执行业务逻辑，避免在命令中直接处理复杂逻辑或操作基础设施。
-- **注释:** 为复杂、非显而易见的逻辑或算法添加清晰、简洁的注释。
-- **测试准入:** 只为可观察的稳定行为、非平凡不变式或边界，以及已经发生并修复的具体缺陷添加测试；代码变化和覆盖率本身不是理由。禁止用正则或文本断言源码，不测试字面量、明显控制流、直接委托、实现细节或已移除功能，不提前添加回归测试。
-- **测试实践:** 优先复用最高层的现有行为覆盖，避免在各层重复同一断言；并发测试使用确定性协调，不依赖 sleep。删除功能或测试时同步删除失效的 fixture、fake、hook 与依赖。核心仓储迁移或格式语义变更保留最小可运行测试；先运行受影响 crate 的 focused tests 与 `scripts/check-rust-crate-boundaries.mjs`，每次实现完成后运行完整 harness：`pnpm run check`。
-- **前端交互:** 注意 `FrontendGuide.md` 中关于与前端交互的说明，特别是 DTO 和事件的约定。
-- **仓库级 Skill:** 日常开发 Skill 以 `.agents/skills/` 为唯一来源，`.claude/skills` 是指向它的软链接；`.github/codex/skills/` 只供 CI 受控使用。涉及架构规划、统一机制、上游同步或审阅时，使用 `maintain-conceptual-integrity`。
+1. **General beats special-casing.** First decide whether several requirements share one meaning and extend a single common mechanism. Keep genuine differences visible; do not build a universal abstraction before a shared requirement exists.
+2. **Start from first principles.** Confirm what the user wants, which behaviours are already external contracts, how much evidence supports the current judgement, and which conditions must remain true long term. Only then choose the technology and the place to change.
+3. **Fail fast; never degrade silently.** When a constraint stops holding or a result cannot be confirmed, stop the operation and propagate a contextual error. A recovery path is acceptable only when it is explicit and visible to the caller; never guess a default for an unknown state.
+4. **Maintainability first.** Software engineering has no magic. Code and documentation must let a later maintainer understand, verify and change the system without relying on unwritten history. Extra complexity needs a real problem and measurements behind it.
+5. **KISS and the 60/95 rule.** Choose the simplest approach that fully solves the current problem. 60/95 means roughly 60% of the complexity should cover roughly 95% of real-world cases; rare cases without evidence can wait until they actually appear.
+6. **Clarity and elegance.** Concepts should be clear, responsibility should sit where the relevant facts live, and data flow and error paths should be easy to trace. The implementation should respect user choice and the existing ecosystem, and let Rust, Tauri and modern engineering practice serve the problem itself.
+7. **Follow, but do not worship.** Principles can conflict. When they do, return to the original goal and the available evidence, explain the trade-off, and use first principles and practical judgement to choose. When new facts overturn an old judgement, change the design.
+
+## The Craft: engineering practice
+
+- **Core architecture:** follow the workspace crate boundaries in `docs/BackendStructure.md`. The `tauritavern` host carries only the Tauri shell, composition, commands and AppHandle/WebView/resource/platform glue; Tauri-free concrete IO belongs in the matching `tt-adapter-*` crate.
+- **Rust philosophy:** write idiomatic Rust. Prefer `Result` with `thiserror`/`anyhow` for error handling, and respect ownership and borrowing.
+- **Modularity and abstraction:** repository traits and outbound ports live in `tt-ports`; concrete implementations live in adapter crates. Do not add a meaningless trait, factory or facade for a single implementation.
+- **Code reuse (DRY):** reuse existing project helpers first. Do not extract a cross-bounded-context sanitizer, formatting library or abstraction layer just to look generic.
+- **Documentation first:** before writing code, read the relevant pages under `docs/` (especially `BackendStructure.md`, `FrontendGuide.md` and `FrontendHostContract.md`) and understand the requirement, architecture and plan.
+- **Code consistency:** before adding a feature, check whether similar code or definitions already exist; reuse them or stay consistent with them.
+- **Definition of done:** self-review every path for concept, responsibility, state ownership and data flow. Passing tests only confirms behaviour and is not a finishing gate. Readability, maintainability and conceptual consistency are hard gates. The maintainer reviews from first principles; only that review closes the work.
+- **Error handling:** propagate errors clearly. Follow fail-fast and never degrade silently. Use `CommandError` at Tauri command boundaries and `DomainError` in the domain/repository layer.
+- **Async:** use `async`/`await` and the `tokio` runtime for I/O-bound or concurrent work such as file and network access.
+- **Data transfer objects (DTOs):** pass DTOs between the application and presentation layers (Tauri commands). Keep DTO definitions aligned with the documentation and consistent across the frontend and backend.
+- **Tauri commands:** `#[tauri::command]` belongs only in the `presentation` layer and should call `application` services. Do not put complex logic or infrastructure access in the command itself.
+- **Comments:** add clear, concise comments for complex or non-obvious logic.
+- **Test admission:** add tests only for observable stable behaviour, non-trivial invariants or boundaries, or a concrete defect that has occurred and been fixed. Code changes and coverage are not reasons by themselves. Never assert on source text with regex or string matching; do not test literals, obvious control flow, direct delegation, implementation details or removed features. Do not add regression tests in advance.
+- **Test practice:** reuse the highest existing behavioural coverage first and avoid repeating the same assertion at several layers. Use deterministic coordination for concurrency tests; never rely on `sleep`. When removing a feature or test, remove its fixtures, fakes, hooks and dependencies in the same change. Keep a minimal runnable test when migrating a core repository or changing format semantics. Run the focused tests for the affected crates and `scripts/check-rust-crate-boundaries.mjs` first, then the full harness `pnpm run check` after each implementation.
+- **Frontend interaction:** follow `FrontendGuide.md` for frontend interaction, especially the DTO and event contracts.
+- **Repository skills:** `.agents/skills/` is the only source for day-to-day development skills; `.claude/skills` is a symlink to it, and `.github/codex/skills/` is for controlled CI use only. Use `maintain-conceptual-integrity` for architecture planning, shared mechanisms, upstream sync or review.

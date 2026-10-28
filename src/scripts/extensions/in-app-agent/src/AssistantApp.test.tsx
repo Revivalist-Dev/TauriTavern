@@ -64,7 +64,7 @@ test('IME and modified Enter never send to character chat; switching formatting 
     document.addEventListener('keydown', globalKey);
     render(<AssistantApp controller={h.controller} actions={h.actions} drawer={drawer} />, { container: drawer.mount });
     let input = screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Message the app assistant' });
-    fireEvent.change(input, { target: { value: '检查设置' } });
+    fireEvent.change(input, { target: { value: 'Check settings' } });
     fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
     fireEvent.keyDown(input, { key: 'Enter', keyCode: 229 });
     fireEvent.keyDown(input, { key: 'Enter', ctrlKey: true });
@@ -74,7 +74,7 @@ test('IME and modified Enter never send to character chat; switching formatting 
     fireEvent.click(screen.getByRole('button', { name: 'Advanced formatting' }));
     fireEvent.click(screen.getByRole('button', { name: 'Back to assistant' }));
     input = screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Message the app assistant' });
-    expect(input.value).toBe('检查设置');
+    expect(input.value).toBe('Check settings');
     fireEvent.keyDown(input, { key: 'Enter' });
     await waitFor(() => expect(h.sendMessage).toHaveBeenCalledTimes(1));
     document.removeEventListener('keydown', globalKey); drawer.dispose();

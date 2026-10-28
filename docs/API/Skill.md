@@ -1,8 +1,8 @@
 # Skill API
 
-`api.skill` 管理本地知识包，包括导入、文件编辑、作用域和导出。知识包与脚本的编写方法见 [Skill](../Agent/Skill.md)。
+`api.skill` manages local knowledge packages, including import, file editing, scope and export. For how to write a knowledge package and its scripts, see [Skill](../Agent/Skill.md).
 
-## 入口
+## Entry point
 
 ```js
 await (window.__TAURITAVERN__?.ready ?? window.__TAURITAVERN_MAIN_READY__);
@@ -10,36 +10,36 @@ const skill = window.__TAURITAVERN__.api.skill;
 const installed = await skill.list();
 ```
 
-## 管理与文件
+## Management and files
 
-| 方法 | 行为 |
+| Method | Behavior |
 | --- | --- |
-| `list({ scope? }?)` | 返回 Skill 列表；`all` 表示所有用户安装的 Skill，内置包须用 `builtin` 筛选 |
-| `listFiles({ scope?, name })` | 列出包内文件 |
-| `readFile({ scope?, name, path, startLine?, lineCount? })` | 读取 UTF-8 文件，支持 1-based 行范围 |
-| `writeFile({ scope?, name, path, content, expectedSha256? })` | 写入文件，可按读取到的 SHA 检查并发修改 |
-| `move({ name, fromScope, toScope, conflictStrategy? })` | 移动到另一个作用域 |
-| `export({ scope?, name })` | 返回 `{ fileName, contentBase64, sha256 }`，内容为 ZIP |
-| `delete({ scope?, name })` | 删除安装索引与包目录 |
+| `list({ scope? }?)` | Returns the skill list; `all` covers every user-installed skill, while built-in packages have to be filtered with `builtin` |
+| `listFiles({ scope?, name })` | Lists the files in the package |
+| `readFile({ scope?, name, path, startLine?, lineCount? })` | Reads a UTF-8 file, with optional 1-based line ranges |
+| `writeFile({ scope?, name, path, content, expectedSha256? })` | Writes a file, optionally checking the SHA it was read at to detect a concurrent modification |
+| `move({ name, fromScope, toScope, conflictStrategy? })` | Moves the package to another scope |
+| `export({ scope?, name })` | Returns `{ fileName, contentBase64, sha256 }`, with the content as a ZIP |
+| `delete({ scope?, name })` | Deletes the install index entry and the package directory |
 
-作用域有 `global`、`preset`、`profile`、`character` 和 `builtin`，省略作用域时按全局处理。`builtin` 随应用分发，只提供列表与读取，不支持安装、写入、移动、改作用域、删除或导出；通过 `list({ scope: { kind: 'builtin' } })` 单独列出。完整结构见 [src/types.d.ts](../../src/types.d.ts) 的 `TauriTavernSkillScope`。
+The scopes are `global`, `preset`, `profile`, `character` and `builtin`; omitting the scope means global. `builtin` ships with the application and supports listing and reading only: no install, write, move, scope change, delete or export. List it separately with `list({ scope: { kind: 'builtin' } })`. For the full structure, see `TauriTavernSkillScope` in [src/types.d.ts](../../src/types.d.ts).
 
-文件路径相对于 Skill 包。`readFile` 返回原文与原始 SHA，不展开宏；省略范围时读取全文，较长内容返回行预览和 `nextStartLine`。`writeFile` 的 SHA 不匹配时返回错误。
+File paths are relative to the skill package. `readFile` returns the raw text and its original SHA and does not expand macros; omitting the range reads the whole file, and long content comes back as a line preview plus `nextStartLine`. `writeFile` returns an error when the SHA does not match.
 
-## 选择导入来源
+## Choosing an import source
 
-| 方法 | 返回内容 |
+| Method | Returns |
 | --- | --- |
-| `acquireImport()` | 同步取得本页导入准入，返回 `release(): Promise<void>`；占用时抛出 `skill.import_busy` |
-| `pickImportArchive()` | 单个归档输入，取消时为 `null` |
-| `pickImportArchives()` | 选择一个或多个归档来源，取消时为 `null` |
-| `isDirectoryImportAvailable()` | 当前宿主能否选择目录来源（目前仅桌面） |
-| `pickImportDirectories()` | 选择一个或多个目录来源，取消时为 `null`；不可用时抛错 |
-| `discoverImports({ input })` | 递归展开目录或归档中的 Skill；其他输入返回单个候选 |
-| `downloadImport({ url })` | 下载 HTTPS raw `SKILL.md`，返回单文件导入输入 |
-| `discardPickedImport(input?)` | 释放指定来源的临时资源；无参数时释放整批来源 |
+| `acquireImport()` | Synchronously takes this page's import lease and returns `release(): Promise<void>`; throws `skill.import_busy` while the lease is held |
+| `pickImportArchive()` | A single archive input, or `null` if cancelled |
+| `pickImportArchives()` | One or more archive sources, or `null` if cancelled |
+| `isDirectoryImportAvailable()` | Whether the current host can pick directory sources (currently desktop only) |
+| `pickImportDirectories()` | One or more directory sources, or `null` if cancelled; throws when unavailable |
+| `discoverImports({ input })` | Recursively expands the skills inside a directory or archive; any other input yields a single candidate |
+| `downloadImport({ url })` | Downloads a raw `SKILL.md` over HTTPS and returns a single-file import input |
+| `discardPickedImport(input?)` | Releases the temporary resources of one source, or of the whole batch when called without arguments |
 
-导入输入有三种形式：
+An import input takes one of three forms:
 
 ```ts
 type SkillImportInput =
@@ -59,20 +59,20 @@ type SkillImportInput =
     };
 ```
 
-`skillRoot` 是归档内的 Skill 根路径；发现过程遇到 `SKILL.md` 后不再深入该目录。`source` 记录来源关系，角色卡和预设用它关联嵌入的 Skill。ZIP 和历史 `.ttskill` 归档都可导入，导出统一使用 ZIP。
+`skillRoot` is the skill's root path inside the archive; discovery stops descending once it finds a `SKILL.md`. `source` records provenance, which character cards and presets use to associate embedded skills. Both ZIP and legacy `.ttskill` archives can be imported; export always uses ZIP.
 
-## 预览与安装
+## Preview and install
 
-选取来源后调用 `discoverImports({ input })`，对返回的候选逐项调用 `previewImport({ input, targetScope? })` 查看内容和同名冲突，再调用 `installImport({ input, targetScope?, conflictStrategy? })`。
+After picking a source, call `discoverImports({ input })`, then call `previewImport({ input, targetScope? })` on each returned candidate to inspect its content and any name clash, and finally call `installImport({ input, targetScope?, conflictStrategy? })`.
 
-| `conflict.kind` | 含义 | 安装方式 |
+| `conflict.kind` | Meaning | Install behavior |
 | --- | --- | --- |
-| `new` | 同名包不存在 | 安装 |
-| `same` | 同名且内容相同 | 合并来源，保留已有内容 |
-| `different` | 同名但内容不同 | 指定 `skip` 或 `replace` |
+| `new` | No package with that name exists | Install |
+| `same` | Same name and identical content | Merge the source and keep the existing content |
+| `different` | Same name but different content | Specify `skip` or `replace` |
 
-安装结果的 `action` 为 `installed`、`replaced`、`already_installed` 或 `skipped`。多个来源逐项预览和安装，每项单独提交并返回结果；已完成的安装会保留。
+The install result's `action` is `installed`, `replaced`, `already_installed` or `skipped`. With multiple sources, preview and install run per item, and each item commits and returns its own result; completed installs are kept.
 
-助手与 Skill Manager 在选取或下载来源前取得导入准入，并持有至预览、安装结束。整批完成或取消后，须等待在途请求结束，再 await `release()`；它清理临时来源后释放准入，可重复调用。单项安装不会释放来源。
+The assistant and Skill Manager take the import lease before picking or downloading a source and hold it until preview and install finish. Once the whole batch completes or is cancelled, wait for in-flight requests to end and then `await release()`; it clears the temporary sources and frees the lease, and may be called repeatedly. A single install does not release the source.
 
-Agent 通过只读 `skills/<name>/` 视图和 `workspace.shell` 使用安装包，见 [Skill](../Agent/Skill.md)。
+Agents use installed packages through the read-only `skills/<name>/` view and `workspace.shell`; see [Skill](../Agent/Skill.md).

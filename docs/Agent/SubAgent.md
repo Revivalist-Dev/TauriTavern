@@ -1,81 +1,81 @@
-# 多 Agent 协作
+# Multi-agent collaboration
 
-多个 Agent 在同一个 Run 中工作。每个 Agent 的一次执行是一个 Invocation，有自己的 Profile、上下文和工具循环；文件保存在共享工作区中。
+Several agents work inside one run. One execution of an agent is an Invocation, with its own Profile, context, and tool loop; files live in the shared workspace.
 
-协作通过任务包传递目标和材料，通过结果包传回结论。它类似管道中的输入与输出，runtime 用任务记录连接两端，文件路径承载较大的材料。
+Collaboration passes goals and material in a task package and returns conclusions in a result package. It works like input and output in a pipeline: the runtime joins the two ends with a task record, and file paths carry the larger material.
 
-## 委派与交接
+## Delegation and handoff
 
-两种协作方式共用 `AgentTaskRecord`，区别在于任务之后由谁继续：
+Both forms share `AgentTaskRecord` and differ in who continues after the task:
 
-| 方式 | 工具 | continuation | 后续工作 |
+| Form | Tool | continuation | What follows |
 | --- | --- | --- | --- |
-| 委派 | `agent.delegate` | `return_to_parent` | 子 Agent 返回结果，调用方继续 |
-| 交接 | `agent.handoff` | `transfer_control` | 当前 Agent 退出，下一个 Agent 接手 |
+| Delegation | `agent.delegate` | `return_to_parent` | The child agent returns a result and the caller continues |
+| Handoff | `agent.handoff` | `transfer_control` | The current agent exits and the next agent takes over |
 
-任务记录保存调用方、接收方、目标 Profile、任务内容和状态。模型只需选择 Agent、描述任务并引用文件；Invocation ID 和任务文件路径由 runtime 管理。
+A task record keeps the caller, the receiver, the target Profile, the task content, and the state. The model only chooses an agent, describes the task, and references files; the runtime manages the Invocation IDs and task file paths.
 
-## 委派一个任务
+## Delegating a task
 
-系统提示词提供可调用 Agent 的 ID、用途和支持操作，按本次工具权限及目标资格筛选。模型从目录选择 ID，再交付任务：
+The system prompt supplies the callable agents' IDs, purposes, and supported actions, filtered by this run's tool permissions and each target's eligibility. The model picks an ID from the catalog and hands over the task:
 
 ```json
 {
   "agentId": "reviewer",
   "task": {
-    "objective": "检查人物动机是否前后一致，并将修改建议写入 summaries/review.md。",
+    "objective": "Check that the character motivation is consistent throughout, and write revision suggestions to summaries/review.md.",
     "draft": "output/main.md"
   }
 }
 ```
 
-`task.objective` 必填，`title` 可选，其他字段可以携带这项工作需要的材料。`agent.delegate` 返回任务 ID 后，调用方可以继续做其他事。需要结果时调用 `agent.await`；它支持等待一个完成、等待全部完成或只读状态。
+`task.objective` is required, `title` is optional, and other fields can carry the material this work needs. Once `agent.delegate` returns a task ID, the caller can go on with other work. Call `agent.await` when it needs the result; that can wait for one completion, wait for all of them, or just read state.
 
-子 Agent 使用 `task.return` 结束：
+The child agent ends with `task.return`:
 
 ```json
 {
-  "summary": "发现两处动机衔接问题，修改建议已写入 summaries/review.md。",
+  "summary": "Found two problems in the motivation continuity; revision suggestions are in summaries/review.md.",
   "artifacts": [{ "path": "summaries/review.md", "kind": "markdown", "role": "review" }]
 }
 ```
 
-runtime 保存结构化结果，并生成 `summaries/<workspace-key>-result.md` 供其他 Agent 读取。调用方收到摘要、文件引用及结果中的其他字段，随后决定如何使用。已完成结果也会在后续轮次送入调用方上下文。
+The runtime saves the structured result and writes `summaries/<workspace-key>-result.md` for other agents to read. The caller receives the summary, the file references, and the result's other fields, then decides how to use them. A completed result also enters the caller's context in later rounds.
 
-委派任务使用后台执行和 `task.return` 结束方式，聊天提交由前台 Agent 负责。当前 return-mode 子 Agent 没有委派和交接工具，因此也没有可调用 Agent 目录。
+A delegated task runs in the background and ends with `task.return`, and the foreground agent owns the chat commit. A return-mode child agent currently has no delegation or handoff tools, and therefore no callable agent catalog.
 
-## 交给下一个 Agent
+## Handing off to the next agent
 
-适合把资料整理、起草、润色等阶段交给不同 Profile：
+Useful for handing stages such as research, drafting, and polishing to different Profiles:
 
 ```json
 {
   "agentId": "editor",
   "handoff": {
-    "objective": "完成最后一轮润色并提交正文。",
-    "contextSummary": "事实核对已完成，保留原有叙述视角。",
+    "objective": "Do the final polishing round and commit the body.",
+    "contextSummary": "Fact-checking is done; keep the existing narrative perspective.",
     "workspaceRefs": ["output/main.md", "summaries/review.md"]
   }
 }
 ```
 
-`handoff.objective` 必填，其余内容按任务需要填写。交接前先收齐当前 Agent 的委派任务。交接成功后，当前 Invocation 标记为 `transferred`，executor 在同一 Run 中启动接收方；接收方沿用已有文件和提交记录，通过 `workspace.commit`、`workspace.finish` 完成工作。
+`handoff.objective` is required, and the rest follows the task's needs. Collect the current agent's delegated tasks before handing off. On success the current Invocation is marked `transferred` and the executor starts the receiver in the same run; the receiver continues with the existing files and commit records and finishes through `workspace.commit` and `workspace.finish`.
 
-## 接收方看到什么
+## What the receiver sees
 
-runtime 用目标 Profile 准备新的提示词和工具集合。初始聊天材料来自 Run 启动时冻结的输入，预设、模型与上下文范围取自目标 Profile，不继承上一棒，见 [Prompt assembly](PromptAssembly.md)。接收方先按 Profile 生成组装请求，再通过与 Session 共用的宿主组装桥调用 PromptManager。任务包通过 `agentTask` 进入提示词。调用方应在任务中写明目标、必要背景和文件路径。
+The runtime prepares a new prompt and tool set from the target Profile. The initial chat material comes from the input frozen when the run started, while the preset, model, and context scope come from the target Profile rather than the previous leg, see [Prompt assembly](PromptAssembly.md). The receiver builds its assembly request from its Profile and then calls the PromptManager through the host assembly bridge it shares with Sessions. The task package enters the prompt through `agentTask`. The caller should state the objective, the necessary background, and the file paths in the task.
 
-双方共享工作文件，各自按 Profile 获得读写范围；`skills/` 使用各自的有效绑定。不同任务可约定输出文件，再由调用方汇总；文件与并发语义见 [Workspace](Workspace.md)。
+Both sides share the working files and each gets its read and write scope from its Profile; `skills/` uses each side's effective bindings. Tasks can agree on output files for the caller to merge; see [Workspace](Workspace.md) for file and concurrency semantics.
 
-Profile 的 `delegation` 配置控制是否可被调用、是否可委派或交接、调用来源与并发数量。返回式子任务由 scheduler 运行；Run 收尾或取消时，runtime 结束尚未完成的子任务。
+The Profile's `delegation` configuration controls whether it can be called, whether it can delegate or hand off, which callers are allowed, and the concurrency. Return-mode child tasks run on the scheduler; when the run wraps up or is cancelled, the runtime ends the child tasks that have not finished.
 
-目录随已准备请求保留，调用时仍检查当前目标权限和预算。目标选择错误时，工具返回原因与该操作当前可用的候选。
+The catalog stays with the prepared request, and a call still checks the target's current permission and budget. When the target choice is wrong, the tool returns the reason and the candidates currently available for that operation.
 
-## 查看与修改实现
+## Inspecting and changing the implementation
 
-Timeline 使用 Invocation 和 Task 记录展示关系，用日志显示每个 Agent 的过程。`readTaskDetail({ runId, taskId, includeResult })` 按 ID 读取任务及按需结果。
+Timeline shows the relationships from the Invocation and Task records and each agent's process from the journal. `readTaskDetail({ runId, taskId, includeResult })` reads a task by ID, with its result on demand.
 
-- [invocation.rs](../../src-tauri/crates/tt-application/src/services/agent_runtime_service/invocation.rs)：创建 Invocation 与 Task。
-- [delegation](../../src-tauri/crates/tt-application/src/services/agent_runtime_service/delegation)：委派、等待、返回、交接及接收方提示词。
-- [scheduler.rs](../../src-tauri/crates/tt-application/src/services/agent_runtime_service/scheduler.rs)：后台子任务与取消。
-- [descriptors.rs](../../src-tauri/crates/tt-application/src/services/agent_tools/agent/descriptors.rs)：模型可见工具参数。
+- [invocation.rs](../../src-tauri/crates/tt-application/src/services/agent_runtime_service/invocation.rs): creates Invocations and Tasks.
+- [delegation](../../src-tauri/crates/tt-application/src/services/agent_runtime_service/delegation): delegation, waiting, return, handoff, and the receiver's prompt.
+- [scheduler.rs](../../src-tauri/crates/tt-application/src/services/agent_runtime_service/scheduler.rs): background child tasks and cancellation.
+- [descriptors.rs](../../src-tauri/crates/tt-application/src/services/agent_tools/agent/descriptors.rs): tool arguments visible to the model.

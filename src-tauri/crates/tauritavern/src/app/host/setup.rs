@@ -22,6 +22,12 @@ pub(super) fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Erro
     let runtime_paths = super::runtime_paths::install(app, &app_handle)?;
     super::observability::purge_old_logs(&runtime_paths);
 
+    // Local vault mounts are independent of the runtime settings snapshot.
+    // Load them before the first webview so the file explorer can open early.
+    let local_vault =
+        tt_adapter_local_vault::LocalVault::load(runtime_paths.data_root.join("local-vault.json"));
+    app.manage(Arc::new(local_vault));
+
     // 2. Publish lightweight host services that do not depend on user settings.
     // AppState construction later reuses the same HTTP pool via managed state.
     app.manage(Arc::new(AgentExtensionTools::default()));

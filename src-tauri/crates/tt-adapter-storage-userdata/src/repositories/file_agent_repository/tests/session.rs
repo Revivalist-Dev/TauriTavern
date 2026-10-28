@@ -346,7 +346,7 @@ async fn session_metadata_and_deletion_preserve_other_sessions_and_shared_profil
     assert!(untouched.title.is_none());
     assert!(untouched.last_used_at.is_none());
     let user: AgentModelMessage = serde_json::from_value(json!({
-        "role": "user", "parts": [{"type": "text", "text": "  检查\n  扩展的问题  "}]
+        "role": "user", "parts": [{"type": "text", "text": "  Check\n  the extension problem  "}]
     }))
     .unwrap();
     let first = repository
@@ -355,7 +355,10 @@ async fn session_metadata_and_deletion_preserve_other_sessions_and_shared_profil
         .unwrap();
     let sessions = repository.list_sessions().await.unwrap();
     assert_eq!(sessions[0].id, "session_a");
-    assert_eq!(sessions[0].title.as_deref(), Some("检查 扩展的问题"));
+    assert_eq!(
+        sessions[0].title.as_deref(),
+        Some("Check the extension problem")
+    );
     assert_eq!(sessions[0].last_used_at, Some(first.created_at));
     let renamed = repository
         .rename_session("session_a", "Saved title")

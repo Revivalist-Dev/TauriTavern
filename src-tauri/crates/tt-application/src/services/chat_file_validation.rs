@@ -55,6 +55,6 @@ mod tests {
         assert!(validate_character_path_component(" Alice").is_ok());
         assert!(validate_chat_file_name("session", "Chat file name").is_ok());
         assert!(validate_chat_file_name("session.JSONL", "Chat file name").is_ok());
-        assert!(validate_chat_file_name("中文会话.jsonl", "Chat file name").is_ok());
+        assert!(validate_chat_file_name("café-session.jsonl", "Chat file name").is_ok());
     }
 }

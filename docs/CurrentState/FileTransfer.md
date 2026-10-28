@@ -1,55 +1,55 @@
-# 文件导入与导出
+# File import and export
 
-宿主提供两个能力：**选取**用户文件，以及**交付**已经生成完毕的文件。功能代码提供用途、内容和建议文件名；系统面板、URI 授权与文件复制集中在 host 的 `platform/file_transfer`。
+The host offers two capabilities: **picking** a user's files, and **delivering** a file that has already been produced. Feature code supplies the purpose, the content, and a suggested filename; the system panel, URI grants, and file copying are centralized in the host's `platform/file_transfer`.
 
-## 1. 规则
+## 1. Rules
 
-- **谁产出文件，谁发起交付。** Rust 产出的文件由对应命令交付；前端发起的交付先暂存内容（WebView 字节，或宿主下载的远程资源），再调用 `deliver_staged_file`。
-- **交付消费源文件。** 保存、取消或失败都会结束本次产物。
-- **交付结果为 `{ delivered }`。** 完成目标写入或系统交接后为 `true`，取消为 `false`，失败抛错。目标是普通文件时，同步落盘后才算完成。
-- **选取按用途过滤。** 角色卡、Skill 归档、数据归档分别映射为各平台的过滤条件；文件内容由导入方校验。
+- **Whoever produces a file starts the delivery.** A file produced by Rust is delivered by the command that produced it; a delivery started by the frontend stages the content first (WebView bytes, or a remote resource the host downloads) and then calls `deliver_staged_file`.
+- **A delivery consumes the source file.** Saving, cancelling, and failing all end this artifact.
+- **The delivery result is `{ delivered }`.** It is `true` once the target write or the system hand-off is complete, `false` on cancellation, and throws on failure. When the target is an ordinary file, the write must have landed on disk before delivery counts as complete.
+- **Picking filters by purpose.** Character cards, Skill archives, and data archives map to each platform's filter conditions respectively, and the file's content is validated by the importer.
 
-## 2. 平台实现
+## 2. Platform implementations
 
-| 平台 | 选取 | 交付 |
+| Platform | Picking | Delivery |
 | --- | --- | --- |
-| Windows / macOS / Linux | dialog 插件返回路径，复制进暂存；数据归档原地使用 | 保存面板；同卷时移动，跨卷时复制 |
-| Android / OpenHarmony | dialog 插件返回带授权的 URI，通过 fs 插件打开 fd 后复制进暂存 | 保存面板授权目标 URI，通过 fd 写入 |
-| iOS | Document Picker 生成副本，移动进暂存 | Share Sheet |
+| Windows / macOS / Linux | The dialog plugin returns a path, which is copied into staging; a data archive is used in place | Save panel; move on the same volume, copy across volumes |
+| Android / OpenHarmony | The dialog plugin returns a URI with a grant, which is opened through the fs plugin as an fd and copied into staging | The save panel grants a target URI, and the bytes are written through the fd |
+| iOS | Document Picker produces a copy, which is moved into staging | Share Sheet |
 
-Android 的 content URI 不带文件名，由 `ContentUriPlugin` 查询 `DISPLAY_NAME` 得到。
+An Android content URI carries no filename; `ContentUriPlugin` gets it by querying `DISPLAY_NAME`.
 
-Android 与鸿蒙的保存面板只接收文件扩展名，类型由系统按自己的表转换；系统不认识的扩展名不声明具体类型。保存面板会按类型推导后缀，自行指定的类型可能与系统的表不一致，例如 ColorOS 会把 `application/octet-stream` 的 `.jsonl` 存成 `.bin`。
+The save panel on Android and OpenHarmony accepts only a file extension, and the system converts it to a type with its own table; an extension the system does not recognize declares no specific type. The save panel derives the suffix from the type, so a type chosen by hand can disagree with the system's table: ColorOS, for instance, saves a `.jsonl` carrying `application/octet-stream` as `.bin`.
 
-## 3. 暂存
+## 3. Staging
 
-| 暂存 | 位置 | 内容 |
+| Staging | Location | Content |
 | --- | --- | --- |
-| 通用 | `app_cache/tauritavern-staging/<kind>/` | WebView 字节（上传与 Blob 导出）、宿主下载的远程资源、选取的角色卡与 Skill 归档、调试包 |
-| 归档 | `archive_imports_root/incoming`、`archive_exports_root` | 数据归档、用户备份 |
+| General | `app_cache/tauritavern-staging/<kind>/` | WebView bytes (uploads and Blob exports), remote resources downloaded by the host, picked character cards and Skill archives, debug bundles |
+| Archive | `archive_imports_root/incoming`, `archive_exports_root` | Data archives, user backups |
 
-- WebView 字节经 `stage_file_*` 进入宿主：Android 用 base64 帧，其余平台用原始字节。
-- 前端经宿主 `safeInvoke` 调用暂存与交付命令，失败时得到可读的错误消息；只有二进制分块走原始 invoke。
-- 远程资源经 `stage_file_from_url` 进入宿主：由 `ContentService::download_external_file` 下载，与外部内容导入共用 URL 规则和 `Download` 配置（含用户的请求代理），不带页面的 Cookie 与 Referer。
-- 写入失败的暂存文件由写入方删除。通用暂存在宿主启动时清空，暂存后未进入交付的文件随之回收；归档暂存沿用过期清扫。
-- 归档单独暂存：Android 的数据根与 cache 不在同一个卷，大型归档要放在数据卷上，才能直接移动进任务工作区。
+- WebView bytes enter the host through `stage_file_*`: base64 frames on Android, raw bytes on the other platforms.
+- The frontend calls the staging and delivery commands through the host's `safeInvoke` and gets a readable error message on failure; only binary chunks go through raw invoke.
+- Remote resources enter the host through `stage_file_from_url`: they are downloaded by `ContentService::download_external_file`, sharing the URL rules and `Download` configuration (including the user's request proxy) used by external content import, without the page's cookies or Referer.
+- A staged file whose write failed is deleted by the writer. General staging is emptied when the host starts, which reclaims files that were staged but never delivered; archive staging relies on the existing expiry sweep.
+- Archives are staged separately: on Android the data root and the cache do not sit on the same volume, and a large archive has to be placed on the data volume for it to be moved straight into the task workspace.
 
-## 4. 入口
+## 4. Entry points
 
-| 产物或来源 | 入口 |
+| Artifact or source | Entry point |
 | --- | --- |
-| `download()`、同源 `a[download]`、Android 图片长按（页面可读来源）、Skill 与 Agent 导出 | `deliverBlob()` |
-| Android 图片长按（远程图片） | `deliverRemoteFile()`：`stage_file_from_url` 后调用 `deliver_staged_file` |
-| 数据归档导出 | 任务完成后调用 `save_export_data_archive`：领取产物，交付，再标记为已处置 |
-| 数据归档导入 | `import_data_archive_from_picker` |
-| 用户备份 | `export_user_backup_archive` |
-| 调试包 | `devlog_export_bundle` |
-| 角色卡、Skill 归档选取 | `pick_import_files` |
+| `download()`, a same-origin `a[download]`, an Android image long-press (source readable by the page), Skill and Agent exports | `deliverBlob()` |
+| An Android image long-press (remote image) | `deliverRemoteFile()`: `stage_file_from_url`, then `deliver_staged_file` |
+| Data archive export | After the task completes, call `save_export_data_archive`: claim the artifact, deliver it, then mark it as handled |
+| Data archive import | `import_data_archive_from_picker` |
+| User backup | `export_user_backup_archive` |
+| Debug bundle | `devlog_export_bundle` |
+| Picking character cards and Skill archives | `pick_import_files` |
 
-`<input type="file">`、拖放和桌面目录选择沿用原有入口。新增的导入导出功能接入上述入口。
+`<input type="file">`, drag and drop, and desktop directory selection keep their existing entry points. New import and export features wire into the entry points above.
 
-## 5. 已知限制
+## 5. Known limitations
 
-- 移动端 dialog 插件会把面板失败也报告为取消。
-- 写入中途失败时，目标文件可能不完整；Android 与鸿蒙的 fs 插件不能删除 URI 目标。
-- 内容要在保存面板出现前完成暂存，期间不显示进度；远程下载没有总超时，也不能取消。
+- The mobile dialog plugin reports a panel failure as a cancellation as well.
+- If a write fails partway, the target file may be incomplete; the Android and OpenHarmony fs plugin cannot delete a URI target.
+- Content has to be staged before the save panel appears, with no progress shown meanwhile; a remote download has no overall timeout and cannot be cancelled.

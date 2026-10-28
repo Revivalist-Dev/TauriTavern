@@ -1,17 +1,11 @@
-name: 问题报告 / Bug report
-description: 报告可复现的 TauriTavern 故障 / Report a reproducible TauriTavern problem
+name: Bug report
+description: Report a reproducible TauriTavern problem
 title: "[Bug] "
 labels: ["type: bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        请尽量提供稳定的复现步骤，并在提交前移除 API Key、聊天正文等隐私信息。
-
-        提交前请先关闭所有第三方扩展并重新测试。如果问题随后消失，仍可作为兼容性问题报告，请注明相关扩展。
-
-        SillyTavern 扩展、主题和角色卡的兼容问题也可以在这里报告。请说明问题是否依赖这些内容，并附上名称或公开链接。
-
         Please provide reliable reproduction steps and remove API keys, chat content, and other private information before submitting.
 
         Before filing, disable all third-party extensions and test again. If the problem disappears, you may still report it as a compatibility issue; name the extension involved.
@@ -21,7 +15,7 @@ body:
   - type: dropdown
     id: platform
     attributes:
-      label: 运行平台 / Platform
+      label: Platform
       options:
         - Windows
     validations:
@@ -30,8 +24,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: TauriTavern 版本 / Version
-      description: 可填写发布版本、预发布版本或提交哈希。 / Enter a release, prerelease, or commit hash.
+      label: TauriTavern version
+      description: Enter a release, prerelease, or commit hash.
       placeholder: "2.1.1"
     validations:
       required: true
@@ -39,8 +33,8 @@ body:
   - type: input
     id: system
     attributes:
-      label: 系统与设备 / System and device
-      description: 请包括 Windows 版本与版本号。WebView 版本已知时也请附上。 / Include the Windows version and build. Add the WebView version if known.
+      label: System and device
+      description: Include the Windows version and build. Add the WebView version if known.
       placeholder: Windows 11 23H2 (22631), WebView2 138
     validations:
       required: true
@@ -48,77 +42,77 @@ body:
   - type: dropdown
     id: installation
     attributes:
-      label: 安装来源 / Installation source
+      label: Installation source
       options:
-        - 正式版 / Official release
-        - 预发布版 / Official prerelease
-        - 自行构建 / Self-built
-        - 其他 / Other
+        - Official release
+        - Official prerelease
+        - Self-built
+        - Other
     validations:
       required: true
 
   - type: textarea
     id: steps
     attributes:
-      label: 复现步骤 / Steps to reproduce
-      description: 从应用启动后的已知状态开始，按顺序列出操作。 / Start from a known app state and list each action in order.
+      label: Steps to reproduce
+      description: Start from a known app state and list each action in order.
       placeholder: |
-        1. 打开…… / Open ...
-        2. 选择…… / Select ...
-        3. 点击…… / Click ...
+        1. Open ...
+        2. Select ...
+        3. Click ...
     validations:
       required: true
 
   - type: textarea
     id: actual
     attributes:
-      label: 实际结果 / Actual result
-      description: 请写明应用最终发生了什么。 / Describe what the app did.
+      label: Actual result
+      description: Describe what the app did.
     validations:
       required: true
 
   - type: textarea
     id: expected
     attributes:
-      label: 期望结果 / Expected result
-      description: 请写明你原本期望的行为。 / Describe the behavior you expected.
+      label: Expected result
+      description: Describe the behavior you expected.
     validations:
       required: true
 
   - type: dropdown
     id: third_party
     attributes:
-      label: 第三方扩展与内容 / Third-party extensions and content
-      description: 请关闭所有第三方扩展后重新测试，再选择结果。无法测试时，请在“相关配置”中说明原因。 / Disable all third-party extensions, test again, and select the result. If you cannot test, explain why under Relevant configuration.
+      label: Third-party extensions and content
+      description: Disable all third-party extensions, test again, and select the result. If you cannot test, explain why under Relevant configuration.
       options:
-        - 关闭第三方扩展后仍可复现 / Reproduces with third-party extensions disabled
-        - 关闭第三方扩展后不再复现 / No longer reproduces with third-party extensions disabled
-        - 暂时无法完成此项测试 / Unable to test
+        - Reproduces with third-party extensions disabled
+        - No longer reproduces with third-party extensions disabled
+        - Unable to test
     validations:
       required: true
 
   - type: textarea
     id: configuration
     attributes:
-      label: 相关配置 / Relevant configuration
-      description: 可包括生成后端、模型、Agent 模式、同步方式、聊天大小，以及相关扩展、主题或角色卡。 / Include the provider, model, Agent mode, sync mode, chat size, or related extension, theme, or card when relevant.
+      label: Relevant configuration
+      description: Include the provider, model, Agent mode, sync mode, chat size, or related extension, theme, or card when relevant.
     validations:
       required: false
 
   - type: textarea
     id: evidence
     attributes:
-      label: 日志与附件 / Logs and attachments
-      description: 可粘贴前端或后端日志，或上传截图和录屏。请先删除隐私信息。 / Add frontend or backend logs, screenshots, or a recording. Remove private information first.
+      label: Logs and attachments
+      description: Add frontend or backend logs, screenshots, or a recording. Remove private information first.
     validations:
       required: false
 
   - type: checkboxes
     id: checks
     attributes:
-      label: 提交前确认 / Before submitting
+      label: Before submitting
       options:
-        - label: 我已搜索现有 Issue，未发现相同问题。 / I searched existing issues and did not find the same problem.
+        - label: I searched existing issues and did not find the same problem.
           required: true
-        - label: 我已从所附材料中移除 API Key、聊天正文和其他隐私信息。 / I removed API keys, chat content, and other private information from attached material.
+        - label: I removed API keys, chat content, and other private information from attached material.
           required: true

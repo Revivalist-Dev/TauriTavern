@@ -1,38 +1,7 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$script:Language = $null
-$script:MessagesZh = @{
-    BannerTitle = 'TauriTavern SillyTavern Migration Export'
-    BannerSubtitle = '这个脚本会生成一个可直接导入 TauriTavern 的 zip。'
-    NotInRoot = '当前目录不是 SillyTavern 根目录。'
-    RootPrompt = '请输入 SillyTavern 根目录路径'
-    RootRequirements = '路径内需要包含 data/default-user 和 public/scripts/extensions/third-party。'
-    RootInvalid = '这个路径看起来不是有效的 SillyTavern 根目录，请重新输入。'
-    DetectedRoot = '已检测到 SillyTavern 根目录'
-    AskBackups = '是否导出 data/default-user/backups？跳过导出备份会明显更快。 [y/N]'
-    SummaryTitle = '执行计划总览'
-    SummaryRoot = 'SillyTavern 根目录'
-    SummaryBackups = '导出 backups'
-    SummaryGlobalExt = '全局扩展映射'
-    Yes = '是'
-    No = '否'
-    StepPrepare = '准备临时工作区'
-    StepCopyUser = '复制 default-user 数据'
-    StepSkipBackups = '已按选择跳过 backups。'
-    StepCopyExtensions = '复制全局 third-party 扩展'
-    StepCountEntries = '统计压缩条目数量'
-    StepZip = '开始压缩 zip'
-    StepMoveDownloads = '尝试移动到 Downloads'
-    MoveSuccess = '已成功移动 zip。'
-    MoveFailed = '移动失败，zip 将保留在原位置。'
-    FinalTitle = '导出完成'
-    FinalPathLabel = 'zip 文件位置'
-    FinalHint = '现在可以在 TauriTavern 的 数据迁移 扩展中导入这个 zip。'
-    Info = '信息'
-    Warning = '警告'
-}
-$script:MessagesEn = @{
+$script:Messages = @{
     BannerTitle = 'TauriTavern SillyTavern Migration Export'
     BannerSubtitle = 'This script creates a zip that can be imported directly by TauriTavern.'
     NotInRoot = 'The current directory is not a SillyTavern root.'
@@ -69,11 +38,7 @@ function Get-Message {
         [string]$Key
     )
 
-    if ($script:Language -eq 'zh') {
-        return $script:MessagesZh[$Key]
-    }
-
-    return $script:MessagesEn[$Key]
+    return $script:Messages[$Key]
 }
 
 function Write-Banner {
@@ -113,20 +78,6 @@ function Write-WarningLine {
     )
 
     Write-Host ("{0}: {1}" -f (Get-Message 'Warning'), $Message)
-}
-
-function Select-Language {
-    while ($true) {
-        Write-Host '请选择脚本语言 / Please choose a language'
-        Write-Host '1) 中文'
-        Write-Host '2) English'
-        $choice = Read-Host '请输入 1 或 2，直接回车默认中文'
-        switch ($choice) {
-            '' { $script:Language = 'zh'; return }
-            '1' { $script:Language = 'zh'; return }
-            '2' { $script:Language = 'en'; return }
-        }
-    }
 }
 
 function Normalize-InputPath {
@@ -193,7 +144,6 @@ function Read-IncludeBackups {
         'y' { return $true }
         'yes' { return $true }
         '1' { return $true }
-        '是' { return $true }
         default { return $false }
     }
 }
@@ -341,7 +291,6 @@ function Write-FinalLocation {
     Write-Host '============================================================'
 }
 
-Select-Language
 Write-Banner
 
 $sillyTavernRoot = Resolve-SillyTavernRoot

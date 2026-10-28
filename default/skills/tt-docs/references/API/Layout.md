@@ -1,6 +1,6 @@
-# `window.__TAURITAVERN__.api.layout` — 内容视口
+# `window.__TAURITAVERN__.api.layout` — content viewport
 
-Windows 桌面版中，内容视口就是 WebView2 客户区，没有系统栏或键盘避让需要扣除。扩展按普通浏览器规则排版即可，不需要识别宿主或处理 inset。
+In the Windows desktop build the content viewport is the WebView2 client area; there is no system bar or keyboard avoidance to subtract. Extensions can lay out by ordinary browser rules, with no need to detect the host or handle insets.
 
 ```css
 .my-panel {
@@ -16,9 +16,9 @@ Windows 桌面版中，内容视口就是 WebView2 客户区，没有系统栏�
 }
 ```
 
-`100vh`、`100dvh`、`window.innerHeight`、`position: fixed`、`<dialog>` 和 iframe 都使用各自正常的浏览器坐标系。`--doc-height` 是静态 CSS 别名：支持时为 `100dvh`，否则为 `100vh`。
+`100vh`, `100dvh`, `window.innerHeight`, `position: fixed`, `<dialog>` and iframes all use their normal browser coordinate space. `--doc-height` is a static CSS alias: `100dvh` where supported, `100vh` otherwise.
 
-## 读取与订阅
+## Reading and subscribing
 
 ```js
 const layout = window.__TAURITAVERN__.api.layout;
@@ -29,28 +29,28 @@ const unsubscribe = await layout.subscribe(snapshot => {
 await unsubscribe();
 ```
 
-宿主 `abiVersion: 2`；布局快照 `version: 2`，长度单位为 CSS px：
+The host reports `abiVersion: 2`; layout snapshots carry `version: 2`, with lengths in CSS px:
 
-- `timestampMs`：读取时间。
-- `viewport`：visual viewport 的 `{ left, top, width, height, right, bottom }`；没有 VisualViewport API 时读取布局视口。
-- `safeFrame`：与 `viewport` 相同。
-- `safeInsets`：`{ top: 0, right: 0, bottom: 0, left: 0 }`。
-- `ime`：`{ bottom: 0, viewportBottomInset: 0, keyboardOffset: 0 }`。
+- `timestampMs`: when the snapshot was read.
+- `viewport`: the visual viewport's `{ left, top, width, height, right, bottom }`; falls back to the layout viewport when the VisualViewport API is unavailable.
+- `safeFrame`: the same as `viewport`.
+- `safeInsets`: `{ top: 0, right: 0, bottom: 0, left: 0 }`.
+- `ime`: `{ bottom: 0, viewportBottomInset: 0, keyboardOffset: 0 }`.
 
-`safeInsets` 与 `ime` 表示视口内仍需页面自行避让的量，宿主已全部消费，因此为零。订阅立即交付一次快照，之后把 window resize 与 visual viewport resize/scroll 按帧合并交付；最后一个订阅取消时移除监听。
+`safeInsets` and `ime` describe the parts of the viewport the page still has to avoid for itself; the host has already consumed all of them, so they are zero. A subscription delivers one snapshot immediately, then coalesces window resize and visual viewport resize/scroll events per frame. Listeners are removed when the last subscription is cancelled.
 
-## 截取
+## Capture
 
-`await layout.capture()` 返回当前内容视口的 `image/png` Blob，属于第一方使用的 Project Contract。图像左上角对应内容视口 `(0, 0)`，宽度对应 `window.innerWidth`；分辨率由平台决定，调用方用图片宽度除以视口宽度换算 CSS 坐标。系统栏不在图中，不滚动页面或拼接视口外内容。
+`await layout.capture()` returns an `image/png` Blob of the current content viewport, part of the Project Contract used by first-party code. The image's top-left corner maps to content viewport `(0, 0)` and its width maps to `window.innerWidth`; the resolution is platform-defined, so callers convert CSS coordinates by dividing the image width by the viewport width. System bars are not in the image, and the host neither scrolls the page nor stitches in content from outside the viewport.
 
-调用方负责等待重绘，原生接口只读取像素。Windows 使用窗口截图并裁至内容视口。失败直接拒绝 Promise，Web Host 以 `Unsupported` 拒绝。
+The caller is responsible for waiting for a repaint; the native interface only reads pixels. On Windows it takes a window screenshot and crops it to the content viewport. Failures reject the Promise directly; the Web Host rejects with `Unsupported`.
 
-## 旧契约
+## Legacy contract
 
-- `ime.activeSurface` 与 `ime.kind` 已移除。
-- `--tt-inset-*` 保留为 `env(safe-area-inset-*, 0px)` 的别名；`--tt-viewport-bottom-inset` 是 `--tt-inset-bottom` 的别名。
-- `--tt-ime-bottom` 与 `--tt-base-viewport-height` 已移除。
-- `data-tt-mobile-surface` 属性与 `layout-kit.js` 的 `SURFACE`/`applySurface()` 没有布局作用，只为已有调用保留。
-- `layout-kit.js` 的 `getLayoutApi()`、`waitForHostReady()`、`subscribeLayout()` 继续可用。
+- `ime.activeSurface` and `ime.kind` have been removed.
+- `--tt-inset-*` remains as an alias for `env(safe-area-inset-*, 0px)`; `--tt-viewport-bottom-inset` is an alias for `--tt-inset-bottom`.
+- `--tt-ime-bottom` and `--tt-base-viewport-height` have been removed.
+- The `data-tt-mobile-surface` attribute and `SURFACE`/`applySurface()` in `layout-kit.js` have no layout effect and are kept only for existing callers.
+- `getLayoutApi()`, `waitForHostReady()` and `subscribeLayout()` in `layout-kit.js` remain available.
 
-使用旧键盘位移、spacer 或安全区补偿的扩展，删除这些代码，直接按内容视口排版。
+Extensions that use the old keyboard offset, spacers or safe-area compensation should delete that code and lay out directly against the content viewport.

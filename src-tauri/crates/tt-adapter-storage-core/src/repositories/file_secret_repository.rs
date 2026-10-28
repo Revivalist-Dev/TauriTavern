@@ -32,7 +32,7 @@ impl FileSecretRepository {
         if !self.secrets_file.exists() {
             tracing::info!("Creating secrets file: {:?}", self.secrets_file);
 
-            // 确保父目录存在
+            // Make sure the parent directory exists
             if let Some(parent) = self.secrets_file.parent()
                 && !parent.exists()
             {
@@ -42,7 +42,7 @@ impl FileSecretRepository {
                 })?;
             }
 
-            // 创建空的secrets文件
+            // Create an empty secrets file
             let empty_secrets = Secrets::new();
             write_json_file(&self.secrets_file, &empty_secrets).await?;
         }
@@ -58,7 +58,7 @@ impl SecretRepository for FileSecretRepository {
 
         write_json_file(&self.secrets_file, secrets).await?;
 
-        // 更新缓存
+        // Update the cache
         let mut cache = self.cache.lock().await;
         *cache = Some(secrets.clone());
 

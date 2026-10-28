@@ -20,7 +20,6 @@ use tt_adapter_media::{
 use tt_adapter_provider_http::{
     HttpChatCompletionRepository, HttpEmbeddingRepository, HttpProviderMetadataRepository,
     HttpSearxngSearchRepository, HttpStableDiffusionRepository, HttpTranslateRepository,
-    HttpTtsRepository,
 };
 use tt_adapter_storage_core::commit_stage::PageGeneration;
 use tt_adapter_storage_core::{
@@ -74,7 +73,6 @@ use tt_ports::repositories::stable_diffusion_repository::StableDiffusionReposito
 use tt_ports::repositories::theme_repository::ThemeRepository;
 use tt_ports::repositories::tokenizer_repository::TokenizerRepository;
 use tt_ports::repositories::translate_repository::TranslateRepository;
-use tt_ports::repositories::tts_repository::TtsRepository;
 use tt_ports::repositories::update_repository::UpdateRepository;
 use tt_ports::repositories::user_directory_repository::UserDirectoryRepository;
 use tt_ports::repositories::user_endpoint_grant_repository::UserEndpointGrantRepository;
@@ -130,7 +128,6 @@ pub(in crate::app::composition) struct AppRepositories {
     pub(in crate::app::composition) tokenizer_repository: Arc<dyn TokenizerRepository>,
     pub(in crate::app::composition) stable_diffusion_repository: Arc<dyn StableDiffusionRepository>,
     pub(in crate::app::composition) translate_repository: Arc<dyn TranslateRepository>,
-    pub(in crate::app::composition) tts_repository: Arc<dyn TtsRepository>,
     pub(in crate::app::composition) world_info_repository: Arc<dyn WorldInfoRepository>,
     pub(in crate::app::composition) update_repository: Arc<dyn UpdateRepository>,
     pub(in crate::app::composition) vector_repository: Arc<dyn VectorRepository>,
@@ -343,9 +340,6 @@ pub(super) async fn build(
 
     let translate_repository: Arc<dyn TranslateRepository> =
         Arc::new(HttpTranslateRepository::new(http_client_pool.clone()));
-    let tts_repository: Arc<dyn TtsRepository> =
-        Arc::new(HttpTtsRepository::new(http_client_pool.clone()));
-
     let world_info_repository = Arc::new(FileWorldInfoRepository::new(
         data_directory.default_user().join("worlds"),
         page_generation,
@@ -408,7 +402,6 @@ pub(super) async fn build(
         tokenizer_repository,
         stable_diffusion_repository,
         translate_repository,
-        tts_repository,
         world_info_repository,
         update_repository,
         vector_repository,

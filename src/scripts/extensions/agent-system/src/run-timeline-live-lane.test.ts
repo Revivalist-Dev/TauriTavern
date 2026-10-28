@@ -80,7 +80,7 @@ test('streams a foreground write call with a line-based tail', () => {
         invocationId: 'inv_root',
         toolCallIndex: 0,
         field: 'content',
-        text: 'l1\nl2\n你好\nworld',
+        text: 'l1\nl2\nhello\nworld',
         wordDelta: 5,
     });
 
@@ -91,7 +91,7 @@ test('streams a foreground write call with a line-based tail', () => {
     expect(item.kind).toBe('write');
     expect(item.titleKey).toBe('timelineLiveWriting');
     expect(item.titleParams).toEqual({ path: 'reply.md' });
-    expect(item.live?.tail).toBe('…l2\n你好\nworld');
+    expect(item.live?.tail).toBe('…l2\nhello\nworld');
     expect(item.live?.truncated).toBe(true);
     expect(item.live?.streamTone).toBe('neutral');
     expect(item.live).toMatchObject({ addedWords: 5, removedWords: 0 });
@@ -240,10 +240,10 @@ test('reasoning shares the live lane, stays bounded, and replaces retries indepe
         text: 'Body never enters the writing timeline', reasoning: 'l1\nl2\nl3', toolIds: [],
     };
     handler({ type: 'snapshot', calls: [writeCall('body')], responses: [reasoning] });
-    handler({ type: 'responseAppend', toolIds: [], invocationId: 'inv_root', text: '', reasoning: '\n思考' });
-    expect(lane.items()[0]?.live).toMatchObject({ tail: '…l2\nl3\n思考', truncated: true, streamTone: 'reasoning', toolLabel: '', expanded: false });
+    handler({ type: 'responseAppend', toolIds: [], invocationId: 'inv_root', text: '', reasoning: '\nthinking' });
+    expect(lane.items()[0]?.live).toMatchObject({ tail: '…l2\nl3\nthinking', truncated: true, streamTone: 'reasoning', toolLabel: '', expanded: false });
     handler({ type: 'responseAppend', invocationId: 'inv_root', text: '', reasoning: '', toolIds: ['builtin:workspace.read_file'] });
-    expect(lane.items()[0]?.live).toMatchObject({ toolLabel: 'reading a file', tail: '…l2\nl3\n思考' });
+    expect(lane.items()[0]?.live).toMatchObject({ toolLabel: 'reading a file', tail: '…l2\nl3\nthinking' });
     handler({ type: 'responseAppend', invocationId: 'inv_root', text: '', reasoning: '', toolIds: ['mcp/a:search', 'mcp/b:search'] });
     expect(lane.items()[0]?.live).toMatchObject({ toolLabel: 'reading a file · search [mcp/a:search] · search [mcp/b:search]' });
     handler({ type: 'responseReplace', response: { ...reasoning, invocationId: 'child', invocationExitPolicy: 'task_return_required' } });
@@ -253,7 +253,7 @@ test('reasoning shares the live lane, stays bounded, and replaces retries indepe
     if (!item) throw new Error('expected reasoning preview');
     lane.toggleExpanded(item.id);
     handler({ type: 'responseAppend', toolIds: [], invocationId: 'inv_root', text: '', reasoning: '\nmore' });
-    expect(lane.items()[0]?.live).toMatchObject({ expanded: true, blocks: [{ text: 'l1\nl2\nl3\n思考\nmore' }] });
+    expect(lane.items()[0]?.live).toMatchObject({ expanded: true, blocks: [{ text: 'l1\nl2\nl3\nthinking\nmore' }] });
     handler({ type: 'responseReplace', response: { ...reasoning, attempt: 2, reasoning: 'retry' } });
     expect(lane.items()[0]?.live).toMatchObject({ tail: 'retry', toolLabel: '', expanded: false });
     handler({ type: 'responseRemove', invocationId: 'inv_root' });

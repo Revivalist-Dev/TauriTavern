@@ -116,7 +116,7 @@ test('metadata saves capture nested values before asynchronous transport', async
 });
 
 test('chat transport preserves UTF-8 across bounded Windows frames', async () => {
-    const payload = [{ chat_metadata: {} }, { mes: '你好 👋\nnext line'.repeat(20) }, {}];
+    const payload = [{ chat_metadata: {} }, { mes: 'Héllo 👋\nnext line'.repeat(20) }, {}];
     const host = createCommitHost({ maxFrameBytes: 7 });
     const restore = installRuntime(HOSTS.windows, host.invoke);
     try {

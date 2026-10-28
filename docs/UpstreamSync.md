@@ -70,7 +70,7 @@ that comes back through a merge fails the run.
 | `src/css/tauritavern-drawer-bar.css`, `src/scripts/drawer-bar.js` | iOS system-bar UI |
 | `src/tauri/main/compat/mobile`, `compat/android-speech-synthesis.js` | mobile runtime |
 | `docs/AndroidDevelopment.md`, `iOSDevelopment.md`, `OpenHarmonyDevelopment.md` | platform docs |
-| `docs/CurrentState/iOSPolicy.md`, `LinuxRepository.md`, `MobileStyleAdaptation.md`, `TTS.md` | platform docs |
+| `docs/CurrentState/iOSPolicy.md`, `LinuxRepository.md`, `MobileStyleAdaptation.md` | platform docs |
 
 ## Dependency policy
 

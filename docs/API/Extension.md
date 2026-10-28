@@ -1,17 +1,17 @@
-# `window.__TAURITAVERN__.api.extension.store` — API 参考
+# `window.__TAURITAVERN__.api.extension.store` — API reference
 
-TauriTavern 为第三方扩展提供的**全局**持久化能力，可选KV JSON 与 Blob 两种数据形态。
+The **global** persistence layer TauriTavern offers third-party extensions, in two data forms: KV JSON and Blob.
 
-数据存储在 `data_root/_tauritavern/extension-store/` 下，可随数据根目录一起备份/迁移/清理。
+Data lives under `data_root/_tauritavern/extension-store/`, so it is backed up, migrated and cleared together with the data root.
 
-## 0. 快速上手
+## 0. Quick start
 
 ```js
 await (window.__TAURITAVERN__?.ready ?? window.__TAURITAVERN_MAIN_READY__);
 const store = window.__TAURITAVERN__.api.extension.store;
 ```
 
-### KV JSON 存储
+### KV JSON storage
 
 ```js
 await store.setJson({ namespace: 'my-ext', key: 'settings', value: { enabled: true } });
@@ -23,9 +23,9 @@ if (!maybeSettings.found) {
 }
 ```
 
-### JSON 多表（额外 json / table）
+### Multiple JSON tables (extra `json` / `table`)
 
-> 不提供 `table` 时默认使用主表 `main`。
+> When `table` is not supplied, the primary table `main` is used by default.
 
 ```js
 await store.setJson({
@@ -38,7 +38,7 @@ await store.setJson({
 const tables = await store.listTables({ namespace: 'my-ext' });
 ```
 
-### Blob 存储
+### Blob storage
 
 ```js
 await store.setBlob({
@@ -50,91 +50,91 @@ await store.setBlob({
 const blob = await store.getBlob({ namespace: 'my-ext', key: 'icon.png' });
 ```
 
-大文件可用 `getBlobStream()` 逐块读取；提前停止时应取消流：
+For large files, `getBlobStream()` reads chunk by chunk; cancel the stream if you stop early:
 
 ```js
 const stream = await store.getBlobStream({ namespace: 'my-ext', key: 'archive.bin' });
-await stream.pipeTo(destination); // destination 是调用方的 WritableStream
+await stream.pipeTo(destination); // destination is the caller's WritableStream
 ```
 
-## 1. KV JSON 方法
+## 1. KV JSON methods
 
-所有 KV 方法都支持可选 `table` 字段：
+Every KV method accepts an optional `table` field:
 
-- 省略：使用默认主表 `main`
-- 指定：将数据写入对应 table
+- Omitted: the primary table `main` is used.
+- Provided: data is written to that table.
 
-### 什么时候用 KV JSON？
+### When should you use KV JSON?
 
-建议绝大多数情况下使用KV JSON，把它当作“扩展的结构化数据存储”：
+Use KV JSON for the vast majority of cases, and treat it as the extension's structured data store:
 
-- 扩展设置（settings / feature flags）
-- 索引、映射表、状态快照（index / map / progress）
-- 需要 `updateJson()` 深度合并对象的场景
+- Extension settings (settings / feature flags)
+- Indexes, maps and progress snapshots (index / map / progress)
+- Cases where you want `updateJson()` to deep-merge an object
 
-| 方法 | 返回值 | 说明 |
+| Method | Returns | Notes |
 | --- | --- | --- |
-| `getJson({ namespace, key, table? })` | `Promise<any>` | 读取 JSON 值 |
-| `tryGetJson({ namespace, key, table? })` | `Promise<{ found: boolean; value?: any }>` | 可选读取；key 不存在时返回 `{ found: false }`，其他错误仍抛出 |
-| `setJson({ namespace, key, value, table? })` | `Promise<void>` | 写入 JSON 值（覆盖） |
-| `updateJson({ namespace, key, value, table? })` | `Promise<void>` | 合并更新：对象会深度合并；非对象直接替换 |
-| `renameKey({ namespace, key, newKey, table? })` | `Promise<void>` | 重命名 key |
-| `deleteJson({ namespace, key, table? })` | `Promise<void>` | 删除 key |
-| `listKeys({ namespace, table? })` | `Promise<string[]>` | 列出 table 下所有 key |
-| `listTables({ namespace })` | `Promise<string[]>` | 列出现有 table（KV 与 Blob 的 union） |
-| `deleteTable({ namespace, table })` | `Promise<void>` | 删除 table（同时删除该 table 下的 KV 与 Blob） |
+| `getJson({ namespace, key, table? })` | `Promise<any>` | Reads a JSON value |
+| `tryGetJson({ namespace, key, table? })` | `Promise<{ found: boolean; value?: any }>` | Optional read; returns `{ found: false }` when the key does not exist, and still throws on other errors |
+| `setJson({ namespace, key, value, table? })` | `Promise<void>` | Writes a JSON value (overwrites) |
+| `updateJson({ namespace, key, value, table? })` | `Promise<void>` | Merge update: objects are deep-merged, while non-objects are replaced |
+| `renameKey({ namespace, key, newKey, table? })` | `Promise<void>` | Renames a key |
+| `deleteJson({ namespace, key, table? })` | `Promise<void>` | Deletes a key |
+| `listKeys({ namespace, table? })` | `Promise<string[]>` | Lists every key in the table |
+| `listTables({ namespace })` | `Promise<string[]>` | Lists the existing tables (the union of KV and Blob) |
+| `deleteTable({ namespace, table })` | `Promise<void>` | Deletes a table, including its KV and Blob data |
 
-兼容：`updateJSON()` 是 `updateJson()` 的别名；`updateKey()` 是 `renameKey()` 的别名。
+Compatibility: `updateJSON()` is an alias for `updateJson()`, and `updateKey()` is an alias for `renameKey()`.
 
-## 2. Blob 方法
+## 2. Blob methods
 
-### 什么时候用 Blob？
+### When should you use Blob?
 
-存大型文件时，需要时再用：
+For large files, and only when you actually need one:
 
-- 图片/音频/压缩包/模型文件等二进制
-- 体积较大、不希望浪费 JSON 格式化算力的内容（例如大段纯文本缓存）
-- 需要直接喂给 Web API 的场景（返回值是 `Blob`，可 `URL.createObjectURL()`）
+- Binary data such as images, audio, archives and model files
+- Content large enough that you would rather not spend CPU formatting it as JSON (a large plain-text cache, for example)
+- Cases where the data is fed straight to a Web API (the return value is a `Blob`, so `URL.createObjectURL()` works)
 
-| 方法 | 返回值 | 说明 |
+| Method | Returns | Notes |
 | --- | --- | --- |
-| `getBlob({ namespace, key, table? })` | `Promise<Blob>` | 读取 blob（文件类型 mimeType 基于 key 文件扩展名猜测） |
-| `getBlobStream({ namespace, key, table? })` | `Promise<ReadableStream<Uint8Array>>` | 按消费速度读取原始字节；取消会关闭 reader |
-| `setBlob({ namespace, key, data, table? })` | `Promise<void>` | 写入 blob，允许空内容 |
-| `deleteBlob({ namespace, key, table? })` | `Promise<void>` | 删除 blob |
-| `listBlobKeys({ namespace, table? })` | `Promise<string[]>` | 列出 table 下所有 blob key |
+| `getBlob({ namespace, key, table? })` | `Promise<Blob>` | Reads a blob (the mimeType is guessed from the key's file extension) |
+| `getBlobStream({ namespace, key, table? })` | `Promise<ReadableStream<Uint8Array>>` | Reads raw bytes at the consumer's pace; cancelling closes the reader |
+| `setBlob({ namespace, key, data, table? })` | `Promise<void>` | Writes a blob; empty content is allowed |
+| `deleteBlob({ namespace, key, table? })` | `Promise<void>` | Deletes a blob |
+| `listBlobKeys({ namespace, table? })` | `Promise<string[]>` | Lists every blob key in the table |
 
-## 3. 命名规则（namespace / table / key）
+## 3. Naming rules (namespace / table / key)
 
-- 仅允许字符：`[A-Za-z0-9_.-]`
-- 不能为空
-- 不能以 `.` 开头
-- `.` / `..` 不被允许
+- Only these characters are allowed: `[A-Za-z0-9_.-]`
+- Must not be empty
+- Must not start with `.`
+- `.` and `..` are not allowed
 
-## 4. `table` （多表）的语义
+## 4. Semantics of `table` (multiple tables)
 
-`table` 是**逻辑分组**：方便把同一扩展的不同数据域分开放、以及一键清理某个分组（`deleteTable`）。
+`table` is a **logical grouping**: it keeps different data domains of the same extension apart, and lets you clear a whole group in one call (`deleteTable`).
 
-当前实现中：
+In the current implementation:
 
-- **每个 `(namespace, table, key)` 都是一个独立文件**
-- `KV JSON`：`.../kv/<table>/<key>.json`
-- `Blob`：`.../blobs/<table>/<key>`（原样文件名，不强制扩展名）
+- **Every `(namespace, table, key)` is its own file.**
+- `KV JSON`: `.../kv/<table>/<key>.json`
+- `Blob`: `.../blobs/<table>/<key>` (the file name is used verbatim; no extension is enforced)
 
-示例（以 `my-ext` 为例）：
+Examples (using `my-ext`):
 
 - `setJson({ namespace: 'my-ext', key: 'settings', value })`
-  - 存储在`data_root/_tauritavern/extension-store/my-ext/kv/main/settings.json`
+  - Stored at `data_root/_tauritavern/extension-store/my-ext/kv/main/settings.json`
 - `setJson({ namespace: 'my-ext', table: 'index', key: 'v1', value })`
-  - 存储在`data_root/_tauritavern/extension-store/my-ext/kv/index/v1.json`
+  - Stored at `data_root/_tauritavern/extension-store/my-ext/kv/index/v1.json`
 - `setBlob({ namespace: 'my-ext', key: 'icon.png', data })`
-  - 存储在`data_root/_tauritavern/extension-store/my-ext/blobs/main/icon.png`
+  - Stored at `data_root/_tauritavern/extension-store/my-ext/blobs/main/icon.png`
 
-小型整体状态可以使用固定 key；持续增长的数据应拆成多个 key，按需读取。
+A small all-in-one state can use a fixed key; data that keeps growing should be split across keys and read on demand.
 
-## 5. 读写边界
+## 5. Read/write boundaries
 
-- 写入保存调用时快照，以单文件原子替换发布；失败不暴露部分内容，不承诺断电持久化。页面重载前应等待需要确认的写入完成。
-- 并发修改按发布顺序生效；`updateJson()` 的读取、合并和发布作为一次原子更新。删除不取消在途写入，没有跨 key 事务。
-- 已打开的读取保持原文件版本，不受后续覆盖或删除影响。
-- `getJson()` / `getBlob()` 返回完整值；JSON 写入和 base64 输入仍有整份数据的内存成本。大型二进制优先使用 Blob 写入和 `getBlobStream()` 读取。
+- A write persists a snapshot taken at call time and publishes it by atomically replacing a single file; a failure never exposes partial content, and durability across power loss is not promised. Wait for the writes you need confirmed before reloading the page.
+- Concurrent modifications take effect in publication order; the read, merge and publish of `updateJson()` form a single atomic update. A delete does not cancel an in-flight write, and there are no cross-key transactions.
+- A read that has already opened keeps the original file version and is unaffected by later overwrites or deletes.
+- `getJson()` and `getBlob()` return the whole value, and JSON writes and base64 input still cost memory for the entire payload. For large binaries, prefer Blob writes and `getBlobStream()` reads.

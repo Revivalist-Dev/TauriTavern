@@ -2,7 +2,7 @@ use serde_json::{Map, Value, json};
 
 use crate::errors::ApplicationError;
 
-/// 把本次 run 的宿主事实投影为引擎无关的 JSON context。
+/// Project the host facts of this run into an engine-agnostic JSON context.
 pub(crate) fn build_script_context_json(
     prompt_snapshot: &Value,
 ) -> Result<Value, ApplicationError> {

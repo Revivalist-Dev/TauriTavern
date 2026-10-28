@@ -1,6 +1,6 @@
 ---
 name: tt-extensions
-description: Third-party extensions in TauriTavern — installing, updating, enabling and inspecting them, what TauriTavern supports, and how JS-Slash-Runner (Tavern Helper, 酒馆助手), LittleWhiteBox (小白X), MagVarUpdate (MVU) and ST-Prompt-Template work here. Read it for any question or problem that involves an extension.
+description: Third-party extensions in TauriTavern — installing, updating, enabling and inspecting them, what TauriTavern supports, and how JS-Slash-Runner (Tavern Helper), LittleWhiteBox, MagVarUpdate (MVU) and ST-Prompt-Template work here. Read it for any question or problem that involves an extension.
 license: AGPL-3.0
 ---
 
@@ -54,7 +54,7 @@ From the page:
 
 ## Common extensions
 
-### JS-Slash-Runner (Tavern Helper, 酒馆助手)
+### JS-Slash-Runner (Tavern Helper)
 
 - **What it does.** It runs scripts and renders HTML "frontends" inside messages as iframes. It exposes `TavernHelper`, with functions for chat messages, characters, presets, world info, variables and generation.
 - **Settings**: `extensionSettings.tavern_helper`.
@@ -68,9 +68,9 @@ From the page:
 - **API reference.** The type definitions in its folder, `@types/function/*.d.ts` and `@types/iframe/*.d.ts`, which include `exported.tavernhelper.d.ts`, `exported.mvu.d.ts` and `exported.ejstemplate.d.ts`.
 - **With virtualization on**, streaming rendering (`render.allow_streaming`) is not supported and raises an error.
 
-### LittleWhiteBox (小白X)
+### LittleWhiteBox
 
-- **What it does.** It is a suite: iframe rendering, story summary and outline, variables, phone-style apps, image generation, TTS, an assistant, scheduled tasks, immersive mode and more.
+- **What it does.** It is a suite: iframe rendering, story summary and outline, variables, phone-style apps, image generation, an assistant, scheduled tasks, immersive mode and more.
 - **Settings**: `extensionSettings.LittleWhiteBox`.
 - **In the page**: `.xiaobaix-iframe-wrapper` containing `iframe.xiaobaix-iframe`.
 - **TauriTavern integration**: in `integrations/tauritavern/` in its folder, with a README there.

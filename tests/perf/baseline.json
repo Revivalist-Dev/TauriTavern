@@ -2,45 +2,45 @@
     "engine": "Chromium 156.0.8078.4",
     "steps": {
         "app/startup": {
-            "elements": 13766,
-            "scrollContainers": 82,
-            "liveNodes": 43648,
-            "layoutObjects": 3857,
-            "eventListeners": 3332
+            "elements": 14544,
+            "scrollContainers": 83,
+            "liveNodes": 44814,
+            "layoutObjects": 3856,
+            "eventListeners": 3342
         },
         "chat/send-and-stream": {
-            "eventDispatches": 78,
+            "eventDispatches": 82,
             "styleRecalcs": 28,
             "forcedStyleRecalcs": 2,
-            "elementsRestyled": 294,
+            "elementsRestyled": 334,
             "layouts": 24,
             "forcedLayouts": 0,
             "layoutObjectsLaidOut": 246,
             "frames": 23,
-            "compositorUpdates": 14,
+            "compositorUpdates": 13,
             "requests": 1,
-            "elements": 13918,
-            "scrollContainers": 84,
-            "liveNodes": 44067,
-            "layoutObjects": 3939,
+            "elements": 14696,
+            "scrollContainers": 85,
+            "liveNodes": 45233,
+            "layoutObjects": 3938,
             "eventListeners": 3355
         },
         "world-info/open-list": {
-            "eventDispatches": 158,
+            "eventDispatches": 169,
             "styleRecalcs": 10,
             "forcedStyleRecalcs": 3,
-            "elementsRestyled": 2575,
+            "elementsRestyled": 2577,
             "layouts": 10,
             "forcedLayouts": 2,
-            "layoutObjectsLaidOut": 1646,
+            "layoutObjectsLaidOut": 1641,
             "frames": 11,
             "compositorUpdates": 1,
             "requests": 3,
-            "elements": 14995,
-            "scrollContainers": 88,
-            "liveNodes": 49680,
-            "layoutObjects": 5399,
-            "eventListeners": 3699
+            "elements": 15773,
+            "scrollContainers": 89,
+            "liveNodes": 50846,
+            "layoutObjects": 5398,
+            "eventListeners": 3707
         },
         "world-info/type-title-10-keys": {
             "eventDispatches": 70,
@@ -53,11 +53,11 @@
             "frames": 11,
             "compositorUpdates": 0,
             "requests": 0,
-            "elements": 14995,
-            "scrollContainers": 88,
-            "liveNodes": 49685,
-            "layoutObjects": 5370,
-            "eventListeners": 3699
+            "elements": 15773,
+            "scrollContainers": 89,
+            "liveNodes": 50851,
+            "layoutObjects": 5369,
+            "eventListeners": 3707
         },
         "world-info/open-entry": {
             "eventDispatches": 17,
@@ -70,11 +70,11 @@
             "frames": 4,
             "compositorUpdates": 1,
             "requests": 0,
-            "elements": 15214,
-            "scrollContainers": 92,
-            "liveNodes": 52025,
-            "layoutObjects": 5363,
-            "eventListeners": 3931
+            "elements": 15992,
+            "scrollContainers": 93,
+            "liveNodes": 53191,
+            "layoutObjects": 5362,
+            "eventListeners": 3939
         },
         "world-info/type-10-keys": {
             "eventDispatches": 72,
@@ -87,28 +87,28 @@
             "frames": 12,
             "compositorUpdates": 2,
             "requests": 0,
-            "elements": 15214,
-            "scrollContainers": 92,
-            "liveNodes": 52027,
-            "layoutObjects": 5363,
-            "eventListeners": 3931
+            "elements": 15992,
+            "scrollContainers": 93,
+            "liveNodes": 53193,
+            "layoutObjects": 5362,
+            "eventListeners": 3939
         },
         "world-info/close-entry": {
             "eventDispatches": 17,
             "styleRecalcs": 8,
             "forcedStyleRecalcs": 4,
-            "elementsRestyled": 4260,
-            "layouts": 4,
-            "forcedLayouts": 0,
-            "layoutObjectsLaidOut": 710,
+            "elementsRestyled": 4524,
+            "layouts": 6,
+            "forcedLayouts": 2,
+            "layoutObjectsLaidOut": 718,
             "frames": 5,
             "compositorUpdates": 0,
             "requests": 0,
-            "elements": 14995,
-            "scrollContainers": 88,
-            "liveNodes": 51969,
-            "layoutObjects": 5370,
-            "eventListeners": 3789
+            "elements": 15773,
+            "scrollContainers": 89,
+            "liveNodes": 53135,
+            "layoutObjects": 5369,
+            "eventListeners": 3797
         }
     }
 }

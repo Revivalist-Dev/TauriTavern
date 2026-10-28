@@ -1,10 +1,10 @@
-# 运行日志
+# Run event journal
 
-`events.jsonl` 是一个 Run 的追加日志。它保存已经发生的步骤，使 Timeline 和历史查询可以在页面关闭后重新建立运行轨迹。
+`events.jsonl` is the append-only journal of one run. It records the steps that already happened, so Timeline and history queries can rebuild the run's course after the page closes.
 
-## 一条事件
+## One event
 
-每行是一个 JSON 对象：
+Each line is a JSON object:
 
 ```json
 {
@@ -18,9 +18,9 @@
 }
 ```
 
-`seq` 从 1 连续递增，是分页和追踪新事件的游标。同一个 Run 的所有 Invocation 共用这条序列。追加由仓储串行处理，已有事件保持原样。
+`seq` increases from 1 without gaps and is the cursor for paging and for following new events. Every Invocation in a run shares the sequence. The repository serializes appends, and existing events stay as they are.
 
-事件保存阶段信息和文件引用。工具参数、完整结果和模型响应单独保存，避免每次读取 Timeline 都搬运完整上下文。常用事件可按一次运行理解：
+Events record stage information and file references. Tool arguments, full results, and model responses are stored separately, so reading Timeline does not carry the whole context every time. The common events read as one run:
 
 ```text
 run_created
@@ -32,33 +32,33 @@ run_created
   → run_completed / run_partial_success / run_failed / run_cancelled
 ```
 
-这张图说明主要步骤；一次运行通常有多轮调用，期间还会记录状态变化、委派、交接和用户补充指令。
+This sketch shows the main steps; a run usually has several rounds of calls, and it also records state changes, delegation, handoff, and user guidance along the way.
 
-Session Run 也会发出 `prompt_assembly_requested`，由宿主应答压缩后的提示词重组。
+A Session run emits `prompt_assembly_requested` too, which the host answers with the prompt rebuild after compaction.
 
-Session 的 `model_request_created` 带 `context: { tokens, point }`，即本次请求的上下文用量与压缩点，也就是 runtime 判断压缩所用的计数。压缩期间状态为 `compacting_context`。`context_compaction_started` 携带 `round`、`invocationId`、`trigger`（`point`、`overflow` 或 `manual`）及当前 `tokens`；成功后 `context_compacted` 携带同一回合身份、压缩记录的 `seq`、`tokensBefore`、`tokensAfter`、`keptFromSeq` 和 `point`。循环中的压缩随后回到 `calling_model`，手动压缩的 Run 随即结束。压缩记录本身通过 `session_message_appended` 通知读取，摘要正文保存在 Session 历史，不复制进事件。
+A Session's `model_request_created` carries `context: { tokens, point }`, the context usage and compaction point for that request, which is the count the runtime uses to decide compaction. The status is `compacting_context` while compaction runs. `context_compaction_started` carries `round`, `invocationId`, `trigger` (`point`, `overflow`, or `manual`), and the current `tokens`; on success `context_compacted` carries the same round identity, the `seq` of the compaction record, `tokensBefore`, `tokensAfter`, `keptFromSeq`, and `point`. A compaction inside the loop then returns to `calling_model`, and a manual compaction run ends right after. The compaction record itself is read through a `session_message_appended` notification, and the summary body lives in the Session history rather than being copied into the event.
 
-## 读取与展示
+## Reading and display
 
-`api.agent.readEvents({ runId, afterSeq, limit })` 读取游标之后的事件。`beforeSeq` 读取指定序号之前最近的一页，结果仍按序号升序排列。`api.agent.subscribe()` 在此基础上持续追踪新事件。
+`api.agent.readEvents({ runId, afterSeq, limit })` reads the events after a cursor. `beforeSeq` reads the nearest page before the given sequence number, with the results still ordered by ascending sequence. `api.agent.subscribe()` follows new events on top of that.
 
-传入 `invocationId` 可以读取某个 Agent 的过程。事件的 `payload.eventScope` 指出主要和相关 Invocation，后端按这些归属筛选后再分页。
+Passing `invocationId` reads one agent's process. An event's `payload.eventScope` names the primary and the related Invocations, and the backend filters by those attributions before paging.
 
-Timeline 还需要知道完整的 Agent 关系。`includeTimelineProjection: true` 会附带由 Invocation 和 Task 记录生成的关系图；它独立于当前事件页。任务详情通过 `readTaskDetail()` 读取，模型回合通过 `readModelTurn()` 读取，因此页面无需碰内部文件格式。
+Timeline also needs the whole agent relationship. `includeTimelineProjection: true` attaches a relationship graph built from the Invocation and Task records, independent of the current event page. Task details come from `readTaskDetail()` and model rounds from `readModelTurn()`, so a page never touches the internal file formats.
 
-实时工具参数和推理文字预览由 `subscribeLiveProjection()` 提供。折叠时只渲染三行尾部预览，展开后显示完整已接收内容并自然增高；用户展开阅读时暂停自动贴底。历史事件继续按固定行高虚拟化，少量实时块独立使用自然高度。这是内存中的显示状态，最终执行结果仍从日志读取。Timeline 默认省略自动提交的进度项，原始日志继续保留这些记录。
+`subscribeLiveProjection()` provides live previews of tool arguments and reasoning text. Collapsed, it renders a three-line tail preview; expanded, it shows everything received so far and grows naturally, and auto-scroll to the bottom pauses while the user reads. Historical events stay virtualized at a fixed row height, and the few live blocks use natural height on their own. This is display state in memory; the final execution results still come from the journal. Timeline omits automatic progress commits by default, and the raw journal keeps those records.
 
-## 可以重建什么
+## What can be rebuilt
 
-日志支持回看模型与工具步骤、关联文件、统计提交结果和解释终态。运行列表的摘要是可重建缓存，终态 Run 可以复用这份摘要。
+The journal supports reviewing model and tool steps, relating files, tallying commit results, and explaining the final state. The summary in the run list is a rebuildable cache, and a finished run can reuse it.
 
-完整正文依赖引用的文件。历史清理后，核心日志可能仍在，而模型响应或任务结果已被清理。当前日志也不用于重新执行工具、恢复挂起的 Run 或还原任意时刻的文件内容。
+Complete body text depends on the referenced files. After history cleanup the core journal may remain while model responses or task results are gone. The current journal is also not used to re-execute tools, resume a suspended run, or restore file content at an arbitrary moment.
 
-新增事件时，在拥有该动作的 runtime 路径记录，携带能定位这次动作的 Run、Invocation 或 Task 信息。较大的内容继续放到文件中。
+When you add an event, record it in the runtime path that owns the action and carry the run, Invocation, or Task information that locates the action. Larger content still goes into files.
 
-## 源码
+## Source
 
-- [journal.rs](../../src-tauri/crates/tt-application/src/services/agent_runtime_service/journal.rs)：事件归属与状态记录。
-- [run_store.rs](../../src-tauri/crates/tt-adapter-storage-userdata/src/repositories/file_agent_repository/run_store.rs)、[event_journal.rs](../../src-tauri/crates/tt-adapter-storage-userdata/src/repositories/file_agent_repository/event_journal.rs)：追加与分页读取。
-- [agent_run_history_service.rs](../../src-tauri/crates/tt-application/src/services/agent_run_history_service.rs)：历史摘要和清理。
-- [run-event-presenter.ts](../../src/scripts/extensions/agent-system/src/run-event-presenter.ts)：Timeline 的事件展示。
+- [journal.rs](../../src-tauri/crates/tt-application/src/services/agent_runtime_service/journal.rs): event attribution and state records.
+- [run_store.rs](../../src-tauri/crates/tt-adapter-storage-userdata/src/repositories/file_agent_repository/run_store.rs), [event_journal.rs](../../src-tauri/crates/tt-adapter-storage-userdata/src/repositories/file_agent_repository/event_journal.rs): appends and paged reads.
+- [agent_run_history_service.rs](../../src-tauri/crates/tt-application/src/services/agent_run_history_service.rs): history summaries and cleanup.
+- [run-event-presenter.ts](../../src/scripts/extensions/agent-system/src/run-event-presenter.ts): Timeline's event display.

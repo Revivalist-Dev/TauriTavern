@@ -201,7 +201,7 @@ async fn chat_commit_publishes_exact_bytes_only_after_all_frames_finish() {
     commit_payload_bytes(&repository, target.clone(), original, false)
         .await
         .unwrap();
-    let payload = "{}\n{\"mes\":\"你好\"}".as_bytes();
+    let payload = "{}\n{\"mes\":\"café\"}".as_bytes();
     let session = repository
         .begin(
             target,
@@ -214,7 +214,7 @@ async fn chat_commit_publishes_exact_bytes_only_after_all_frames_finish() {
         .unwrap();
     let mut start = 0;
     let mut offset = 0;
-    for end in [1, 13, payload.len()] {
+    for end in [1, 15, payload.len()] {
         offset = repository
             .append(&session.session_id, offset, &payload[start..end])
             .await
@@ -251,7 +251,7 @@ async fn metadata_commit_preserves_header_fields_and_exact_body_bytes() {
         "chat_metadata": { "integrity": "92698fe9-2d05-54b0-9734-a55213d002d5", "deleted": true },
     });
     let mut body = format!(
-        "\r\n{{ \"mes\": \"你好{}\", \"unknown\": [1, 2] }}\r\n\n{{\"mes\":\"last\"}}",
+        "\r\n{{ \"mes\": \"note{}\", \"unknown\": [1, 2] }}\r\n\n{{\"mes\":\"last\"}}",
         "x".repeat(20_000)
     )
     .into_bytes();
@@ -900,13 +900,13 @@ async fn raw_and_zstd_backups_download_restore_and_delete_by_logical_name() {
 
         let payload = format!(
             "\r\n\u{feff}\r\n{{\"chat_metadata\":{{\"integrity\":\"1a5043ab-06bc-58d8-9dcf-f751842e32e9\"}},\"user_name\":\"User\",\"character_name\":\"Alice\"}}\n{{\"name\":\"Alice\",\"is_user\":false,\"send_date\":\"2026-01-01T00:00:00.000Z\",\"mes\":\"{}\",\"extra\":{{}}}}",
-            "重复内容".repeat(32_768)
+            "text".repeat(32_768)
         );
         let source = root.join("large-source.jsonl");
         fs::write(&source, payload.as_bytes())
             .await
             .expect("write large source");
-        let backup_name = "角色👩🏽‍💻ก่าか\u{3099}हिन्दीe\u{301}☕\u{fe0f}";
+        let backup_name = "ariel👩🏽‍💻ก่าか\u{3099}हिन्दीe\u{301}☕\u{fe0f}";
         repository
             .backup_chat_file_explicit(&source, backup_name)
             .await
@@ -941,10 +941,7 @@ async fn raw_and_zstd_backups_download_restore_and_delete_by_logical_name() {
         assert_eq!(summaries.len(), 1);
         assert_eq!(summaries[0].character_name, "Alice");
         assert_eq!(summaries[0].message_count, 1);
-        assert_eq!(
-            summaries[0].preview,
-            format!("...{}", "重复内容".repeat(100))
-        );
+        assert_eq!(summaries[0].preview, format!("...{}", "text".repeat(100)));
 
         let files_before = backup_file_names(&root).await;
         let downloaded = read_backup_payload(&repository, &descriptor.logical_file_name, 4096)
@@ -1314,8 +1311,8 @@ async fn inventory_enforces_prefix_and_global_file_limits() {
     .expect("write source");
 
     let keys = [
-        ("角:色-A* Nameก่า👩🏽‍💻", "chat_角色_a_nameก่า👩🏽‍💻", 3),
-        ("角:色-A* Nameก้า👩🏿‍💻", "chat_角色_a_nameก้า👩🏿‍💻", 2),
+        ("Al:ex-A* Nameก่า👩🏽‍💻", "chat_alex_a_nameก่า👩🏽‍💻", 3),
+        ("Al:ex-A* Nameก้า👩🏿‍💻", "chat_alex_a_nameก้า👩🏿‍💻", 2),
     ];
     for (name, _, count) in keys {
         let long_name = name.repeat(100);
@@ -1564,10 +1561,10 @@ async fn chat_commit_sanitizes_paths_and_preserves_unicode_spacing() {
             "alice/session20260221.jsonl",
         ),
         (
-            "角色",
-            " 中文会话 .jsonl",
-            " 中文会话 ",
-            "角色/ 中文会话 .jsonl",
+            "café",
+            " café session .jsonl",
+            " café session ",
+            "café/ café session .jsonl",
         ),
     ] {
         commit_payload_bytes(&repository, character_target(character, name), b"{}", false)
@@ -2271,7 +2268,7 @@ async fn search_character_chat_messages_returns_scored_hits_and_respects_role_fi
             "is_user": true,
             "is_system": false,
             "send_date": "2026-01-01T00:00:00.000Z",
-            "mes": "今天我们去北京吃烤鸭。",
+            "mes": "Today we are going to Beijing for dinner.",
             "extra": {},
         }),
         json!({
@@ -2279,7 +2276,7 @@ async fn search_character_chat_messages_returns_scored_hits_and_respects_role_fi
             "is_user": false,
             "is_system": false,
             "send_date": "2026-01-01T00:00:01.000Z",
-            "mes": "我最喜欢北京烤鸭，还有豆汁儿。",
+            "mes": "I like Beijing roast duck best, and also douzhi.",
             "extra": {},
         }),
         json!({
@@ -2287,7 +2284,7 @@ async fn search_character_chat_messages_returns_scored_hits_and_respects_role_fi
             "is_user": false,
             "is_system": true,
             "send_date": "2026-01-01T00:00:02.000Z",
-            "mes": "系统提示：请注意安全。",
+            "mes": "System notice: please stay safe.",
             "extra": {},
         }),
         json!({
@@ -2295,7 +2292,7 @@ async fn search_character_chat_messages_returns_scored_hits_and_respects_role_fi
             "is_user": false,
             "is_system": false,
             "send_date": "2026-01-01T00:00:03.000Z",
-            "mes": "明天去上海吧。",
+            "mes": "Let's go to Shanghai tomorrow.",
             "extra": {},
         }),
     ];
@@ -2315,7 +2312,7 @@ async fn search_character_chat_messages_returns_scored_hits_and_respects_role_fi
             "session",
             ChatMessageSearchQuery {
                 frozen_macros: None,
-                query: "北京烤鸭".to_string(),
+                query: "Beijing roast duck".to_string(),
                 limit: 2,
                 filters: None,
             },
@@ -2326,7 +2323,7 @@ async fn search_character_chat_messages_returns_scored_hits_and_respects_role_fi
     assert_eq!(hits.len(), 2);
     assert_eq!(hits[0].index, 1);
     assert_eq!(hits[0].role, ChatMessageRole::Assistant);
-    assert!(hits[0].text.contains("北京烤鸭"));
+    assert!(hits[0].text.contains("Beijing roast duck"));
     assert!(hits[0].score > 0.9);
 
     let user_hits = repository
@@ -2335,7 +2332,7 @@ async fn search_character_chat_messages_returns_scored_hits_and_respects_role_fi
             "session",
             ChatMessageSearchQuery {
                 frozen_macros: None,
-                query: "北京烤鸭".to_string(),
+                query: "Beijing roast duck".to_string(),
                 limit: 10,
                 filters: Some(ChatMessageSearchFilters {
                     role: Some(ChatMessageRole::User),
@@ -2713,7 +2710,7 @@ async fn character_chat_store_merges_replaces_upserts_and_renames_entries() {
     commit_payload_bytes(
         &repository,
         character_target("alice", "session"),
-        payload_to_jsonl(&payload_with_integrity(" legacy-聊天")).as_bytes(),
+        payload_to_jsonl(&payload_with_integrity(" legacy-chat")).as_bytes(),
         false,
     )
     .await
@@ -2733,7 +2730,7 @@ async fn character_chat_store_merges_replaces_upserts_and_renames_entries() {
         .await
         .expect("seed store json");
     assert!(
-        root.join("chats/alice/.tauritavern/ legacy-聊天/my-ext/index.json")
+        root.join("chats/alice/.tauritavern/ legacy-chat/my-ext/index.json")
             .exists()
     );
 
@@ -2990,7 +2987,7 @@ fn swipe_fixture() -> Vec<Value> {
     vec![
         json!({"chat_metadata":{"integrity":"38aedc23-2370-574f-8194-ff3a25bdfad3"},"user_name":"User"}),
         json!({"mes":"current body", "is_user":false, "swipe_id":2,
-            "swipes":["历史零", "history one", "active two"],
+            "swipes":["history zero", "history one", "active two"],
             "swipe_info":[{"extra":{"tauritavern":{"agent":{"persistStateId":"old"}}}}, {"extra":{}}, {"extra":{"live":true}}],
             "variables":[{"v":0},{"v":1},{"v":2}], "escaped\"key":{"unchanged":true}, "extra":{"live":"body"}}),
         json!({"mes":"user", "is_user":true, "swipe_id":0,"swipes":["user","alternate"],"swipe_info":[{},{}]}),

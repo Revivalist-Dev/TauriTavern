@@ -1,6 +1,6 @@
 # LLM gateway
 
-Agent Loop 使用统一的模型消息、工具调用和工具结果。Gateway 在这套表示与各家模型协议之间转换，并复用项目已有的 ChatCompletionService。
+The agent loop uses one representation for model messages, tool calls, and tool results. The gateway translates between that representation and each provider's protocol, and reuses the project's existing ChatCompletionService.
 
 ```text
 AgentModelRequest
@@ -10,66 +10,66 @@ AgentModelRequest
   → AgentModelResponse + provider_state
 ```
 
-连接设置、凭据、请求日志与平台策略继续由原有服务处理。Provider 格式细节集中在 gateway 与对应 adapter，循环只处理模型回合和工具操作。
+Connection settings, credentials, request logs, and platform policy stay with the existing services. Provider format details stay in the gateway and the matching adapter, and the loop only handles model rounds and tool operations.
 
-## 通用内容与原生内容
+## Common content and native content
 
-`AgentModelRequest` 保存消息、工具和续接状态；`AgentModelResponse` 保存 assistant 消息、文本、工具调用与 usage 等信息。Gateway 根据本次工具快照，把模型返回的调用名称还原为稳定工具 ID。
+`AgentModelRequest` carries messages, tools, and continuation state; `AgentModelResponse` carries the assistant message, text, tool calls, usage, and the like. Using the current tool snapshot, the gateway maps the call names the model returns back to stable tool IDs.
 
-Claude、Gemini、OpenAI Responses 等协议还需要回传原生内容，如 reasoning signature、thought signature 或原生 output blocks。这些内容随消息保留，由对应 provider adapter 原样续接。Timeline 使用 `readModelTurn()` 提供的可见文本和 reasoning 投影。
+Protocols such as Claude, Gemini, and OpenAI Responses also need native content passed back, such as a reasoning signature, a thought signature, or native output blocks. That content stays with the message and the matching provider adapter continues it verbatim. Timeline uses the visible text and reasoning projection that `readModelTurn()` provides.
 
-## 工具结果图片
+## Tool result images
 
-运行时在发送前按工具结果中的工作区引用读取图片，将其注入请求副本的 `Media` 部件。图片能力来自[组装快照](PromptAssembly.md#一种组装一个-live-例外)，存储、留存与不接受图片时的处理见[工具结果](ToolSystem.md#结果如何进入下一轮)。
+Before sending, the runtime reads images through the workspace references in tool results and injects them into the `Media` parts of a request copy. Image capability comes from the [assembly snapshot](PromptAssembly.md#one-assembly-one-live-exception); see [Tool results](ToolSystem.md#how-results-enter-the-next-round) for storage, retention, and what happens when images are not accepted.
 
-Gateway 与 payload 构建器共同完成协议转换：
+The gateway and the payload builders do the protocol conversion together:
 
-| 协议 | 工具结果图片 |
+| Protocol | Tool result images |
 | --- | --- |
-| OpenAI 兼容 Chat Completions | tool 消息保留文字；纯图片结果使用 `(see attached image)`。一组相邻 tool 消息结束后，追加 user 消息，文字为 `Attached image(s) from tool result:`，后接该组图片。 |
-| Claude Messages（含 Bedrock、Vertex、Custom 与 OpenCode） | `tool_result.content` 使用文字与 base64 图片块数组，文字不加工具名前缀。当前请求没有工具定义时，历史工具结果转为保留图片的 user 内容块。 |
-| OpenAI Responses | `function_call_output.output` 使用 `input_text` 与 `input_image` 数组。 |
-| Gemini 3 及之后 | 图片放在 `functionResponse.parts` 的 `inlineData` 中。 |
-| Gemini 2.5 等早期模型 | 函数结果不变；结果组结束后追加 user content，文字为 `Tool result image:`，后接 `inlineData` 图片。 |
-| Gemini Interactions | `function_result.result` 使用文字与 image 块。 |
+| OpenAI-compatible Chat Completions | Tool messages keep their text; an image-only result uses `(see attached image)`. After a run of adjacent tool messages ends, a user message is appended with the text `Attached image(s) from tool result:`, followed by that group's images. |
+| Claude Messages (including Bedrock, Vertex, Custom, and OpenCode) | `tool_result.content` uses an array of text and base64 image blocks, and the text carries no tool name prefix. When the current request defines no tools, historical tool results become user content blocks that keep their images. |
+| OpenAI Responses | `function_call_output.output` uses an array of `input_text` and `input_image`. |
+| Gemini 3 and later | Images go in the `inlineData` of `functionResponse.parts`. |
+| Gemini 2.5 and other early models | The function result is unchanged; after the result group ends, user content is appended with the text `Tool result image:`, followed by `inlineData` images. |
+| Gemini Interactions | `function_result.result` uses text and image blocks. |
 
-没有图片的工具结果使用文字形状；工具结果与用户消息共用图片编码。Bedrock 非 Claude 等不支持媒体的格式明确拒绝输入。
+Tool results without images use the text shape, and tool results and user messages share the same image encoding. Formats that support no media, such as non-Claude Bedrock, reject the input explicitly.
 
-已知限制：
+Known limitations:
 
-- 每次请求重新上传上下文中的全部图片，临时内存约为图片字节的 3–4 倍。
-- Anthropic 单次请求的图片数量上限（200k 窗口模型为 100 张）可能先于压缩点达到；尚未确认相应错误文案，不预设分类。
+- Each request re-uploads every image in the context, and the temporary memory is roughly 3–4 times the image bytes.
+- Anthropic's per-request image limit (100 for 200k-window models) can be reached before the compaction point; the matching error text is not yet confirmed, so no classification is assumed.
 
-## 续接状态
+## Continuation state
 
-`provider_state` 属于一个 Invocation 的模型会话。每轮调用成功后，gateway 更新会话 ID、消息游标和 provider 需要的响应信息，下一轮继续使用。不同 Invocation 各自持有状态。
+`provider_state` belongs to the model session of one Invocation. After each successful call, the gateway updates the session ID, the message cursor, and the response information the provider needs, and the next round continues from it. Different Invocations each hold their own state.
 
-OpenAI Responses 有两种续接方式：
+OpenAI Responses has two continuation modes:
 
-- 默认通过 HTTP 重放完整消息与原生输出。
-- 显式启用 Responses WebSocket 时，复用会话，以 `previous_response_id` 发送新增输入。
+- By default it replays the full messages and native output over HTTP.
+- With the Responses WebSocket enabled explicitly, it reuses the session and sends only the new input with `previous_response_id`.
 
-内部字段 `_tauritavern_provider_state` 只用于服务间传递，在请求日志和上游 payload 输出前移除。Profile 与提示词无需管理该字段。传输细节见 [原生 API 格式](../CurrentState/NativeApiFormats.md)。
+The internal field `_tauritavern_provider_state` exists only for passing between services and is removed before request logging and upstream payload output. Profiles and prompts never manage it. See [Native API formats](../CurrentState/NativeApiFormats.md) for transport details.
 
-## 流式调用
+## Streaming calls
 
-Profile 的 `run.stream` 控制当前 Invocation 的默认行为，启动参数 `options.stream` 可覆盖整次 Run。支持的 provider 流式路由把 assistant 正文、可见推理文字和工具参数通过同一增量通道交给运行时。
+The Profile's `run.stream` controls the default for the current Invocation, and the launch argument `options.stream` overrides it for the whole run. A supported provider streaming route hands the assistant body text, the visible reasoning text, and tool arguments to the runtime over one delta channel.
 
-签名和加密内容不进入预览；工具保留完整 `ToolId`，包括区分同名工具所需的 MCP 身份。预览按 Invocation 与模型尝试隔离，协议与清理规则见 [Agent API](../API/Agent.md#控制与订阅)。OpenAI 兼容格式的流式与完整响应共用推理字段归一化规则；最终完整响应仍走共同存储与工具执行路径。不支持的流式路由直接报错。
+Signatures and encrypted content never enter the preview; tools keep the full `ToolId`, including the MCP identity needed to tell same-named tools apart. Previews are isolated per Invocation and model attempt; see [Agent API](../API/Agent.md#control-and-subscription) for the protocol and cleanup rules. In OpenAI-compatible formats, streaming and full responses share the reasoning field normalization; the final full response still goes through the common storage and tool execution path. An unsupported streaming route reports an error.
 
-## 错误归类
+## Error classification
 
-`model.context_overflow` 表示模型上下文窗口不足或请求体过大。HTTP 413 一律归入此类，包括反向代理返回的 HTML 正文；Gemini 的 HTTP 400 `Request payload size exceeds the limit` 也归入此类，由 Session 压缩流程恢复。
+`model.context_overflow` means the model context window is too small or the request body is too large. Every HTTP 413 falls into this class, including an HTML body returned by a reverse proxy; Gemini's HTTP 400 `Request payload size exceeds the limit` falls into it as well, and the Session compaction flow recovers from it.
 
-HTTP 400 的错误、成功 HTTP 响应内的错误对象、OpenAI 兼容流的错误事件及 Responses 的失败事件使用同一套文本分类，分类只读服务商的错误值：JSON 的 `error` 或 `detail.error`、Responses `error` 事件中的 `error` 对象（扁平的 SSE 事件则是事件本身）、失败 Response 的 `error`，回显的工具描述与部分输出不参与分类。HTTP 400 的正文没有这样的错误值时（非 JSON，或 JSON 中没有这两个字段），按整段正文分类。超窗错误由同一个构造函数返回带原错误消息的 `InvalidData`。匹配规则改编自 pi-ai 1.3.0 `utils/overflow.js`（MIT），排除限流文字；HTTP 429 和 5xx 按可重试错误映射。
+HTTP 400 errors, error objects inside a successful HTTP response, error events in an OpenAI-compatible stream, and failure events in Responses all use the same text classification, and the classification reads only the provider's error value: the JSON `error` or `detail.error`, the `error` object in a Responses `error` event (for a flat SSE event, the event itself), and the `error` of a failed Response. Echoed tool descriptions and partial output take no part. When an HTTP 400 body carries no such error value (it is not JSON, or the JSON has neither field), the whole body is classified. Overflow errors come from one constructor that returns `InvalidData` carrying the original error message. The matching rules are adapted from pi-ai 1.3.0 `utils/overflow.js` (MIT) and exclude rate-limit wording; HTTP 429 and 5xx map to retryable errors.
 
-Claude 的 `model_context_window_exceeded` 停止原因在 Rust gateway 与原生 JS 聊天流路径均归为 `model.context_overflow`。输出上限则统一为 `model.output_truncated`，包括 `max_tokens`、`length` 和 Responses 的 `incomplete_details.reason=max_output_tokens`。这些错误不自动重试同一请求；Session 的压缩恢复由运行时负责，见 [Runtime](Runtime.md)。
+Claude's `model_context_window_exceeded` stop reason maps to `model.context_overflow` in both the Rust gateway and the native JS chat streaming path. Output limits unify as `model.output_truncated`, covering `max_tokens`, `length`, and Responses' `incomplete_details.reason=max_output_tokens`. These errors do not automatically retry the same request; the runtime owns Session compaction recovery, see [Runtime](Runtime.md).
 
-## 修改入口
+## Where to make changes
 
-- [agent_model_gateway](../../src-tauri/crates/tt-application/src/services/agent_model_gateway)：`encode`、`decode`、工具 schema 与 provider adapter。
-- [provider_state.rs](../../src-tauri/crates/tt-application/src/services/agent_model_gateway/provider_state.rs)：续接状态。
-- [ChatCompletionService](../../src-tauri/crates/tt-application/src/services/chat_completion_service/mod.rs)：统一模型调用。
-- [tt-adapter-provider-http](../../src-tauri/crates/tt-adapter-provider-http/src)：实际网络请求与 provider 协议。
+- [agent_model_gateway](../../src-tauri/crates/tt-application/src/services/agent_model_gateway): `encode`, `decode`, tool schemas, and provider adapters.
+- [provider_state.rs](../../src-tauri/crates/tt-application/src/services/agent_model_gateway/provider_state.rs): continuation state.
+- [ChatCompletionService](../../src-tauri/crates/tt-application/src/services/chat_completion_service/mod.rs): the shared model call.
+- [tt-adapter-provider-http](../../src-tauri/crates/tt-adapter-provider-http/src): the actual network requests and provider protocols.
 
-修改 provider 时，优先验证多轮工具调用中的消息和原生续接内容。代表性覆盖位于 gateway tests 和 host 的 chat-completion contract tests。
+When you change a provider, verify the messages and native continuation content in multi-round tool calling first. Representative coverage lives in the gateway tests and the host's chat-completion contract tests.

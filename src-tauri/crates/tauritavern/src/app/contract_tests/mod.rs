@@ -915,7 +915,7 @@ impl McpGateway for ContractMcpGateway {
                 is_error: false,
                 text: vec![McpTextContent {
                     index: 0,
-                    text: format!("{}\nEnd of result.", "界".repeat(60_000)),
+                    text: format!("{}\nEnd of result.", "€".repeat(60_000)),
                 }],
                 structured_content: Some(json!({ "issueId": 42 })),
                 diagnostics: Vec::new(),

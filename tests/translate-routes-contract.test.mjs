@@ -20,7 +20,7 @@ test('translate routes forward provider to backend', async () => {
     const response = await router.handle({
         method: 'POST',
         path: '/api/translate/google',
-        body: { text: '你好', lang: 'en' },
+        body: { text: 'Hello there', lang: 'en' },
     });
 
     assert.ok(response);
@@ -31,7 +31,7 @@ test('translate routes forward provider to backend', async () => {
             command: 'translate_text',
             args: {
                 provider: 'google',
-                body: { text: '你好', lang: 'en' },
+                body: { text: 'Hello there', lang: 'en' },
             },
         },
     ]);

@@ -1,52 +1,52 @@
-# 工作区
+# Workspace
 
-工作区保存 Agent 可以反复处理的文件。Chat 的工作文件属于 Run，Session 的工作文件由同一会话的历次 Run 共用，各自按 Profile 获得读写范围；`skills/` 则按当前 Invocation 的有效 Skill 绑定提供只读文件视图。
+A workspace holds the files an agent works on repeatedly. Chat working files belong to a run, Session working files are shared by every run of that conversation, and each gets its read and write scope from the Profile; `skills/` offers a read-only file view built from the current Invocation's effective skill bindings.
 
-## 文件放在哪里
+## Where files live
 
-默认 Profile 的工作目录与自动可见只读目录：
+Working directories and automatically visible read-only directories in the default Profile:
 
-| 目录 | 用途 |
+| Directory | Purpose |
 | --- | --- |
-| `output/` | 准备提交的正文或其他输出，默认正文为 `output/main.md` |
-| `scratch/` | 草稿和临时材料 |
-| `plan/` | 普通计划文件 |
-| `summaries/` | 摘要与子 Agent 结果的可读版本 |
-| `persist/` | 本次运行的持久内容工作副本 |
-| `tool-results/` | 工具结果、较长结果的可读版本和工具结果图片，只读 |
-| `skills/` | 当前 Invocation 的有效 Skill 包，含 Session 可用的内置包，只读；无绑定时为空目录 |
+| `output/` | Body text or other output ready to commit, with `output/main.md` as the default body |
+| `scratch/` | Drafts and temporary material |
+| `plan/` | Plain plan files |
+| `summaries/` | Summaries and readable versions of child agent results |
+| `persist/` | The working copy of persistent content for this run |
+| `tool-results/` | Tool results, readable versions of longer results, and tool result images; read-only |
+| `skills/` | The current Invocation's effective skill packages, including the built-in packages a Session can use; read-only, and an empty directory when nothing is bound |
 
-模型用 `workspace.list_files`、`search_files`、`read_file` 寻找和读取材料，用 `write_file`、`apply_patch` 修改文本，或用 `workspace.shell` 批量处理文件。路径相对于工作区，例如 `output/main.md`；Shell 中的 `/output/main.md` 指向同一文件。
+The model finds and reads material with `workspace.list_files`, `search_files`, and `read_file`, changes text with `write_file` and `apply_patch`, and processes files in bulk with `workspace.shell`. Paths are relative to the workspace, such as `output/main.md`; `/output/main.md` in the Shell points at the same file.
 
-文本工具替换已有文件和应用补丁时，使用读取记录和内容 SHA 检查冲突。Shell 不建立此读取记录；Shell 修改文件后，替换文件或应用补丁前需重新读取。
+When a text tool replaces an existing file or applies a patch, it checks for conflicts with the read records and the content SHA. The Shell creates no such read record; after the Shell changes a file, read it again before replacing it or applying a patch.
 
-普通 Run 文件读取返回原文，脚本可用 `macros.render()` 展开模板；Skill 文件的宏规则见 [Skill](Skill.md)。聊天与世界书通过各自工具读取。
+An ordinary run file read returns the original text, and a script can expand a template with `macros.render()`; see [Skill](Skill.md) for the macro rules on skill files. The chat and World Info are read through their own tools.
 
-## 统一文件链路
+## The unified file pipeline
 
-文本工具与 Shell（含 Python、JavaScript）通过 `WorkspaceFs` 访问同一逻辑视图。普通文件和 runtime 材料保存在 Run 的真实目录，`WorkspaceRepository` 负责初始化、manifest 与持久版本发布；Skill 原始文件由 `SkillRepository` 读取，应用层负责绑定和宏投影。
+Text tools and the Shell (including Python and JavaScript) reach the same logical view through `WorkspaceFs`. Ordinary files and runtime material live in the run's real directory, and `WorkspaceRepository` owns initialization, the manifest, and persistent version publication; `SkillRepository` reads the raw skill files, and the application layer owns bindings and macro projection.
 
-模型侧使用当前 Invocation 的 `ScopedWorkspaceFs`；业务根本身不可修改，`tool-results` 和 `skills` 只读。用户安装与内置 Skill 共用外部挂载，不复制到 Run 目录。
+The model side uses the current Invocation's `ScopedWorkspaceFs`; the business root itself is immutable, and `tool-results` and `skills` are read-only. User-installed and built-in skills share external mounts and are never copied into the run directory.
 
-Run 工作文件允许并行读取，按单次操作串行修改；CAS 的条件检查与写入在同一锁内完成。多步操作不构成事务，已成功的操作立即生效；Shell 失败或取消不回滚已完成的修改。追加使用原生 append，失败可能部分生效，不自动重放。
+Run working files allow parallel reads and serialize changes per single operation; CAS runs its condition check and its write inside one lock. A multi-step operation is not a transaction, and a successful step takes effect immediately; a Shell failure or cancel does not roll back completed changes. Appends use native append, a failure can apply partially, and nothing replays automatically.
 
 ## JavaScript
 
-`workspace.shell` 通过 QuickJS 执行 JavaScript ESM，入口为 `js`；`node`、`deno` 是同一受限环境的命令别名，不提供 Node/Deno 标准库。命令和 API 用法见 `js --help`。
+`workspace.shell` runs JavaScript ESM through QuickJS, with `js` as the entry point; `node` and `deno` are command aliases for the same restricted environment and provide no Node/Deno standard library. See `js --help` for commands and API usage.
 
-脚本入口相对于 Shell 当前目录，import 相对于导入模块；`@tauritavern/runtime` 的文件 API 相对于工作区根。模块按需加载，文件直接读写，遵循上述权限与提交规则。
+A script entry resolves against the Shell's current directory, an import against the importing module, and the `@tauritavern/runtime` file API against the workspace root. Modules load on demand, files are read and written directly, and the permission and commit rules above apply.
 
-模块执行顶层代码，业务函数由脚本显式调用，异步工作使用 `await`。参数从 `process.argv` 读取，文件脚本使用 `process.argv.slice(2)` 获取字符串参数；选项和子命令由脚本解析。文件、stdin 与 eval 的参数边界见 `js --help`。
+A module runs its top-level code, the script calls business functions explicitly, and asynchronous work uses `await`. Arguments come from `process.argv`, and a file script uses `process.argv.slice(2)` to get string arguments; the script parses options and subcommands. See `js --help` for the argument boundaries of file, stdin, and eval.
 
-结构化结果显式写入 stdout，诊断写入 stderr；较大的输入输出使用工作区文件。`process.exitCode` 默认是 0，可设置为数字整数 `0–255`，非法赋值抛错。未捕获异常或非零退出码表示失败，遵循既有文件保留与自动提交规则。
+Structured results go explicitly to stdout and diagnostics to stderr; use workspace files for larger input and output. `process.exitCode` defaults to 0 and accepts an integer from `0–255`, and an invalid assignment throws. An uncaught exception or a non-zero exit code means failure, and the existing file retention and automatic commit rules apply.
 
-`context` 和 `macros` 使用 Run 冻结输入，子 Agent 与恢复后的调用继续沿用。缺少聊天上下文不影响普通 JS 和文件操作，访问不可用的 context 字段才报错。
+`context` and `macros` use the run's frozen input, and child agents and resumed calls keep using it. A missing chat context does not affect ordinary JS and file operations; only touching an unavailable context field reports an error.
 
-取消停止后续 Shell 调度，等待当前 JS 和已开始的文件操作收尾。收尾以整个 `workspace.shell` 返回为界，内部 `timeout` 不保证单条命令已结束。
+Cancelling stops further Shell dispatch and waits for the current JS and the file operations already started to settle. Settlement is bounded by the whole `workspace.shell` call returning; an inner `timeout` does not guarantee that a single command has finished.
 
-## Run 与聊天的关系
+## How runs relate to chats
 
-磁盘数据位于数据目录的 `_tauritavern/agent-workspaces/`：
+On-disk data lives under `_tauritavern/agent-workspaces/` in the data directory:
 
 ```text
 agent-workspaces/
@@ -74,60 +74,60 @@ agent-workspaces/
       persist/...
 ```
 
-`workspaceId` 由聊天种类和 `stableChatId` 派生。聊天文件名用于定位当前聊天，稳定身份用于关联历次运行。每次生成都创建新的 `runId`。
+`workspaceId` derives from the chat kind and the `stableChatId`. The chat file name locates the current chat, and the stable identity ties its runs together. Every generation creates a new `runId`.
 
-`manifest.json` 描述工作区目录与输出；`input/` 保存提示词、Profile 和持久内容的起点。Invocation、任务与模型响应等目录供 runtime 和详情 API 使用。
+`manifest.json` describes the workspace directories and the output; `input/` keeps the starting point for prompts, the Profile, and persistent content. Directories such as invocations, tasks, and model responses serve the runtime and the detail APIs.
 
-## 提交到聊天
+## Committing to the chat
 
-以下提交和 persist 发布规则只适用于 Chat target。
+The commit and persist publication rules below apply to the Chat target only.
 
-模型调用 `workspace.commit` 时，runtime 读取指定的可访问 Run 工作文件并请求前端宿主保存。默认操作是替换本次输出楼层的正文；`append` 则将文件内容追加到本次输出。Host bridge 沿用 SillyTavern 的输出处理与保存流程，成功后把结果交回 runtime。
+When the model calls `workspace.commit`, the runtime reads the named accessible run working file and asks the frontend host to save it. The default replaces the body of this output message; `append` adds the file content to this output. The host bridge follows SillyTavern's output handling and save flow and hands the result back to the runtime on success.
 
-首次显式提交前，前台运行还会展示写作进度：流式写入形成实时正文，符合条件的文本修改会自动提交为进度记录。首次显式提交成功后，后续聊天发布由显式 `workspace.commit` 控制。`workspace.finish` 仍要求前台至少完成一次显式提交。
+Before the first explicit commit, a foreground run also shows writing progress: streamed text forms a live body, and qualifying text changes commit automatically as progress records. After the first explicit commit succeeds, later chat publication is controlled by explicit `workspace.commit` calls. `workspace.finish` still requires at least one explicit commit from the foreground.
 
-Shell 与文本工具共用自动提交规则：每轮最多发布最后修改的合格文本文件，提交时读取当前内容。Shell 非零退出、取消或超时会清除本轮待提交候选。
+The Shell and text tools share the automatic commit rule: each round publishes at most the last qualifying text file that changed, reading its current content at commit time. A non-zero Shell exit, a cancel, or a timeout clears the round's pending candidate.
 
-已确认的提交会保留，即使后续运行失败。模型、工具与文件处理的详细过程放在 Timeline；聊天消息保存正文、可见 reasoning 和关联 Run 的 metadata。
+A confirmed commit stays even if a later run fails. The detailed model, tool, and file processing goes to Timeline; the chat message keeps the body, the visible reasoning, and the metadata of the related run.
 
-## 将内容带到下一次运行
+## Carrying content into the next run
 
-`persist/` 的起点由 `persistBaseStateId` 指定。初始化时，仓储把对应持久版本复制到本次 Run；模型随后像处理普通文件一样修改它。
+`persistBaseStateId` names the starting point for `persist/`. At initialization the repository copies the matching persistent version into this run, and the model then changes it like an ordinary file.
 
-`workspace.finish` 将 `persist/` 的文件与目录发布为不可变版本，并将其 ID 写入已提交消息的 Agent metadata。版本反映删除、移动和空目录等变化；修订未改变完整状态时复用上一版本。后续生成根据当前消息或 swipe 选择起点，因此不同候选可以保有各自的持久内容。
+`workspace.finish` publishes the files and directories of `persist/` as an immutable version and writes its ID into the agent metadata of the committed message. The version reflects deletions, moves, and empty directories; a revision that leaves the complete state unchanged reuses the previous version. Later generations pick their starting point from the current message or swipe, so different candidates can keep their own persistent content.
 
-聊天分叉会复制持久版本并使用新聊天身份。运行历史清理与持久版本清理分别处理：缩减旧 Run 的材料不会删除仍被聊天使用的持久内容。
+Branching a chat copies the persistent version and uses a new chat identity. Run history cleanup and persistent version cleanup are separate: trimming an old run's material never deletes persistent content a chat still uses.
 
-## 保留与清理
+## Retention and cleanup
 
-运行历史分为核心记录和完整材料。较近的 Run 保留全部文件，较早的 Run 可以只留 `run.json`、日志和摘要，超过历史窗口的 Run 再整次删除。材料清理后，Timeline 仍能显示保留的事件，对应文件详情可能已不可读。
+Run history splits into core records and full material. A recent run keeps every file, an older run can keep only `run.json`, the journal, and the summary, and a run beyond the history window is deleted whole. After material cleanup, Timeline still shows the retained events, and the matching file details may no longer be readable.
 
-`api.agent.retention` 提供设置、预览和执行入口；自动清理默认关闭。操作参数见 [Agent API](../API/Agent.md)。
+`api.agent.retention` provides the settings, preview, and execution entry points; automatic cleanup is off by default. See [Agent API](../API/Agent.md) for the operation parameters.
 
-## Session 的持续工作区
+## The persistent session workspace
 
 ```text
 agent-workspaces/sessions/
-  profile.json                      共享配置
+  profile.json                      shared configuration
   <session-id>/
-    session.json                    会话元数据
-    history.jsonl                   连续消息
+    session.json                    session metadata
+    history.jsonl                   continuous messages
     workspace/{work,tmp,tool-results}/
-    runs/<run-id>/                  每次执行的记录
+    runs/<run-id>/                  records of each execution
 ```
 
-`work/`、`tmp/` 和只读的 `tool-results/` 跨 Run、跨重启保留，临时材料由 Agent 自行清理。Shell 的 `/tmp` 指向工作区目录，不是宿主临时目录。历史与文件按 Session 隔离，只有 Profile 共用。
+`work/`, `tmp/`, and the read-only `tool-results/` survive across runs and restarts, and the agent clears its own temporary material. The Shell's `/tmp` points at the workspace directory, not the host temp directory. History and files are isolated per Session, and only the Profile is shared.
 
-Session 文件直接修改，不发布 Chat persist 版本。数据仅保存在本机，不参与现有同步或 Chat retention；完整数据归档仍包含它们。
+Session files change directly and never publish Chat persist versions. The data stays on this machine and takes part in neither existing sync nor Chat retention; a full data archive still includes it.
 
-删除 Session 清理其目录与 Run 索引，保留共享 Profile 和 Skill，不回滚工具对应用其他数据的修改。调用约束见 [Session API](../API/Agent.md#持续-session)。
+Deleting a Session cleans its directory and run index, keeps the shared Profile and the skills, and does not roll back changes tools made to other application data. See [Session API](../API/Agent.md#persistent-sessions) for call constraints.
 
-## 源码
+## Source
 
-- [workspace_policy.rs](../../src-tauri/crates/tt-application/src/services/agent_profile_service/workspace_policy.rs)：目录与 Profile 的对应关系。
-- [workspace 工具](../../src-tauri/crates/tt-application/src/services/agent_tools/workspace)：文件读改与提交请求。
-- [WorkspaceFs](../../src-tauri/crates/tt-ports/src/workspace_fs.rs)：统一文件契约与文本便利方法。
-- [ScopedWorkspaceFs](../../src-tauri/crates/tt-application/src/services/agent_workspace_scope.rs)：Invocation 范围视图。
-- [WorkspaceShell adapter](../../src-tauri/crates/tt-adapter-workspace-shell/src)：Shell、JavaScript、执行期文件桥与收尾。
-- [FileAgentRepository](../../src-tauri/crates/tt-adapter-storage-userdata/src/repositories/file_agent_repository)：路径、文件、持久版本与清理。
-- [聊天提交桥](../../src/tauri/main/api/agent-chat-commit-bridge.js)：接入前端聊天保存。
+- [workspace_policy.rs](../../src-tauri/crates/tt-application/src/services/agent_profile_service/workspace_policy.rs): the directory-to-Profile mapping.
+- [workspace tools](../../src-tauri/crates/tt-application/src/services/agent_tools/workspace): file reads, changes, and commit requests.
+- [WorkspaceFs](../../src-tauri/crates/tt-ports/src/workspace_fs.rs): the shared file contract and text convenience methods.
+- [ScopedWorkspaceFs](../../src-tauri/crates/tt-application/src/services/agent_workspace_scope.rs): the Invocation-scoped view.
+- [WorkspaceShell adapter](../../src-tauri/crates/tt-adapter-workspace-shell/src): Shell, JavaScript, the execution-time file bridge, and wrap-up.
+- [FileAgentRepository](../../src-tauri/crates/tt-adapter-storage-userdata/src/repositories/file_agent_repository): paths, files, persistent versions, and cleanup.
+- [Chat commit bridge](../../src/tauri/main/api/agent-chat-commit-bridge.js): integration with frontend chat saving.

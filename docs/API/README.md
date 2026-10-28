@@ -1,25 +1,25 @@
-# 扩展 API
+# Extension API
 
-TauriTavern 的宿主 API 位于 `window.__TAURITAVERN__.api`。使用前等待宿主就绪：
+TauriTavern's host API lives at `window.__TAURITAVERN__.api`. Wait for the host to be ready before using it:
 
 ```js
 await (window.__TAURITAVERN__?.ready ?? window.__TAURITAVERN_MAIN_READY__);
 const api = window.__TAURITAVERN__.api;
 ```
 
-| API | 用途 |
+| API | Purpose |
 | --- | --- |
-| [api.chat](Chat.md) | 聊天读取、检索、metadata 与扩展存储 |
-| [api.layout](Layout.md) | 内容视口的读取与订阅 |
-| [api.dev](Dev.md) | 前后端日志和模型请求诊断 |
-| [api.worldInfo](WorldInfo.md) | 世界书激活结果与条目导航 |
-| [api.extension.store](Extension.md) | 扩展的全局 JSON / Blob 存储 |
-| [api.db](Database.md) | 本地向量、文本索引、图与 TQL 数据库 |
-| [api.agent](Agent.md) | 运行控制、历史、文件详情与 Profile 管理 |
-| [api.llmConnections](LlmConnections.md) | Agent 使用的模型连接 |
-| [api.skill](Skill.md) | Skill 导入、编辑、作用域与导出 |
-| [api.mcp](MCP.md) | MCP 服务器、工具发现、权限与测试调用 |
+| [api.chat](Chat.md) | Chat reading, search, metadata and extension storage |
+| [api.layout](Layout.md) | Reading and subscribing to the content viewport |
+| [api.dev](Dev.md) | Frontend and backend logs and model request diagnostics |
+| [api.worldInfo](WorldInfo.md) | World Info activation results and entry navigation |
+| [api.extension.store](Extension.md) | Global JSON / Blob storage for extensions |
+| [api.db](Database.md) | Local vector, text index, graph and TQL database |
+| [api.agent](Agent.md) | Run control, history, file details and profile management |
+| [api.llmConnections](LlmConnections.md) | Model connections used by agents |
+| [api.skill](Skill.md) | skill import, editing, scope and export |
+| [api.mcp](MCP.md) | MCP servers, tool discovery, permissions and test calls |
 
-完整类型见 [src/types.d.ts](../../src/types.d.ts)，稳定性约定见 [宿主契约](../FrontendHostContract.md)。从 SillyTavern 扩展迁移时，可参考 [迁移指南](Migration.md)。
+For the full types, see [src/types.d.ts](../../src/types.d.ts); for the stability guarantees, see the [host contract](../FrontendHostContract.md). When migrating a SillyTavern extension, the [migration guide](Migration.md) is a good starting point.
 
-框架内部的工作方式见 [Agent](../Agent/README.md)；本目录集中说明调用方法和返回结果。
+For how the framework works internally, see [Agent](../Agent/README.md). This directory concentrates on how to call the API and what it returns.

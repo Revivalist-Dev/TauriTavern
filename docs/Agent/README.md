@@ -1,78 +1,82 @@
 # Agent
 
-TauriTavern 的 Agent 通过模型与工具循环处理任务。Chat 将工作文件提交到聊天，Session 在持续会话中直接答复；两者共用前端 PromptManager 和 Rust 内核。
+TauriTavern's agent handles tasks with a model-and-tool loop. Chat commits its working files into the chat, and Session replies directly inside a persistent conversation; both share the frontend PromptManager and the Rust core.
 
-Chat 把创作过程与聊天展示分开：草稿可以反复修改，辅助资料按需读取，聊天中呈现提交的内容。
+Chat separates the writing process from what the chat shows: drafts can be revised repeatedly, reference material is read on demand, and only committed content appears in the chat.
 
-## 从文件到工作区
+## From files to workspace
 
-Chat 每次生成创建一个 Run 和工作区。`output/` 放输出，`scratch/` 放草稿，`summaries/` 放摘要；需要带到后续运行的内容放在 `persist/`。
+Each Chat generation creates a run and a workspace. `output/` holds output, `scratch/` holds drafts, and `summaries/` holds summaries; content that should carry into later runs goes in `persist/`.
 
-聊天有稳定身份，因此重命名不会改变工作区归属。同一聊天的 Run 保存在一起，持久内容以独立版本连接前后两次运行。切换 swipe 时，可以沿所选消息对应的版本继续。
+A chat has a stable identity, so renaming it does not change workspace ownership. The runs of one chat are stored together, and persistent content links one run to the next as a separate version. When you switch swipe, you can continue from the version attached to the selected message.
 
-文件是 Agent 组织工作材料的方式。聊天历史、世界书和 Skill 保留各自的存储，通过工具提供所需内容；模型无需在开始时读入全部材料。目录和持久版本见 [Workspace](Workspace.md)。
+Files are how the agent organizes its working material. Chat history, World Info, and skills keep their own storage and supply what is needed through tools; the model does not have to read everything at the start. See [Workspace](Workspace.md) for directories and persistent versions.
 
-## 在工作区中运行循环
+## Running the loop in a workspace
 
-Agent Loop 的每一轮都做同一件事：发送当前上下文，执行模型提出的工具调用，将结果加入上下文。
+Every round of the agent loop does the same thing: send the current context, execute the tool calls the model proposes, and add the results to the context.
 
 ```mermaid
 flowchart LR
-    input[聊天输入与 Profile] --> prompt[组装初始提示词]
-    prompt --> model[调用模型]
-    model --> tools[执行工具]
+    input[Chat input and Profile] --> prompt[Assemble initial prompt]
+    prompt --> model[Call model]
+    model --> tools[Execute tools]
     tools --> model
-    tools --> files[读写工作区]
+    tools --> files[Read and write workspace]
     files --> tools
-    tools --> commit[提交文件到聊天]
-    tools --> finish[结束运行]
+    tools --> commit[Commit files to chat]
+    tools --> finish[Finish run]
 ```
 
-Profile 指定模型、提示词、可用工具和工作区范围。Chat 中模型通过 `workspace.commit` 提交聊天内容，通过 `workspace.finish` 完成运行；后台写作运行可以只产生文件。
+Profile specifies the model, the prompt, the available tools, and the workspace scope. In Chat the model commits chat content with `workspace.commit` and completes the run with `workspace.finish`; a background writing run can produce files only.
 
-Session 独立于角色聊天，使用指定预设、共享的专用 Profile 和持续工作区。入口为 `api.agent.sessions`，见 [Agent API](../API/Agent.md#持续-session)；运行与存储规则分别见 [Runtime](Runtime.md) 和 [Workspace](Workspace.md#session-的持续工作区)。
+Session is independent of character chats and uses a designated preset, a shared dedicated Profile, and a persistent workspace. The entry point is `api.agent.sessions`; see [Agent API](../API/Agent.md#persistent-sessions). See [Run loop](Runtime.md) and [Workspace](Workspace.md#the-persistent-session-workspace) for the run and storage rules respectively.
 
-Chat 运行中的补充指令会在下一轮模型请求前加入上下文。取消操作结束当前 Run，已确认提交的内容会保留。运行步骤与源码入口见 [运行循环](Runtime.md)。
+Supplementary instructions added during a Chat run enter the context before the next model request. Cancelling ends the current run, and content already confirmed as committed is kept. See [Run loop](Runtime.md) for the steps and the source entry points.
 
-## 用日志还原过程
+## Reconstructing a run from the journal
 
-每个 Run 的 `events.jsonl` 按顺序追加事件，记录模型回合、工具调用、文件修改、提交和终态。Timeline 根据这些记录展示过程；较大的工具结果和模型响应单独存成文件，事件保存引用。
+Each run appends events to `events.jsonl` in order, recording model rounds, tool calls, file changes, commits, and the final state. Timeline renders the process from these records; larger tool results and model responses are stored as separate files, and the events keep references to them.
 
-工作文件可以修改，已经写入的事件保持原样。因此，即使关闭页面，也可以重新读取日志了解这次运行发生了什么。日志与保留的文件共同支持回看和诊断，读取方式见 [运行日志](RunEventJournal.md)。基于 checkpoint 的恢复与输出修订见 [运行循环](Runtime.md#checkpoint-与恢复)。
+Working files can change while the events already written stay as they are. So even after closing the page you can read the journal again to learn what happened during that run. The journal and the retained files together support review and diagnosis; see [Run event journal](RunEventJournal.md) for how to read them. See [Run loop](Runtime.md#checkpoints-and-recovery) for checkpoint-based recovery and output revision.
 
-## 用任务连接多个 Agent
+## Connecting agents with tasks
 
-Chat Run 可以包含多个 Invocation。Invocation 是某个 Profile 的一次执行，拥有自己的模型上下文和工具循环，并与同一 Run 的其他 Invocation 共享工作区。
+A Chat run can contain several Invocations. An Invocation is one execution of a Profile, with its own model context and tool loop, and it shares the workspace with the other Invocations of the same run.
 
-Agent 间的交互可以理解为管道：调用方送出任务包，接收方处理后送回结果包，文件路径用于传递较大的材料。源码用 `AgentTaskRecord` 记录这次传递，用 `continuation` 区分两种后续动作：
+Interaction between agents works like a pipeline: the caller sends a task package, the receiver processes it and sends back a result package, and file paths carry the larger material. The source records this transfer in `AgentTaskRecord` and uses `continuation` to distinguish the two follow-up actions:
 
-- 委派（`return_to_parent`）：子 Agent 在后台工作，调用方可以继续处理，之后通过 `agent.await` 收取结果。
-- 交接（`transfer_control`）：当前 Agent 结束自己的循环，由下一个 Agent 接手前台工作和最终提交。
+- Delegation (`return_to_parent`): the child agent works in the background, the caller can keep working, and it collects the result later through `agent.await`.
+- Handoff (`transfer_control`): the current agent ends its own loop, and the next agent takes over the foreground work and the final commit.
 
-两种方式都复用相同的循环与工作区。具体用法见 [多 Agent 协作](SubAgent.md)。
+Both forms reuse the same loop and workspace. See [Multi-agent collaboration](SubAgent.md) for usage.
 
-## 开始使用
+## Getting started
 
-1. 在聊天补全连接中配置一个支持工具调用的模型，并保存当前预设。
-2. 打开 Agent System，选择 `Default Writer`，开启 Agent Mode。
-3. 正常发送消息，在运行历史中查看工具调用、工作区和提交结果。
+1. Configure a model that supports tool calls in a chat completion connection, and save the current preset.
+2. Open Extensions → Agent System in the rail, choose `Default Writer`, and turn on Agent Mode.
+3. Send a message as usual, then inspect the tool calls, the workspace, and the commit result in the run history.
 
-默认 Profile 使用当前聊天的预设和模型。需要专门的写作、校对或资料整理 Agent 时，再复制 Profile，设置它的指令与工具。配置方法见 [Profile 与预设](ProfilesAndPreset.md)。
+The SillyBunny In-Chat Agents UI is installed separately as the `sb-agents` extension; open
+Extensions → In-Chat Agents. It is a different setup UI from the native Agent System and shares the
+same agent runtime.
 
-## 按任务查阅
+The default Profile uses the current chat's preset and model. When you need a dedicated writing, proofreading, or research agent, copy a Profile and set its instructions and tools. See [Profiles and presets](ProfilesAndPreset.md) for configuration.
 
-| 要做的事 | 文档 |
+## Where to look for each task
+
+| Task | Documentation |
 | --- | --- |
-| 理解文件、聊天提交与跨运行状态 | [Workspace](Workspace.md) |
-| 修改启动、循环和收尾流程 | [运行循环](Runtime.md) |
-| 读取历史、实现 Timeline | [运行日志](RunEventJournal.md) |
-| 配置 Agent、独立模型与预设 | [Profile 与预设](ProfilesAndPreset.md) |
-| 修改提示词组装 | [Prompt assembly](PromptAssembly.md) |
-| 使用委派或交接 | [多 Agent 协作](SubAgent.md) |
-| 添加工具或接入 MCP | [工具](ToolSystem.md) |
-| 修改模型适配与续接 | [LLM gateway](LlmGateway.md) |
-| 编写知识包或脚本 | [Skill](Skill.md) |
-| 从扩展调用 Agent | [Agent API](../API/Agent.md) |
-| 验证改动 | [测试](TestingStrategy.md) |
+| Understand files, chat commits, and cross-run state | [Workspace](Workspace.md) |
+| Change startup, the loop, and wrap-up | [Run loop](Runtime.md) |
+| Read history, implement Timeline | [Run event journal](RunEventJournal.md) |
+| Configure agents, standalone models, and presets | [Profiles and presets](ProfilesAndPreset.md) |
+| Change prompt assembly | [Prompt assembly](PromptAssembly.md) |
+| Use delegation or handoff | [Multi-agent collaboration](SubAgent.md) |
+| Add tools or connect MCP | [Tools](ToolSystem.md) |
+| Change model adaptation and continuation | [LLM gateway](LlmGateway.md) |
+| Write knowledge packages or scripts | [Skill](Skill.md) |
+| Call the agent from an extension | [Agent API](../API/Agent.md) |
+| Verify a change | [Testing](TestingStrategy.md) |
 
-后端仍遵循仓库的 [crate 边界](../BackendStructure.md)。Agent 文档只维护当前行为；字段与默认值在对应类型或实现中查阅，专题文档解释用法和责任归属。
+The backend still follows the repository's [crate boundaries](../BackendStructure.md). The agent documentation maintains current behaviour only; look up fields and defaults in the corresponding type or implementation, and the topic pages explain usage and ownership.

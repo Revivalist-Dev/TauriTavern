@@ -1,107 +1,107 @@
 ---
 name: maintain-conceptual-integrity
-description: "在 TauriTavern 的架构规划、实现与审阅中保持认知一致性：同一种事情只走一条路。从共同语义出发追踪数据与行为路径，在源头统一零散实现，做完迁移并删除旧路径，果断取舍，不用补偿层、兜底、包装层、开关和平行实现绕开结构，也不写无用测试。用于规划或设计功能、重构、新增入口、集成、provider 或能力，评审计划、设计文档或 diff，决定增删哪些测试，同步上游 SillyTavern，或用户强调认知一致性、统一架构、拒绝补丁堆积、降低维护者认知负担的任务。不用于单行修复或非编码请求。"
+description: "Keep conceptual integrity across architecture planning, implementation and review in TauriTavern: one kind of thing takes one path. Trace data and behavior paths from shared meaning, unify scattered implementations at the source, finish the migration and delete the old path, and choose decisively instead of routing around structure with compensation layers, fallbacks, wrappers, switches and parallel implementations, or writing tests that guard nothing. Use when planning or designing a feature, refactor, new entry point, integration, provider or capability; when reviewing a plan, design document or diff; when deciding which tests to add or remove; when syncing upstream SillyTavern; or when the user stresses conceptual integrity, a unified architecture, refusing to pile up patches, or lowering the maintainer's cognitive load. Not for one-line fixes or non-coding requests."
 ---
 
-# 认知一致性与维护成本
+# Conceptual integrity and maintenance cost
 
-首要目标是长期可维护性：让维护者用少量连贯的概念理解系统，修改一项规则时自然知道应该改哪里，新增功能时能够沿已有结构继续生长。
+The primary goal is long-term maintainability: a maintainer understands the system through a small set of coherent concepts, naturally knows where to change something when a rule changes, and can grow new features along structures that already exist.
 
-做法是**同一种事情只走一条路**。复杂度用于在源头把路合成一条，不用于绕开现有结构做补偿。
+The method is **one kind of thing takes one path**. Complexity goes into merging paths at the source, not into routing around existing structure as compensation.
 
-Agent 容易往相反方向走：每一步只优化眼前的 diff，给新调用者加一个分支，为说不清的状态加一层兜底，给不敢碰的代码包一层，为了兼容留下旧路径。单看每一步都说得通，合在一起就成了没人敢改的代码。
+Agents drift the other way: each step optimizes only the diff in front of it, adds a branch for a new caller, wraps an unexplainable state in a fallback, wraps code it dares not touch in a layer, and keeps an old path for compatibility. Each step makes sense alone; together they produce code nobody dares to change.
 
-## 先看事实
+## Start from the facts
 
-规划前先读本仓库的规则：`AGENTS.md`、`CONTRIBUTING.md` 的项目哲学与测试准入，以及与任务相关的 `docs/BackendStructure.md`、`docs/FrontendGuide.md`、`docs/FrontendHostContract.md`、`docs/CurrentState/` 和 `docs/API/`。它们记录了本项目的边界、契约和已经做过的取舍；写得具体的地方，以它们为准。
+Before planning, read this repository's rules: `AGENTS.md`, the project philosophy and test admission in `CONTRIBUTING.md`, and, as the task requires, `docs/BackendStructure.md`, `docs/FrontendGuide.md`, `docs/FrontendHostContract.md`, `docs/CurrentState/` and `docs/API/`. They record this project's boundaries, contracts and past tradeoffs; where they are specific, they take precedence.
 
-然后沿实际流程端到端追踪数据、状态和行为，找出几个入口实际共享的需求，以及当前复杂度从哪里产生。源码、实际使用和可复现行为是判断依据。
+Then trace data, state and behavior end to end along the real flows, and identify what several entry points actually share and where the current complexity comes from. Source code, real usage and reproducible behavior are the evidence.
 
-## 契约是硬边界，实现不是
+## Contracts are hard boundaries; implementations are not
 
-硬边界是确实有人依赖的契约。在 TauriTavern 中主要有两类：
+Hard boundaries are contracts that someone actually depends on. In TauriTavern there are two main kinds:
 
-- **上游兼容契约**（BackendStructure §5）：上游前端、扩展、脚本和角色卡能观察到的 URL、响应形状、资源路径、文件布局与 `eventSource` 事件语义。
-- **宿主契约**（FrontendHostContract §1）：Public Contract 对外承诺；Project Contract 可以演进，但要同步相关模块与文档；Internal 可以自由重构。
+- **Upstream compatibility contracts** (BackendStructure §5): the URLs, response shapes, asset paths, file layout and `eventSource` event semantics that the upstream frontend, extensions, scripts and character cards can observe.
+- **Host contracts** (FrontendHostContract §1): the Public Contract is an external promise; the Project Contract may evolve, but the related modules and documentation must move with it; Internal code may be refactored freely.
 
-确认具体消费者，把契约入口保留为转入共同机制的薄入口。TauriTavern 新能力通过 `window.__TAURITAVERN__.api.*` 暴露；只有行为确实对齐上游路由时，才进入 `/api/*` 兼容层。
+Identify the concrete consumers, and keep each contract entry point as a thin entry into the shared mechanism. New TauriTavern capabilities are exposed through `window.__TAURITAVERN__.api.*`; the `/api/*` compatibility layer is entered only when behavior really matches an upstream route.
 
-契约之外都是实现。现有代码、来自上游的代码以及描述它们的文档，都可以重新设计。上游的不一致写法和旧缺陷不是契约，应在源头改正。把每一行现有代码都当成不可触碰，正是包装层和平行路径的来源。
+Everything outside the contracts is implementation. Existing code, code inherited from upstream, and the documents describing it may all be redesigned. Upstream's inconsistent patterns and old defects are not contracts and should be corrected at the source. Treating every existing line as untouchable is exactly where wrappers and parallel paths come from.
 
-## 在源头收敛
+## Converge at the source
 
-- 共同语义放在一处实现。各入口提供自身的数据和上下文，共享机制承担共同行为。例如 Shell 与文本工具都在操作工作区，文件是否自动提交由共同的提交规则决定（`docs/Agent/Workspace.md`）；导入导出中，功能只提供文件类型、内容和建议名称，选取与交付由宿主负责（`docs/CurrentState/FileTransfer.md`）。
-- 状态只有一个事实来源，其他部分从它派生或经过它。
-- 入口或写入者之间出现分歧时，修改它们，让它们遵循同一协议；不在下游用观察、同步或补偿去调和。例如 API 修改数值约束后，由它发送与用户操作相同的 `input`，共同实现随之同步数字框，不另挂观察器。
-- Bug 在所有调用者共同经过的地方修，不只修工单点名的那个入口。
-- 边界由语义决定。含义相同的规则收敛起来，真实差异清楚表达。平台差异是真实差异，但只放在拥有该事实的宿主模块里，平台判断遵循 FrontendGuide §2.1 与 BackendStructure §6.4。为某个扩展、provider 或入口另写分支，通常不是真实差异。没有共同需求，就不建共同抽象。
-- 同一个概念只用一个名字，贯穿代码、参数、错误和文档，并沿用使用者熟悉的约定。
+- Implement shared semantics in one place. Each entry point supplies its own data and context, and the shared mechanism carries the shared behavior. For example, the shell and the text tools both operate on the workspace, so whether a file is committed automatically is decided by one shared commit rule (`docs/Agent/Workspace.md`); in import and export, the feature supplies only the file type, content and suggested name, while selection and delivery belong to the host (`docs/CurrentState/FileTransfer.md`).
+- State has one source of truth; everything else derives from it or passes through it.
+- When entry points or writers disagree, change them so they follow one protocol; do not reconcile them downstream with observation, synchronization or compensation. For example, after the API changes a numeric constraint, it sends the same `input` a user action would send, and the shared implementation updates the number box along with it, rather than attaching a separate observer.
+- Fix a bug where all callers pass through, not only at the entry point the ticket names.
+- Boundaries are decided by semantics. Rules that mean the same thing converge; real differences are stated clearly. Platform differences are real, but they belong only in the host module that owns the fact, and platform checks follow FrontendGuide §2.1 and BackendStructure §6.4. A separate branch for one extension, provider or entry point is usually not a real difference. With no shared need, there is no shared abstraction.
+- One concept gets one name throughout code, parameters, errors and documentation, and follows conventions users already know.
 
-## 果断取舍
+## Choose decisively
 
-对冲是复杂度不经任何人决定就混进来的方式。
+Hedging is how complexity enters without anyone deciding it should.
 
-- 推荐一个方案，用一句话说明取舍，不交回一份选项清单。
-- 不用开关、选项或配置来回避决定。
-- 说不出具体消费者，就不"为了兼容"保留旧路径。
-- 不为看不懂的状态加兜底，约束失效时带上下文报错。预期内的恢复路径要语义明确，并让调用者知道。用户可恢复的小问题不阻塞主流程。
-- 只就会改变行为、契约或职责归属的决定与维护者对齐；对齐后一次做到位。评审也一样：指出会改变这些的问题，罕见边界不追到底。
+- Recommend one option, state the tradeoff in one sentence, and do not hand back a list of alternatives.
+- Do not use a switch, option or configuration value to avoid a decision.
+- If you cannot name a concrete consumer, do not keep the old path "for compatibility".
+- Do not add a fallback for a state you cannot explain; report an error with context when a constraint fails. A recovery path within expectations must be semantically explicit, and the caller must be told. A small problem the user can recover from does not block the main flow.
+- Align with maintainers only on decisions that change behavior, contracts or ownership; once aligned, do it completely. Review works the same way: raise the points that would change those, and do not chase rare edges.
 
-## 把迁移做完
+## Finish the migration
 
-留下两套结构并存的重构，让情况更糟。
+A refactor that leaves two structures alive makes things worse.
 
-- 先把共同机制做完整，再按功能接入。
-- 迁移全部实际调用者。在同一次改动中删除被替代的代码、分支、旁路，以及它们的测试、fixture 和 fake，并更新描述它们的文档。只在旧结构外再加一层不算完成。
-- 必须分块时，每一块都推进同一套架构。
-- 当重构能减少重复链路、隐含知识和反复补偿时，可以接受一次较大的改动。评价的是整个系统的理解和修改成本，不是这次 diff 的大小。
-- 构建与实验沿用仓库和 CI 已有的入口，不另建副本或平行环境。
+- Complete the shared mechanism first, then connect features to it.
+- Migrate every real caller. In the same change, delete the replaced code, branches and bypasses, along with their tests, fixtures and fakes, and update the documentation that describes them. Adding one more layer around the old structure is not finished work.
+- When the work must be split, every piece advances the same architecture.
+- A larger change is acceptable when the refactor removes duplicated paths, implicit knowledge and repeated compensation. Judge the comprehension and change cost of the whole system, not the size of this diff.
+- Build and experiments use the entry points the repository and CI already have; do not create copies or parallel environments.
 
-## 测试必须证明自己的价值
+## A test must prove its value
 
-Agent 写测试是条件反射：每次改动一个，每层一个，每个新分支一个。其中不少钉住了实现，而钉住实现的测试会把实现变成契约，下一次重构就得先和它较劲。每个测试都是有人要维护的代码。
+An agent writes tests reflexively: one per change, one per layer, one per new branch. Many of them pin the implementation, and a test that pins the implementation turns the implementation into a contract, so the next refactor has to fight it first. Every test is code someone has to maintain.
 
-- 默认不写测试。只有以下情况才写：可观察的稳定行为；非平凡的不变式或边界；已经发生并修复的具体缺陷。核心仓储迁移或格式语义变更保留最小可运行测试。"改了代码"、覆盖率和"以防万一"都不是理由。
-- 绝不用正则或文本断言源码，不测试字面量、显然的控制流、直接委托、实现细节或已移除的功能。不为没发生过的缺陷提前添加回归测试。
-- 一个行为只守一次，放在已经能观察完整流程的最高层。先扩展已有行为测试，不在各层重复同一断言。验证落点见 `docs/Agent/TestingStrategy.md`。
-- 删掉一个什么也没守护的测试，是进步，不是覆盖率的损失。
+- By default, write no test. Write one only for stable observable behavior, a non-trivial invariant or boundary, or a concrete defect that occurred and was fixed. Keep the minimum runnable test for a core repository migration or a change in format semantics. "I changed code", coverage, and "just in case" are not reasons.
+- Never assert on source text with a regular expression or text match, and do not test literals, obvious control flow, direct delegation, implementation details or removed functionality. Do not add a regression test in advance for a defect that has not happened.
+- Guard one behavior once, at the highest layer where the whole flow is already observable. Extend the existing behavior test first; do not repeat the same assertion at every layer. For where verification belongs, see `docs/Agent/TestingStrategy.md`.
+- Deleting a test that guards nothing is progress, not a loss of coverage.
 
-## 让复杂度与问题相称
+## Match complexity to the problem
 
-- 简洁看概念、依赖和隐含知识，不看行数。选择能完整解决现实问题的最简单方案。
-- 60/95：用约 60% 的复杂度覆盖约 95% 的现实场景。缺少现实依据的罕见场景，等真正出现时再处理。
-- 不为尚未出现的问题预先建机制，也不在各层重复防御；在负责的边界守一次。
-- 现实问题需要的机制照样保留。守护不同不变式的两个机制不算重复，例如工作区编辑同时需要 CAS 与锁。
-- 发现问题或评审指出漏洞时，先看能否推广已有规则，或删除造成分歧的条件。逐条追加的特判会叠加复杂度；一条推广后的规则常能同时消解多处问题。
+- Judge simplicity by concepts, dependencies and implicit knowledge, not by line count. Choose the simplest option that fully solves the real problem.
+- 60/95: cover about 95% of real scenarios with about 60% of the complexity. A rare scenario without real evidence can wait until it actually appears.
+- Do not build mechanisms in advance for problems that have not appeared, and do not defend at every layer; guard once at the boundary responsible for it.
+- Mechanisms the real problem needs still stay. Two mechanisms guarding different invariants are not duplication; workspace editing, for example, needs both CAS and a lock.
+- When you find a problem, or a review points out a hole, first check whether an existing rule can be generalized, or whether the condition causing the split can be deleted. Special cases appended one at a time accumulate complexity; one generalized rule often resolves several problems at once.
 
-## 堆积的特征
+## Signs of accumulation
 
-实施前用这些特征检查自己的计划。评审时每条发现报告一行：`file:line: <tag> 哪里分裂了。→ 应收敛到哪里。`
+Check your plan against these before implementing. In review, report one line per finding: `file:line: <tag> what split. → where it should converge.`
 
-| 标签 | 特征 |
+| Tag | Sign |
 |---|---|
-| `split-path` | 同一件事有两条链路，或为每个调用者都需要的东西按调用者写分支。 |
-| `second-truth` | 缓存、镜像或标志重复了别处拥有的状态。 |
-| `compensation` | 下游用观察器、同步、重试或补丁调和上游的分歧。 |
-| `half-move` | 新旧结构同时存活；调用者或文档没有迁移。 |
-| `special-case` | 用一次性条件处理本可由一条推广规则消解的问题。 |
-| `extra-layer` | 没有共同需求的包装、适配器、接口或工厂，常包在本可直接修改的代码外面。 |
-| `defensive-layer` | 在未知状态上猜测结果的兜底、吞掉新平台或新变体的通配分支，或在每一层重复的同一守卫。 |
-| `hedge` | 为推迟决定而存在的开关、选项或保留的旧路径。 |
-| `test-pile` | 钉住实现、重复别的层已有的断言、守护从未发生的缺陷，或只因改了代码而写的测试。 |
+| `split-path` | One thing has two paths, or a branch per caller is written for something every caller needs. |
+| `second-truth` | A cache, mirror or flag duplicates state that something else owns. |
+| `compensation` | A downstream observer, synchronization, retry or patch reconciles an upstream disagreement. |
+| `half-move` | Old and new structures are both alive; callers or documentation were not migrated. |
+| `special-case` | A one-off condition handles something one generalized rule could resolve. |
+| `extra-layer` | A wrapper, adapter, interface or factory with no shared need, usually around code that could have been changed directly. |
+| `defensive-layer` | A fallback that guesses the result for an unknown state, a wildcard branch that swallows a new platform or variant, or the same guard repeated at every layer. |
+| `hedge` | A switch, option or retained old path that exists to postpone a decision. |
+| `test-pile` | A test that pins the implementation, repeats an assertion another layer already has, guards a defect that never happened, or exists only because code changed. |
 
-最后一行写 `net: -<N> paths`，统计维护者不再需要理解的路径、事实来源和特判数量。没有发现分裂时写 `Coherent. Ship.`
+End with `net: -<N> paths`, counting the paths, sources of truth and special cases a maintainer no longer has to understand. When you find no split, write `Coherent. Ship.`
 
-## 收尾
+## Closing
 
-逐个核对改动涉及的入口：它是否已进入共同机制？维护者需要理解的路径是否少了一条？再用下一次开发检验这次设计：维护者能否更快找到规则和修改位置，并沿同一条清楚的路径扩展功能？
+Check each entry point the change touches: has it entered the shared mechanism? Is there one fewer path a maintainer has to understand? Then test this design with the next piece of development: can a maintainer find the rule and the place to change faster, and extend the feature along one clear path?
 
-测试和 `pnpm run check` 通过只是行为核对，不代表设计已经完成。
+A passing test suite and `pnpm run check` only confirm behavior; they do not mean the design is finished.
 
-## 边界
+## Boundaries
 
-- 不用于错别字、单行修复或没有结构决策的任务。
-- 不是重写的许可。在问题的语义范围内收敛；收敛需要越出本次任务时，用一句话提出并询问，既不悄悄扩大改动，也不悄悄跳过。
-- 原则服务于判断。新事实推翻旧判断时，修改设计。
+- Not for typos, one-line fixes, or tasks with no structural decision.
+- Not a licence to rewrite. Converge within the semantics of the problem; when converging would go beyond this task, raise it in one sentence and ask, neither quietly widening the change nor quietly skipping it.
+- Principles serve judgment. Change the design when new facts overturn an old judgment.
 
-依据：`CONTRIBUTING.md` 的项目哲学，以及上述文档中已经落地的取舍。通用英文版见 [Darkatse/conceptual-integrity](https://github.com/Darkatse/conceptual-integrity)。
+Basis: the project philosophy in `CONTRIBUTING.md`, and the tradeoffs already made in the documents listed above. A general English edition is available at [Darkatse/conceptual-integrity](https://github.com/Darkatse/conceptual-integrity).

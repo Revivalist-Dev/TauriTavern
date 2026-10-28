@@ -1,28 +1,35 @@
-# 模块文档
+# Module documentation
 
-这里记录各模块的工作方式与源码入口。Agent 的整体说明集中在 [Agent](../Agent/README.md)，后端分层见 [后端结构](../BackendStructure.md)。
+This section records how each module works and where its source entry point lives. The overall picture of the agent is in [Agent](../Agent/README.md), and the backend layering is in
+[Backend structure](../BackendStructure.md).
 
-| 模块 | 文档内容 |
+## Removed from this fork
+
+- **Text-to-speech.** The `tts` frontend extension, its settings section, the `/tts` provider routes,
+  the `tts_handle` command, the `TtsService` application service, the `TtsRepository` port and the
+  HTTP TTS adapter are removed. There is no replacement and no supported TTS path in this fork.
+
+| Module | What the document covers |
 | --- | --- |
-| [第三方扩展](ThirdPartyExtensions.md) | 加载、发现与资源访问 |
-| [消息内嵌运行时](EmbeddedRuntime.md) | iframe 的生命周期与渲染 |
-| [启动流程](StartupOptimization.md) | Shell、Core、Full 阶段 |
-| [Bootstrap](BootstrapOptimization.md) | 启动输入与内存开销 |
-| [聊天存储](ChatPayload.md) | 完整历史、分页读取和保存 |
-| [记忆扩展](MemoryExtensionApi.md) | 聊天查询与扩展存储 |
-| [媒体资源](MediaAssetContract.md) | 浏览器资源与 Range 请求 |
-| [同步](Sync.md) | LAN Sync 与 TT-Sync |
-| [文件传输](FileTransfer.md) | 原生选取、交付与暂存 |
-| [数据目录](DataDirectorySelection.md) | 桌面目录选择与迁移 |
-| [原生模型 API](NativeApiFormats.md) | Responses、Claude、Gemini 等格式 |
-| [角色身份](CharacterIdentityContract.md) | 角色、聊天目录、重命名与世界书绑定 |
-| [日志](LoggingObservability.md) | tracing、Dev API 与 LLM 请求日志 |
-| [资源缓存](HostResourceCaching.md) | 资源版本与条件请求 |
-| [更新渠道](UpdateChannels.md) | Stable、Canary 与更新检测 |
-| [SillyBunny 宿主层](SillyBunnyShell.md) | 桌面图标栏、侧面板与对话模式 |
-| [上游 PR 评估](UpstreamPullRequests.md) | Windows-only 基线的合入/延后/拒绝结论 |
-| [Windows 分发](WindowsDistribution.md) | WinGet 与安装包 |
-| [MCP](MCP.md) | 服务器、工具目录与模型调用 |
-| [向量 API](VectorApi.md) | 索引、embedding 与查询 |
-| [自有界面](FirstPartyUI.md) | React、TypeScript 与构建流程 |
-| [Web Host](WebHost.md) | 浏览器嵌入方（Tavern Studio）使用的宿主实现 |
+| [Third-party extensions](ThirdPartyExtensions.md) | Loading, discovery, and resource access |
+| [Embedded runtime in messages](EmbeddedRuntime.md) | iframe lifecycle and rendering |
+| [Startup flow](StartupOptimization.md) | The Shell, Core, and Full phases |
+| [Bootstrap](BootstrapOptimization.md) | Startup inputs and memory cost |
+| [Chat storage](ChatPayload.md) | Full history, paged reads, and saving |
+| [Memory extension](MemoryExtensionApi.md) | Chat queries and extension storage |
+| [Media assets](MediaAssetContract.md) | Browser resources and Range requests |
+| [Sync](Sync.md) | LAN Sync and TT-Sync |
+| [File transfer](FileTransfer.md) | Native picking, delivery, and staging |
+| [Data directory](DataDirectorySelection.md) | Desktop directory selection and migration |
+| [Native model APIs](NativeApiFormats.md) | Responses, Claude, Gemini, and other formats |
+| [Character identity](CharacterIdentityContract.md) | Characters, chat directories, renaming, and lorebook binding |
+| [Logging](LoggingObservability.md) | tracing, the Dev API, and LLM request logs |
+| [Resource caching](HostResourceCaching.md) | Resource versions and conditional requests |
+| [Update channels](UpdateChannels.md) | Stable, Canary, and update detection |
+| [SillyBunny host layer](SillyBunnyShell.md) | Desktop icon rail, side panels, and conversation mode |
+| [Upstream PR assessment](UpstreamPullRequests.md) | Merge, defer, and reject verdicts for the Windows-only baseline |
+| [Windows distribution](WindowsDistribution.md) | WinGet and the installer |
+| [MCP](MCP.md) | Servers, tool catalogue, and model invocation |
+| [Vector API](VectorApi.md) | Indexing, embeddings, and queries |
+| [First-party UI](FirstPartyUI.md) | React, TypeScript, and the build pipeline |
+| [Web Host](WebHost.md) | The host implementation used by the browser embedder (Tavern Studio) |

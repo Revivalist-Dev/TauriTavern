@@ -1,56 +1,56 @@
-# Logging / Dev Observability 当前状态
+# Logging / dev observability (current state)
 
-本文记录当前已经落地的日志与开发观测链路。`.cache/PlanDocs/RustCompileAcceleratingPlan/LoggingRefactorPlan/` 是历史分析与重构计划，不是当前实现的唯一事实来源。
+This page records the logging and development observability chain that has already landed. `.cache/PlanDocs/RustCompileAcceleratingPlan/LoggingRefactorPlan/` is historical analysis and a refactoring plan, not the single source of truth for the current implementation.
 
-## 1. 普通日志链路
+## 1. The ordinary logging chain
 
-Rust 普通日志统一使用 `tracing::{debug, info, warn, error}` 宏，不再经过 `infrastructure::logging::logger` facade。启动期在 `src-tauri/crates/tauritavern/src/infrastructure/logging/tracing_runtime.rs` 安装全局 subscriber：
+Rust ordinary logs use the `tracing::{debug, info, warn, error}` macros and no longer go through the `infrastructure::logging::logger` facade. At startup a global subscriber is installed in `src-tauri/crates/tauritavern/src/infrastructure/logging/tracing_runtime.rs`:
 
-- 全局 `EnvFilter` 控制所有 tracing event；
-- stdout 与 rolling file 记录普通日志；
-- backend log layer 写入 Dev 面板使用的 backend log store；
-- user-error layer 只观察 `ERROR + target = tauritavern::user_error`。
+- a global `EnvFilter` controls every tracing event;
+- stdout and the rolling file record ordinary logs;
+- the backend log layer writes into the backend log store the Dev panel uses;
+- the user-error layer observes only `ERROR + target = tauritavern::user_error`.
 
-`infrastructure::logging::logger.rs` 已删除。不要重新引入跨层 logger facade，也不要给 application service 注入 Logger trait；普通 instrumentation 直接用 `tracing`。
+`infrastructure::logging::logger.rs` has been deleted. Do not bring back a cross-layer logger facade, and do not inject a Logger trait into an application service; ordinary instrumentation uses `tracing` directly.
 
-## 2. 用户可见错误
+## 2. User-visible errors
 
-backend error toast 不是普通 error 日志的副作用，而是显式产品事件：
+A backend error toast is not a side effect of an ordinary error log but an explicit product event:
 
-- command boundary 失败通过 `presentation/commands/helpers.rs::map_command_error()` 统一记录；
-- `Cancelled` / `TooManyRequests` 等预期失败只记录 command warn，不触发 toast；
-- 无法通过 `Result` 自然返回、但用户应立即感知的重要后台/宿主失败，显式使用 user-visible error target；host crate 使用 `target: crate::observability_targets::USER_VISIBLE_ERROR`，adapter crate 使用 `target: tt_contracts::observability::USER_VISIBLE_ERROR`；
-- 普通诊断 `tracing::error!` 只进入 stdout/file/backend log，不自动弹窗。
+- a command boundary failure is recorded uniformly through `presentation/commands/helpers.rs::map_command_error()`;
+- an expected failure such as `Cancelled` / `TooManyRequests` records only a command warn and raises no toast;
+- an important background or host failure that cannot come back naturally through `Result` but that the user should notice at once uses the user-visible error target explicitly: host crates use `target: crate::observability_targets::USER_VISIBLE_ERROR`, adapter crates use `target: tt_contracts::observability::USER_VISIBLE_ERROR`;
+- an ordinary diagnostic `tracing::error!` only goes to stdout, the file, and the backend log and does not pop up a toast.
 
-应用遵循全局 `EnvFilter`。如果用户过滤掉 `tauritavern::user_error` target，对应 backend error toast 也会被过滤；这是用户对观测输出的合理控制。
+The application follows the global `EnvFilter`. If the user filters out the `tauritavern::user_error` target, the matching backend error toast is filtered out too; that is legitimate user control over observability output.
 
-## 3. 前端桥接
+## 3. Frontend bridge
 
-user-error layer 将消息交给 `app/backend_errors.rs::BackendErrorHub`。前端启动时 `src/tauri/main/bootstrap/backend-error-bridge.js` 先监听 Tauri 事件 `tauritavern-backend-error`，再调用 `backend_error_bridge_ready`：
+The user-error layer hands messages to `app/backend_errors.rs::BackendErrorHub`. At startup the frontend's `src/tauri/main/bootstrap/backend-error-bridge.js` listens for the Tauri event `tauritavern-backend-error` first, then calls `backend_error_bridge_ready`:
 
-1. Rust 侧把 bridge 标记为 ready；
-2. 启动早期排队的 pending backend errors 被 drain 给前端；
-3. 之后的新 backend errors 直接 emit。
+1. the Rust side marks the bridge as ready;
+2. pending backend errors queued during early startup are drained to the frontend;
+3. later backend errors are emitted directly.
 
-如果 ready command 失败，Tauri integration 初始化会 fail-fast，而不是静默禁用 backend error toast。前端 `src/script.js` 最终消费自定义事件 `tauritavern:backend-error` 并展示 toastr。
+If the ready command fails, Tauri integration initialization fails fast instead of silently disabling backend error toasts. `src/script.js` on the frontend finally consumes the custom event `tauritavern:backend-error` and shows a toastr.
 
-## 4. Dev Observability
+## 4. Dev observability
 
-Dev Observability 通过 `app/dev_observability.rs::DevObservabilityHub` 暴露给 presentation commands。`dev_logging_commands.rs` 和 `settings_commands.rs` 不直接接触 `infrastructure::logging::*` store。
+Dev Observability is exposed to the presentation commands through `app/dev_observability.rs::DevObservabilityHub`. `dev_logging_commands.rs` and `settings_commands.rs` do not touch the `infrastructure::logging::*` stores directly.
 
-LLM API logs 由 infrastructure decorator `LoggingChatCompletionRepository` 记录 raw/readable 请求响应。JSON 请求及非流式 JSON 响应写入前会移除内部 provider state，并把 base64 data URL，以及同一对象内同时带非空字符串 `data` 和媒体类型（`media_type`、`mime_type` 或 `mimeType`）的内联媒体，替换为只含 MIME 与编码长度的占位符；脱敏只作用于日志副本，不修改出站 payload。持久化失败是诊断日志，不触发 backend error toast。
+LLM API logs are recorded by the infrastructure decorator `LoggingChatCompletionRepository`, which captures raw and readable requests and responses. Before a JSON request or a non-streaming JSON response is written, internal provider state is removed, and base64 data URLs — as well as inline media that carries a non-empty string `data` together with a media type (`media_type`, `mime_type`, or `mimeType`) in the same object — are replaced with a placeholder holding only the MIME type and the encoded length; redaction applies to the log copy only and does not modify the outbound payload. A persistence failure is a diagnostic log and raises no backend error toast.
 
-## 5. 持续开发守卫
+## 5. Standing guard for continued development
 
-`pnpm run check` 会运行 `pnpm run check:logging-boundaries`，防止以下旧边界回潮：
+`pnpm run check` runs `pnpm run check:logging-boundaries`, which keeps these old boundaries from creeping back:
 
-- `infrastructure::logging::logger` facade 引用；
-- `logger::{debug,info,warn,error}` 调用；
-- application/presentation 重新依赖 logging infrastructure；
-- dev logging commands 直连 infrastructure；
-- settings commands 直连 `LlmApiLogStore`。
+- references to the `infrastructure::logging::logger` facade;
+- `logger::{debug,info,warn,error}` calls;
+- application/presentation depending on logging infrastructure again;
+- dev logging commands connecting to infrastructure directly;
+- settings commands connecting to `LlmApiLogStore` directly.
 
-涉及日志/可观测性改动时，至少运行：
+A change that touches logging or observability should at least run:
 
 ```bash
 pnpm run check:logging-boundaries

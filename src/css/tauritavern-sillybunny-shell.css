@@ -125,6 +125,7 @@ body.sb-shell {
         background: var(--sb-surface);
         backdrop-filter: blur(var(--SmartThemeBlurStrength, 10px));
         overflow: hidden auto;
+        scrollbar-gutter: stable;
         transform: none;
         z-index: 3004;
     }

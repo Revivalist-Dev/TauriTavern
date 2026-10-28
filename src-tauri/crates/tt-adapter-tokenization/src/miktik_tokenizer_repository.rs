@@ -797,8 +797,8 @@ mod tests {
             "\n",
             " \n ",
             "punctuation!?",
-            "世界",
-            "设定。",
+            "café",
+            "naïve!",
             "\u{1f642}",
             "e\u{301}",
             "<|not-a-special-token|>",
@@ -870,7 +870,9 @@ mod tests {
         let base =
             "Stable world context with ordinary text, punctuation, and spacing.\n".repeat(120);
         let suffixes = (0..32)
-            .map(|index| format!("Entry {index}: 世界设定 with details, spaces, and emoji 🙂.\n"))
+            .map(|index| {
+                format!("Entry {index}: café setting with details, spaces, and emoji 🙂.\n")
+            })
             .collect::<Vec<_>>();
 
         for model in ["gpt-4o", "claude", "deepseek", "gemma"] {

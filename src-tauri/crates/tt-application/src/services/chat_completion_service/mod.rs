@@ -865,7 +865,7 @@ mod tests {
             )
             .is_err()
         );
-        let payload = json!({ "_tauritavern_stable_chat_id": " stable-空% \n" });
+        let payload = json!({ "_tauritavern_stable_chat_id": " stable-café% \n" });
         apply_opencode_session_header(
             ChatCompletionSource::OpenCode,
             payload.as_object().unwrap(),
@@ -874,7 +874,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             config.extra_headers["x-opencode-session"],
-            "%20stable-%E7%A9%BA%25%20%0A"
+            "%20stable-caf%C3%A9%25%20%0A"
         );
     }
 
