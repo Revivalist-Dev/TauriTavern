@@ -346,7 +346,7 @@ pnpm run test:layout
 pnpm run test:layout:installed
 ```
 
-`test:layout` uses Playwright and the Web Host fixture with wide and tall extension panels. `test:layout:installed` is the Windows-only live audit over WebView2 CDP and writes `tests/layout/artifacts/layout-report.json`. The static guardrail is `node scripts/audit-css-layout.mjs`, also part of `check:frontend`.
+`test:layout` uses Playwright and the Web Host fixture with wide and tall extension panels. `test:layout:installed` is the Windows-only live audit over WebView2 CDP and writes `tests/layout/artifacts/layout-report.json`. The static guardrail is `node scripts/audit-css-layout.mjs`, also part of `check:frontend`. The perf gate runs the frontend trace (`test:perf`) and replays its host calls through the Windows-only backend harness (`test:perf:backend`); the Linux callgrind baseline is not part of this fork.
 
 ### 7.10 Vault file explorer
 
