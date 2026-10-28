@@ -38,7 +38,7 @@ async function loadRegisterDebugFunction() {
 
 /**
  * Adds additional localization data to the current locale file.
- * @param {string} localeId Locale ID (e.g. 'fr-fr' or 'zh-cn')
+ * @param {string} localeId Locale ID (e.g. 'fr-fr')
  * @param {Record<string, string>} data Localization data to add
  */
 export function addLocaleData(localeId, data) {
