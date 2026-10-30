@@ -1,0 +1,360 @@
+/* ==========================================================================
+   DeepLore Monitor tab (top-rail drawer)
+   ========================================================================== */
+
+.dle-monitor-button {
+    display: flex;
+    align-items: center;
+}
+.dle-monitor-button.dle-monitor-active .drawer-icon {
+    color: var(--SmartThemeQuoteColor, #7fb7ff);
+}
+.dle-monitor-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    flex: none;
+}
+.dle-monitor-icon svg {
+    display: block;
+    width: 20px;
+    height: 20px;
+}
+.drawer-icon.dle-monitor-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.dle-monitor-panel {
+    position: fixed;
+    top: 35px;
+    left: 42px;
+    bottom: 0;
+    z-index: 4000;
+    display: none;
+    flex-direction: column;
+    width: min(1180px, calc(100vw - 42px));
+    max-width: calc(100vw - 42px);
+    background: var(--SmartThemeBlurTintColor, rgba(18, 20, 26, 0.98));
+    color: var(--SmartThemeBodyColor, #e8e8e8);
+    border-right: 1px solid var(--SmartThemeBorderColor, #333);
+    box-shadow: 12px 0 36px rgba(0, 0, 0, 0.45);
+}
+.dle-monitor-panel.dle-monitor-open {
+    display: flex;
+}
+
+.dle-mon-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #333);
+    flex: 0 0 auto;
+}
+.dle-mon-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.05em;
+    font-weight: 600;
+}
+.dle-mon-status {
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 0.72em;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    background: rgba(80, 190, 120, 0.16);
+    color: #6fd18a;
+    border: 1px solid rgba(80, 190, 120, 0.35);
+}
+.dle-mon-status-paused {
+    background: rgba(230, 170, 60, 0.16);
+    color: #e6b45a;
+    border-color: rgba(230, 170, 60, 0.35);
+}
+.dle-mon-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.dle-mon-btn {
+    padding: 4px 9px;
+    border-radius: 5px;
+    border: 1px solid var(--SmartThemeBorderColor, #3a3d46);
+    background: rgba(255, 255, 255, 0.04);
+    color: inherit;
+    font-size: 0.78em;
+    cursor: pointer;
+}
+.dle-mon-btn:hover {
+    background: rgba(255, 255, 255, 0.09);
+}
+.dle-mon-danger:hover {
+    border-color: #b05b5b;
+    color: #f0a0a0;
+}
+.dle-mon-close {
+    font-size: 1.1em;
+    line-height: 1;
+    padding: 3px 9px;
+}
+
+.dle-mon-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #333);
+    flex: 0 0 auto;
+    overflow-x: auto;
+}
+.dle-mon-tab {
+    padding: 8px 10px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--SmartThemeBodyColor, #cfcfcf);
+    opacity: 0.7;
+    font-size: 0.82em;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.dle-mon-tab:hover {
+    opacity: 1;
+}
+.dle-mon-tab.active {
+    opacity: 1;
+    border-bottom-color: var(--SmartThemeQuoteColor, #7fb7ff);
+    color: var(--SmartThemeQuoteColor, #9cc7ff);
+}
+
+.dle-mon-body {
+    flex: 1 1 auto;
+    overflow: auto;
+    padding: 12px 14px 22px;
+    font-size: 0.86em;
+}
+.dle-mon-foot {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 7px 14px;
+    border-top: 1px solid var(--SmartThemeBorderColor, #333);
+    font-size: 0.72em;
+    opacity: 0.7;
+}
+
+.dle-mon-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.dle-mon-card {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 9px 11px;
+    border: 1px solid var(--SmartThemeBorderColor, #333);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.025);
+}
+.dle-mon-card > span {
+    font-size: 0.76em;
+    opacity: 0.7;
+}
+.dle-mon-card > strong {
+    font-size: 1.15em;
+}
+.dle-mon-card > small {
+    font-size: 0.72em;
+    opacity: 0.65;
+}
+
+.dle-mon-section {
+    margin: 14px 0;
+}
+.dle-mon-section h4 {
+    margin: 0 0 6px;
+    font-size: 0.9em;
+}
+
+.dle-mon-note {
+    margin-top: 14px;
+    padding: 8px 10px;
+    border-left: 2px solid var(--SmartThemeQuoteColor, #7fb7ff);
+    background: rgba(127, 183, 255, 0.06);
+    font-size: 0.78em;
+    opacity: 0.85;
+}
+
+.dle-mon-table {
+    border: 1px solid var(--SmartThemeBorderColor, #333);
+    border-radius: 6px;
+    overflow: hidden;
+}
+.dle-mon-thead,
+.dle-mon-table summary {
+    display: grid;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 9px;
+    font-size: 0.92em;
+}
+.dle-mon-thead {
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 0.76em;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.75;
+}
+.dle-mon-details {
+    border-top: 1px solid var(--SmartThemeBorderColor, #2c2f36);
+}
+.dle-mon-details summary {
+    cursor: pointer;
+    list-style: none;
+}
+.dle-mon-details summary::-webkit-details-marker {
+    display: none;
+}
+.dle-mon-details summary:hover {
+    background: rgba(255, 255, 255, 0.035);
+}
+.dle-mon-calls .dle-mon-thead,
+.dle-mon-calls summary {
+    grid-template-columns: 78px minmax(90px, 1fr) minmax(120px, 1.3fr) 70px 82px 112px;
+}
+.dle-mon-network .dle-mon-thead,
+.dle-mon-network summary {
+    grid-template-columns: 78px 62px 62px 78px minmax(160px, 1fr);
+}
+.dle-mon-detail {
+    padding: 8px 10px 10px;
+    background: rgba(0, 0, 0, 0.14);
+    border-top: 1px solid var(--SmartThemeBorderColor, #2c2f36);
+}
+.dle-mon-kv {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 3px 12px;
+    font-size: 0.9em;
+}
+.dle-mon-kv > span:nth-child(odd) {
+    opacity: 0.65;
+}
+.dle-mon-error {
+    margin-top: 6px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    background: rgba(190, 80, 80, 0.16);
+    color: #f0a0a0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.dle-mon-pill,
+.dle-mon-chip {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 0.78em;
+    white-space: nowrap;
+}
+.dle-mon-ok {
+    background: rgba(80, 190, 120, 0.16);
+    color: #6fd18a;
+}
+.dle-mon-bad {
+    background: rgba(200, 90, 90, 0.18);
+    color: #f0a0a0;
+}
+.dle-mon-bad-text {
+    color: #f0a0a0;
+}
+.dle-mon-chip {
+    background: rgba(127, 183, 255, 0.12);
+    color: #9cc7ff;
+    margin: 0 4px 4px 0;
+}
+.dle-mon-chips {
+    margin-bottom: 6px;
+}
+.dle-mon-strong {
+    font-weight: 600;
+}
+.dle-mon-muted {
+    opacity: 0.62;
+}
+.dle-mon-small {
+    font-size: 0.78em;
+    margin-top: 4px;
+}
+.dle-mon-num {
+    text-align: right;
+}
+.dle-mon-url {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.dle-mon-break {
+    word-break: break-all;
+}
+.dle-mon-pre {
+    max-height: 280px;
+    overflow: auto;
+    margin: 4px 0 8px;
+    padding: 7px 9px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.28);
+    font-size: 0.86em;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.dle-mon-mini {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88em;
+}
+.dle-mon-mini th,
+.dle-mon-mini td {
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #2c2f36);
+    text-align: left;
+}
+.dle-mon-mini th {
+    font-size: 0.86em;
+    opacity: 0.7;
+    font-weight: 600;
+}
+.dle-mon-filter {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+}
+.dle-mon-filter label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78em;
+    opacity: 0.85;
+}
+.dle-mon-filter select {
+    padding: 2px 5px;
+    border-radius: 4px;
+    border: 1px solid var(--SmartThemeBorderColor, #3a3d46);
+    background: var(--SmartThemeBlurTintColor, #1b1e24);
+    color: inherit;
+}
+.dle-mon-empty {
+    padding: 22px 10px;
+    text-align: center;
+    opacity: 0.6;
+    border: 1px dashed var(--SmartThemeBorderColor, #3a3d46);
+    border-radius: 6px;
+}

@@ -8,8 +8,13 @@
 mod entries;
 mod error;
 mod guard;
+mod lore;
 mod vault;
 
 pub use entries::{VaultEntry, VaultMount, VaultState};
 pub use error::VaultError;
+pub use lore::{
+    LoreActivationEntry, LoreDirectory, LoreEntry, LoreFolder, LoreMigrationReport, LoreReadResult,
+    LoreRetrieval, LoreSearchResult, LoreState,
+};
 pub use vault::LocalVault;

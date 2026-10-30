@@ -56,6 +56,10 @@
     <link rel="stylesheet" type="text/css" href="css/tauritavern-oled-background.css">
     <link rel="stylesheet" type="text/css" href="css/tauritavern-sillybunny-shell.css">
 <link rel="stylesheet" type="text/css" href="css/file-explorer.css">
+<link rel="stylesheet" type="text/css" href="css/lore-directory.css">
+<link rel="stylesheet" type="text/css" href="css/copilot-dock.css">
+<link rel="stylesheet" type="text/css" href="css/center-tabs.css">
+<link rel="stylesheet" type="text/css" href="css/lore-defaults.css">
     <link rel="stylesheet" type="text/css" href="css/user.css">
     <!-- Module scripts are loaded by init.js; avoid modulepreload on mobile WebView to prevent cached preload failures. -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -5192,6 +5196,26 @@ Using a draft model is preferred. Speculative ngram is not as effective." id="sp
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+        <div id="lore-directory-button" class="drawer">
+            <div class="drawer-toggle">
+                <div id="LoreDirectoryIcon" class="drawer-icon fa-solid fa-book-open fa-fw closedIcon" title="Lore Directory" data-i18n="[title]Lore Directory"></div>
+            </div>
+            <div id="lore-directory" class="drawer-content closedDrawer">
+                <div class="flex-container alignitemscenter">
+                    <h3 class="margin0" data-i18n="Lore Directory">Lore Directory</h3>
+                    <div class="flex1"></div>
+                    <div id="lore-directory-refresh" class="menu_button fa-solid fa-arrows-rotate" title="Rescan lore directory" data-i18n="[title]Rescan lore directory"></div>
+                </div>
+                <small id="lore-directory-root" class="opacity50"></small>
+                <div id="lore-directory-migration" class="opacity70"></div>
+                <div id="lore-directory-shortcuts" class="flex-container">
+                    <div id="lore-directory-global" class="menu_button">Global</div>
+                    <div id="lore-directory-character" class="menu_button">Character</div>
+                </div>
+                <div id="lore-directory-folders" class="flex-container flexFlowColumn"></div>
+                <div id="lore-directory-entries" class="flex-container flexFlowColumn"></div>
             </div>
         </div>
         <div id="user-settings-button" class="drawer">

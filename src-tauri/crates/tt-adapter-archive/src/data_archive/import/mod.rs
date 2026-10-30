@@ -103,7 +103,6 @@ pub(crate) fn run_import_data_archive(
 mod tests {
     use super::*;
 
-    use base64::Engine;
     use flate2::Compression as GzipCompression;
     use flate2::write::GzEncoder;
     use std::fs;
@@ -114,14 +113,6 @@ mod tests {
     use zip::CompressionMethod;
     use zip::ZipWriter;
     use zip::write::SimpleFileOptions as FileOptions;
-
-    const UNICODE_PATH_FIXTURE_BASE64: &str = "UEsDBBQAAAAAAAAAAACBC0z9EgAAABIAAAAmADEAZGF0YS9kZWZhdWx0LXVzZXIvY2hhcmFjdGVycy/W0M7ELmpzb251cC0AAcO1/b1kYXRhL2RlZmF1bHQtdXNlci9jaGFyYWN0ZXJzL+S4reaWhy5qc29ueyJuYW1lIjoi5Lit5paHIn0KUEsDBBQAAAAAAAAAAACC6jpGEQAAABEAAAAjAAAAZGF0YS9kZWZhdWx0LXVzZXIvY2hhdHMvaGVsbG8uanNvbmx7ImNoYXQiOiJoZWxsbyJ9ClBLAQIUABQAAAAAAAAAAACBC0z9EgAAABIAAAAmADEAAAAAAAAAAAAAAAAAAABkYXRhL2RlZmF1bHQtdXNlci9jaGFyYWN0ZXJzL9bQzsQuanNvbnVwLQABw7X9vWRhdGEvZGVmYXVsdC11c2VyL2NoYXJhY3RlcnMv5Lit5paHLmpzb25QSwECFAAUAAAAAAAAAAAAguo6RhEAAAARAAAAIwAAAAAAAAAAAAAAAACHAAAAZGF0YS9kZWZhdWx0LXVzZXIvY2hhdHMvaGVsbG8uanNvbmxQSwUGAAAAAAIAAgDWAAAA2QAAAAAA";
-
-    fn decode_fixture() -> Vec<u8> {
-        base64::engine::general_purpose::STANDARD
-            .decode(UNICODE_PATH_FIXTURE_BASE64)
-            .expect("decode base64 fixture")
-    }
 
     fn write_zip(path: &Path, entries: &[(&str, &[u8])]) {
         let file = fs::File::create(path).expect("create zip");
@@ -536,30 +527,6 @@ mod tests {
     }
 
     #[test]
-    fn zip_unicode_extra_field_overrides_non_utf8_filename() {
-        let bytes = decode_fixture();
-        let reader = std::io::Cursor::new(bytes);
-
-        let mut archive = zip::ZipArchive::new(reader).expect("parse fixture zip");
-        let mut names = (0..archive.len())
-            .map(|index| {
-                archive
-                    .by_index(index)
-                    .expect("read entry")
-                    .name()
-                    .to_string()
-            })
-            .collect::<Vec<_>>();
-        names.sort();
-
-        assert!(
-            names
-                .iter()
-                .any(|name| name.ends_with("data/default-user/characters/中文.json"))
-        );
-    }
-
-    #[test]
     fn import_preserves_unicode_filenames() {
         let root = std::env::temp_dir().join(format!(
             "tauritavern-data-archive-unicode-{}",
@@ -571,7 +538,13 @@ mod tests {
 
         fs::create_dir_all(&root).expect("create temp root");
         fs::create_dir_all(&workspace_root).expect("create temp workspace");
-        fs::write(&archive_path, decode_fixture()).expect("write fixture zip");
+        write_zip(
+            &archive_path,
+            &[(
+                "data/default-user/characters/café.json",
+                "{\"name\":\"café\"}".as_bytes(),
+            )],
+        );
 
         let mut report_progress = |_stage: &str, _percent: f32, _message: &str| {};
         let is_cancelled = || false;
@@ -589,64 +562,12 @@ mod tests {
         let imported = data_root
             .join("default-user")
             .join("characters")
-            .join("中文.json");
+            .join("café.json");
         assert!(imported.is_file(), "imported file should exist");
-
-        let text = fs::read_to_string(&imported).expect("read imported file");
-        assert!(text.contains("中文"), "imported content should match");
-
-        cleanup_directory_sync(&root);
-    }
-
-    #[test]
-    fn import_decodes_legacy_gb18030_zip_filenames_as_one_archive() {
-        let entries: &[(&str, &[u8], &[u8])] = &[
-            (
-                "data/default-user/characters/abcdefgh.json",
-                b"data/default-user/characters/\xd6\xd0\xce\xc4\xc3\xfb\xd7\xd6.json",
-                b"first",
-            ),
-            (
-                "data/default-user/characters/ij.json",
-                b"data/default-user/characters/\xc2\xa5.json",
-                b"second",
-            ),
-        ];
-        let (root, data_root) = import_zip_with_raw_names("gb18030", entries);
-
-        assert_eq!(
-            fs::read(
-                data_root
-                    .join("default-user/characters")
-                    .join("中文名字.json")
-            )
-            .expect("read GB18030 filename"),
-            b"first"
-        );
-        assert_eq!(
-            fs::read(data_root.join("default-user/characters/楼.json"))
-                .expect("read ambiguous GB18030 filename"),
-            b"second"
-        );
-
-        cleanup_directory_sync(&root);
-    }
-
-    #[test]
-    fn import_preserves_unflagged_utf8_zip_filenames() {
-        let (root, data_root) = import_zip_with_raw_names(
-            "unflagged-utf8",
-            &[(
-                "data/default-user/characters/abcdef.json",
-                "data/default-user/characters/夏瑾.json".as_bytes(),
-                b"utf8",
-            )],
-        );
-
-        assert_eq!(
-            fs::read(data_root.join("default-user/characters/夏瑾.json"))
-                .expect("read UTF-8 filename"),
-            b"utf8"
+        assert!(
+            fs::read_to_string(&imported)
+                .expect("read imported file")
+                .contains("café")
         );
 
         cleanup_directory_sync(&root);

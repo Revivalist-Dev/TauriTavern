@@ -96,7 +96,7 @@ export const TOOL_GROUPS: readonly AgentToolGroup[] = Object.freeze([
         id: 'context',
         labelKey: 'contextTools',
         icon: 'fa-comments',
-        tools: ['builtin:chat.search', 'builtin:chat.read_messages', 'builtin:worldinfo.read_activated'],
+        tools: ['builtin:chat.search', 'builtin:chat.read_messages', 'builtin:lore.activated'],
     },
     {
         id: 'workspace-read',

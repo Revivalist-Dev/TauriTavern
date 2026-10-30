@@ -1,7 +1,49 @@
 use serde_json::json;
 
-use super::WORLDINFO_READ_ACTIVATED;
+use super::{LORE_ACTIVATED, WORLDINFO_READ_ACTIVATED};
 use tt_domain::models::tool::{ToolDescriptor, ToolId};
+
+pub(in crate::services::agent_tools) fn lore_activated_descriptor() -> ToolDescriptor {
+    ToolDescriptor {
+        id: ToolId::builtin(LORE_ACTIVATED).expect("builtin tool name must be valid"),
+        title: Some("Lore Read Activated".to_string()),
+        description: Some("Inspect lore directory entries activated for this Agent run. Omit arguments to list active refs without content; pass entries with refs and optional line ranges to read selected lore text. Reads the run prompt snapshot, not the whole lore directory.".to_string()),
+        input_schema: json!({
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "entries": {
+                    "type": "array",
+                    "description": "Optional entries to read. Omit this parameter to list active lore refs without content.",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "ref": {
+                                "type": "string",
+                                "description": "Active lore ref returned by the no-argument index call."
+                            },
+                            "start_line": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "description": "Optional 1-based starting line inside the entry content."
+                            },
+                            "line_count": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "description": "Optional number of lines to read. Omit to read through the end; oversized results return a shorter preview."
+                            }
+                        },
+                        "required": ["ref"]
+                    },
+                    "minItems": 1
+                }
+            }
+        }),
+        output_schema: None,
+        annotations: json!({ "readOnly": true, "sourceKind": "lore" }),
+    }
+}
 
 pub(in crate::services::agent_tools) fn worldinfo_read_activated_descriptor() -> ToolDescriptor {
     ToolDescriptor {

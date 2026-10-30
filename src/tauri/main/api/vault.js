@@ -45,13 +45,34 @@ export function createVaultApi({ safeInvoke }) {
         ),
         exportEntry: (mountId, path) => safeInvoke('vault_export_entry', { mountId, path }),
         reveal: (mountId, path) => safeInvoke('vault_reveal', { mountId, path }),
+        open: (mountId, path) => safeInvoke('vault_open', { mountId, path }),
     };
 }
 
-/** @param {ReturnType<typeof createVaultApi>} vault */
-export function installVaultApi(vault) {
+/** @param {{ safeInvoke: (command: string, args?: any) => Promise<any> }} deps */
+export function createLoreApi({ safeInvoke }) {
+    return {
+        state: () => safeInvoke('lore_get_state'),
+        scan: () => safeInvoke('lore_scan'),
+        listEntries: (folder = null) => safeInvoke('lore_list_entries', { folder }),
+        retrieve: ({ query, folders = [], tokenBudget = 2048, maxEntries = 24 }) => safeInvoke('lore_retrieve', {
+            query,
+            folders,
+            tokenBudget,
+            maxEntries,
+        }),
+        search: ({ query, folders = [], limit = 20 }) => safeInvoke('lore_search', { query, folders, limit }),
+        read: (path) => safeInvoke('lore_read', { path }),
+        migrateLegacy: () => safeInvoke('lore_migrate_legacy'),
+        migrateCharacter: (avatar, book) => safeInvoke('lore_migrate_character', { avatar, book }),
+    };
+}
+
+/** @param {ReturnType<typeof createVaultApi>} vault @param {ReturnType<typeof createLoreApi>} lore */
+export function installVaultApi(vault, lore) {
     const host = window.__TAURITAVERN__;
     if (!host) throw new Error('installVaultApi requires the host ABI');
     host.api ??= {};
     host.api.vault = vault;
+    if (lore) host.api.lore = lore;
 }

@@ -107,9 +107,9 @@ export function createOverlays(host) {
 
     function showEntryMenu(event, vault, entry) {
         const items = [
-            { label: entry.kind === 'directory' ? 'Open folder' : 'Preview', action: () => {
+            { label: entry.kind === 'directory' ? 'Open folder' : 'Open in tab', action: () => {
                 if (entry.kind === 'directory') host.openFolder(vault, entry);
-                else openPreview(vault.id, entry);
+                else host.openFileInTab(vault.id, entry);
             } },
             { label: 'Reveal in Explorer', action: () => api.reveal(vault.id, entry.path).catch(host.setError) },
             { label: 'Copy path', action: () => navigator.clipboard?.writeText(entry.path).catch(() => {}) },
@@ -127,9 +127,15 @@ export function createOverlays(host) {
     function showContextMenu(event, items) {
         closeContextMenu();
         contextMenu = el('div', 'tt-fe-context-menu');
+        contextMenu.setAttribute('role', 'menu');
         for (const item of items) {
-            const button = el('button', item.danger ? 'tt-fe-danger' : '', item.label);
+            const button = el(
+                'button',
+                `menu_button tt-fe-context-item${item.danger ? ' tt-fe-danger' : ''}`,
+                item.label,
+            );
             button.type = 'button';
+            button.setAttribute('role', 'menuitem');
             button.addEventListener('click', () => {
                 closeContextMenu();
                 item.action();

@@ -54,7 +54,7 @@ pub fn default_writer_profile() -> Result<AgentProfileDefinition, ApplicationErr
                 AGENT_AWAIT_TOOL,
                 "chat.search",
                 "chat.read_messages",
-                "worldinfo.read_activated",
+                "lore.activated",
                 "workspace.list_files",
                 "workspace.search_files",
                 "workspace.read_file",

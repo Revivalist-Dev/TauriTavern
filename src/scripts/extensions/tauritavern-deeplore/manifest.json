@@ -1,0 +1,14 @@
+{
+    "display_name": "DeepLore for TauriTavern",
+    "description": "Native TauriTavern Markdown vault lorebook with shared Vault Explorer focus and Lore Defaults.",
+    "loading_order": 1,
+    "requires": [],
+    "optional": [],
+    "generate_interceptor": "deepLoreEnhanced_onGenerate",
+    "js": "index.js",
+    "css": "style.css",
+    "author": "pixelnull",
+    "version": "2.9.0",
+    "homePage": "https://github.com/pixelnull/sillytavern-DeepLore",
+    "minimum_client_version": "1.12.14"
+}

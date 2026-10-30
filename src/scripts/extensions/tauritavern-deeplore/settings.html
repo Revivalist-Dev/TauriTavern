@@ -1,0 +1,34 @@
+<div class="dle-settings">
+    <div class="inline-drawer">
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <b>DeepLore</b>
+            <span id="dle-header-badge" class="dle-header-badge"></span>
+            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+        </div>
+        <div class="inline-drawer-content">
+            <label class="checkbox_label" for="dle-enabled" title="Enable or disable DeepLore. When disabled, no entries are injected into prompts.">
+                <input id="dle-enabled" type="checkbox" class="checkbox">
+                <span>Enable DeepLore</span>
+            </label>
+            <div id="dle-stub-status" class="dle-stub-status">
+                <!-- Status line populated by JS: "131 entries | Connected" -->
+            </div>
+            <div id="dle-open-settings" class="menu_button dle-open-settings-btn" role="button" tabindex="0">
+                <i class="fa-solid fa-gear" aria-hidden="true"></i>
+                <span>Open DeepLore Settings</span>
+            </div>
+            <div id="dle-open-lore-defaults" class="menu_button dle-open-settings-btn" role="button" tabindex="0">
+                <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+                <span>Open Shared Lore Defaults</span>
+            </div>
+            <div id="dle-use-vault-focus" class="menu_button dle-open-settings-btn" role="button" tabindex="0">
+                <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>
+                <span>Use Vault Explorer Focus</span>
+            </div>
+            <div id="dle-open-vault-focus" class="menu_button dle-open-settings-btn" role="button" tabindex="0">
+                <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
+                <span>Open Focused Folder in Vault Explorer</span>
+            </div>
+        </div>
+    </div>
+</div>

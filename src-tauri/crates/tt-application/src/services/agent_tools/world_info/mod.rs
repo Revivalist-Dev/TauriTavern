@@ -1,11 +1,12 @@
 mod descriptors;
 mod read_activated;
 
-pub(super) use descriptors::worldinfo_read_activated_descriptor;
+pub(super) use descriptors::{lore_activated_descriptor, worldinfo_read_activated_descriptor};
 pub(in crate::services::agent_tools) use read_activated::normalize_entry_json;
 pub(super) use read_activated::read_activated;
 
 pub(super) const WORLDINFO_READ_ACTIVATED: &str = "worldinfo.read_activated";
+pub(super) const LORE_ACTIVATED: &str = "lore.activated";
 
 const MAX_WORLDINFO_ENTRIES_PER_READ: usize = 20;
 const MAX_WORLDINFO_ENTRY_READ_LINES: usize = 1_200;

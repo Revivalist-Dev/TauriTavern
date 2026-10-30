@@ -8,6 +8,7 @@ const TOOL_LABEL_KEYS: Readonly<Record<string, AgentSystemMessageKey>> = Object.
     'chat.search': 'timelineToolChatSearch',
     'chat.read_messages': 'timelineToolChatReadMessages',
     'dice.roll': 'timelineToolDiceRoll',
+    'lore.activated': 'timelineToolWorldInfoReadActivated',
     'worldinfo.read_activated': 'timelineToolWorldInfoReadActivated',
     'workspace.list_files': 'timelineToolWorkspaceListFiles',
     'workspace.search_files': 'timelineToolWorkspaceSearchFiles',

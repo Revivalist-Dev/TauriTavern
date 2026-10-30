@@ -1,0 +1,5385 @@
+/* ═══════════════════════════════════════════════════════════════
+   ST-COPILOT — style.css
+   Theme variables applied via JS applyCustomTheme().
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Base Variable Defaults ──────────────────────────────────── */
+
+.scp-window {
+    --scp-bg:          rgba(18,18,22,0.94);
+    --scp-blur:        blur(14px);
+    --scp-border:      1px solid rgba(255,255,255,0.09);
+    --scp-shadow:      0 24px 64px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4);
+    --scp-text:        #e2e2e6;
+    --scp-text-muted:  #72728a;
+    --scp-accent:      #7c6dfa;
+    --scp-accent-dim:  rgba(124,109,250,0.45);
+    --scp-accent-bg:   rgba(124,109,250,0.12);
+    --scp-header-bg:   rgba(255,255,255,0.04);
+    --scp-toolbar-bg:  rgba(0,0,0,0.25);
+    --scp-msg-user-bg: rgba(124,109,250,0.10);
+    --scp-msg-ai-bg:   rgba(255,255,255,0.03);
+    --scp-input-bg:    rgba(0,0,0,0.30);
+    --scp-code-bg:     rgba(0,0,0,0.35);
+    --scp-font:        var(--primaryFontFamily, 'Segoe UI', system-ui, sans-serif);
+    --scp-font-mono:   var(--monospaceFontFamily, 'Consolas', monospace);
+    --scp-font-size:   13px;
+    --scp-radius:      10px;
+    --scp-danger:      #ff5c5c;
+    --scp-success:     #4caf7d;
+}
+
+/* ── Base Window ─────────────────────────────────────────────── */
+
+.scp-window {
+    position: fixed;
+    top: 80px; right: 24px;
+    width: 440px; height: 600px;
+    min-width: 380px; min-height: 300px;
+    background: var(--scp-bg);
+    backdrop-filter: var(--scp-blur);
+    -webkit-backdrop-filter: var(--scp-blur);
+    border: var(--scp-border);
+    border-radius: var(--scp-radius);
+    box-shadow: var(--scp-shadow);
+    display: flex;
+    flex-direction: column;
+    z-index: 9900;
+    overflow: hidden;
+    color: var(--scp-text);
+    font-family: var(--scp-font);
+    font-size: 13px;
+    line-height: 1.5;
+    transition: opacity 0.2s;
+}
+.scp-window.scp-dragging,
+.scp-window.scp-resizing {
+    will-change: left, top, width, height, transform;
+    transition: none;
+    user-select: none;
+}
+.scp-window.scp-dragging { cursor: grabbing; }
+.scp-window.scp-dragging * { pointer-events: none; }
+.scp-window.scp-resizing * { pointer-events: none; }
+.scp-window:not(.scp-dragging):not(.scp-resizing) {}
+
+.scp-window *::-webkit-scrollbar { width: 5px; height: 5px; }
+.scp-window *::-webkit-scrollbar-track { background: transparent; }
+.scp-window *::-webkit-scrollbar-thumb { background: var(--scp-text-muted); border-radius: 3px; }
+.scp-window *::-webkit-scrollbar-corner { background: transparent; }
+
+/* ── Resize Handles ──────────────────────────────────────────── */
+
+.scp-rh { position: absolute; z-index: 10; }
+.scp-rh-n  { top:0; left:6px; right:6px; height:4px; cursor:n-resize; }
+.scp-rh-s  { bottom:0; left:6px; right:6px; height:4px; cursor:s-resize; }
+.scp-rh-e  { right:0; top:6px; bottom:6px; width:4px; cursor:e-resize; }
+.scp-rh-w  { left:0; top:6px; bottom:6px; width:4px; cursor:w-resize; }
+.scp-rh-ne { top:0; right:0; width:10px; height:10px; cursor:ne-resize; }
+.scp-rh-se { bottom:0; right:0; width:10px; height:10px; cursor:se-resize; }
+.scp-rh-sw { bottom:0; left:0; width:10px; height:10px; cursor:sw-resize; }
+.scp-rh-nw { top:0; left:0; width:10px; height:10px; cursor:nw-resize; }
+
+/* ── Header ──────────────────────────────────────────────────── */
+
+.scp-header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 12px 9px 14px;
+    background: var(--scp-header-bg);
+    border-bottom: var(--scp-border);
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    gap: 8px;
+}
+.scp-header:active { cursor: grabbing; }
+.scp-header-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.scp-logo { display: flex; align-items: center; color: var(--scp-accent); flex-shrink: 0; }
+.scp-title {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--scp-text); flex-shrink: 0;
+}
+.scp-char-badge {
+    display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 20px;
+    background: var(--scp-accent-bg); color: var(--scp-accent);
+    border: 1px solid var(--scp-accent-dim);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;
+}
+.scp-header-right { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+
+.scp-hbtn {
+    background: none; border: none; color: var(--scp-text-muted); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 5px;
+    transition: color 0.15s, background 0.15s; padding: 0;
+}
+.scp-hbtn:hover { color: var(--scp-text); background: rgba(255,255,255,0.07); }
+.scp-hbtn-close:hover { color: var(--scp-danger); background: rgba(255,92,92,0.1); }
+
+.scp-opacity-wrap { position: relative; display: flex; }
+.scp-opacity-pop {
+    display: none !important;
+}
+
+/* ── Ghost Mode ──────────────────────────────────────────────── */
+
+.scp-window.scp-ghost-mode {
+    pointer-events: none !important;
+    transition: opacity 0.4s ease !important;
+}
+
+.scp-window.scp-ghost-mode .scp-hbtn-ghost {
+    pointer-events: auto !important;
+}
+
+.scp-hbtn-ghost {
+    transition: color 0.15s, background 0.15s, transform 0.15s, opacity 0.4s !important;
+}
+
+.scp-hbtn-ghost:hover {
+    color: var(--scp-accent) !important;
+    background: var(--scp-accent-bg) !important;
+}
+
+.scp-hbtn-ghost.active {
+    color: var(--scp-accent) !important;
+    background: var(--scp-accent-bg) !important;
+    border: 1px solid var(--scp-accent-dim) !important;
+    border-radius: 5px;
+    animation: scp-ghost-bob 6s ease-in-out infinite !important;
+}
+
+.scp-window.scp-ghost-mode .scp-hbtn-ghost {
+    opacity: 1 !important;
+    color: var(--scp-accent) !important;
+    background: var(--scp-accent-bg) !important;
+    border: 1px solid var(--scp-accent-dim) !important;
+    box-shadow: 0 0 8px var(--scp-accent-dim) !important;
+}
+
+.scp-window.scp-ghost-mode .scp-hbtn-ghost:hover {
+    opacity: 1 !important;
+    box-shadow: 0 0 14px var(--scp-accent) !important;
+    animation-play-state: paused !important;
+}
+
+@keyframes scp-ghost-bob {
+    0%   { transform: translateY(0)    rotate(0deg);   }
+    25%  { transform: translateY(-4px) rotate(-6deg);  }
+    50%  { transform: translateY(0)    rotate(0deg);   }
+    75%  { transform: translateY(-3px) rotate(5deg);   }
+    100% { transform: translateY(0)    rotate(0deg);   }
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────── */
+
+.scp-toolbar {
+    flex-shrink: 0;
+    display: flex; align-items: center; gap: 5px;
+    padding: 6px 10px;
+    background: var(--scp-toolbar-bg);
+    border-bottom: var(--scp-border);
+    overflow: visible;
+    white-space: nowrap;
+}
+
+/* ── Session Dropdown ────────────────────────────────────────── */
+
+.scp-sess-wrap { display: flex; align-items: center; gap: 4px; flex: 1 1 auto; min-width: 120px; }
+.scp-sess-dropdown { position: relative; flex: 1 1 auto; min-width: 60px; max-width: 500px; }
+
+.scp-sess-trigger {
+    width: 100%; display: flex; align-items: center; gap: 4px;
+    background: var(--scp-input-bg); border: var(--scp-border);
+    border-radius: 6px; color: var(--scp-text); font-size: 11px;
+    padding: 0 6px; cursor: pointer; transition: all 0.15s;
+    font-family: var(--scp-font); height: 26px; box-sizing: border-box;
+    user-select: none; min-width: 26px;
+}
+.scp-sess-trigger:hover,
+.scp-sess-trigger.open {
+    border-color: var(--scp-accent-dim);
+    background: var(--scp-accent-bg);
+}
+.scp-sess-trigger-name {
+    flex: 1 1 0; min-width: 0; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; text-align: left;
+}
+
+
+.scp-sess-chevron {
+    flex-shrink: 0; transition: transform 0.2s; color: var(--scp-text-muted);
+    display: block; width: 12px; height: 12px;
+}
+.scp-sess-trigger.open .scp-sess-chevron { transform: rotate(180deg); }
+
+.scp-sess-panel {
+    display: none;
+    position: absolute;
+    top: calc(100% + 5px); left: 0;
+    min-width: 200px; width: max-content; max-width: 400px;
+    background: var(--scp-bg); border: var(--scp-border);
+    border-radius: 10px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 99950; overflow: hidden;
+}
+.scp-sess-panel.open {
+    display: block;
+    animation: scp-panel-in 0.15s ease;
+}
+@keyframes scp-panel-in {
+    from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.scp-sess-list { max-height: 220px; overflow-y: auto; padding: 5px; }
+
+.scp-sess-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; border-radius: 6px; cursor: pointer;
+    transition: background 0.12s; font-size: 12px; color: var(--scp-text);
+}
+.scp-sess-item:hover { background: rgba(255,255,255,0.05); }
+.scp-sess-item.active {
+    background: var(--scp-accent-bg);
+    color: var(--scp-accent);
+}
+
+.scp-sess-item-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--scp-text-muted); flex-shrink: 0;
+    transition: background 0.15s, box-shadow 0.15s;
+}
+.scp-sess-item.active .scp-sess-item-dot {
+    background: var(--scp-accent);
+    box-shadow: 0 0 6px var(--scp-accent-dim);
+}
+
+.scp-sess-item-name {
+    flex: 1; min-width: 0; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+}
+.scp-sess-item-count {
+    font-size: 10px; color: var(--scp-text-muted);
+    background: rgba(255,255,255,0.07); padding: 1px 6px;
+    border-radius: 10px; flex-shrink: 0;
+}
+.scp-sess-item.active .scp-sess-item-count {
+    background: var(--scp-accent-bg); color: var(--scp-accent);
+}
+
+.scp-sess-tmp-badge {
+    font-size: 9px; padding: 1px 5px; border-radius: 3px;
+    background: rgba(255,180,50,0.15); color: #ffb432;
+    border: 1px solid rgba(255,180,50,0.3);
+    font-weight: 700; letter-spacing: 0.03em; flex-shrink: 0;
+}
+.scp-sess-tmp-btn {
+    background: none; border: none; cursor: pointer;
+    font-size: 13px; padding: 0; width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 4px; opacity: 0.45; transition: opacity 0.15s, background 0.15s;
+    flex-shrink: 0;
+}
+.scp-sess-tmp-btn:hover { opacity: 1; background: rgba(255,255,255,0.07); }
+.scp-sess-tmp-btn.active { opacity: 0.9; }
+
+.scp-sess-tmp-label {
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer; margin-bottom: 16px; font-size: 12px;
+    color: var(--SmartThemeBodyColorTextMuted, #888);
+    user-select: none;
+}
+
+.scp-sess-empty-label {
+    padding: 14px 10px; font-size: 11px;
+    color: var(--scp-text-muted); text-align: center; font-style: italic;
+}
+
+.scp-sess-footer {
+    padding: 5px; border-top: var(--scp-border);
+}
+.scp-sess-new-btn {
+    width: 100%; display: flex; align-items: center; gap: 7px;
+    padding: 7px 10px; background: none; border: none;
+    color: var(--scp-accent); font-size: 11px; cursor: pointer;
+    border-radius: 6px; transition: background 0.15s;
+    font-family: var(--scp-font);
+}
+.scp-sess-new-btn:hover { background: var(--scp-accent-bg); }
+
+/* ── Toolbar Buttons ─────────────────────────────────────────── */
+
+.scp-tbtn {
+    background: none; border: var(--scp-border); color: var(--scp-text-muted);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 5px; flex-shrink: 0;
+    transition: color 0.15s, background 0.15s, border-color 0.15s; padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+.scp-tbtn:hover { color: var(--scp-accent); background: var(--scp-accent-bg); border-color: var(--scp-accent-dim); }
+.scp-tbtn.active { color: var(--scp-accent); background: var(--scp-accent-bg); border-color: var(--scp-accent-dim); }
+.scp-tbtn-danger:hover { color: var(--scp-danger); background: rgba(255,92,92,0.08); border-color: rgba(255,92,92,0.3); }
+
+
+.scp-toolbar-sep {
+    width: 1px; height: 18px; background: rgba(255,255,255,0.08);
+    flex-shrink: 0; margin: 0 2px;
+}
+
+.scp-depth-label {
+    font-size: 10px; color: var(--scp-text-muted);
+    text-transform: uppercase; letter-spacing: 0.05em; flex-shrink: 0;
+}
+
+.scp-depth-val {
+    font-size: 11px; color: var(--scp-accent);
+    width: 26px; height: 20px; min-width: 26px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--scp-accent-bg); border-radius: 4px;
+    flex-shrink: 0;
+}
+.scp-depth-clickable {
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+}
+.scp-depth-clickable:hover { background: var(--scp-accent); color: #fff; }
+
+.scp-depth-input {
+    width: 26px; height: 20px; background: var(--scp-input-bg);
+    border: 1px solid var(--scp-accent-dim); border-radius: 4px;
+    color: var(--scp-accent); font-size: 11px; font-family: var(--scp-font);
+    padding: 0; text-align: center; outline: none; flex-shrink: 0; box-sizing: border-box;
+    -moz-appearance: textfield;
+}
+.scp-depth-input::-webkit-inner-spin-button,
+.scp-depth-input::-webkit-outer-spin-button { display: none; }
+
+/* ── Sliders ─────────────────────────────────────────────────── */
+
+.scp-slider {
+    -webkit-appearance: none !important; appearance: none !important;
+    height: 4px !important; border-radius: 2px !important;
+    background: rgba(255,255,255,0.2) !important; outline: none !important;
+    cursor: pointer !important; margin: 0 !important; padding: 0 !important;
+    min-width: 40px !important; border: none !important;
+}
+.scp-slider::-webkit-slider-thumb {
+    -webkit-appearance: none !important; appearance: none !important;
+    width: 14px !important; height: 14px !important; border-radius: 50% !important;
+    background: var(--scp-accent) !important; cursor: pointer !important;
+    transition: transform 0.15s, box-shadow 0.15s !important;
+    border: none !important; margin-top: 0 !important;
+}
+.scp-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.3) !important;
+    box-shadow: 0 0 0 3px var(--scp-accent-bg) !important;
+}
+.scp-depth-slider { width: 50px; flex-shrink: 1; min-width: 28px !important; }
+
+/* ── Messages Area ───────────────────────────────────────────── */
+
+.scp-messages {
+    flex: 1; overflow-y: auto;
+    padding: 10px 10px 4px;
+    display: flex; flex-direction: column; gap: 2px;
+}
+
+/* ── Empty State ─────────────────────────────────────────────── */
+
+.scp-empty-state {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 14px; padding: 32px 24px;
+    color: var(--scp-text-muted); text-align: center;
+    pointer-events: none; user-select: none;
+}
+.scp-empty-icon { color: var(--scp-accent); opacity: 0.22; }
+.scp-empty-title {
+    font-size: 16px; font-weight: 700;
+    color: var(--scp-text); opacity: 0.4;
+    letter-spacing: 0.01em;
+}
+.scp-empty-sub {
+    font-size: 12px; line-height: 1.75;
+    max-width: 260px; opacity: 0.45;
+}
+.scp-empty-hint { font-size: 11px; opacity: 0.3; }
+.scp-empty-hint kbd {
+    display: inline-block; padding: 1px 5px; border-radius: 3px;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+    font-family: var(--scp-font-mono); font-size: 10px;
+}
+
+/* ── Single Message ──────────────────────────────────────────── */
+
+.scp-msg {
+    display: flex; gap: 10px; padding: 9px 10px;
+    border-radius: 8px; transition: background 0.15s; position: relative;
+}
+.scp-msg:hover .scp-msg-actions { opacity: 1; pointer-events: auto; }
+.scp-msg-user { 
+    background: var(--scp-msg-user-bg); 
+    flex-direction: row-reverse; 
+    text-align: left; 
+}
+.scp-msg-user .scp-msg-body { 
+    align-items: flex-end; 
+    padding-left: 2.5%; 
+}
+.scp-msg-assistant { 
+    background: var(--scp-msg-ai-bg); 
+}
+.scp-msg-assistant .scp-msg-body {
+    padding-right: 3.5%;
+}
+
+.scp-msg-avatar {
+    flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+    background: var(--scp-accent-bg); border: 1px solid var(--scp-accent-dim);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--scp-accent); margin-top: 1px;
+}
+.scp-msg-user .scp-msg-avatar {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.12);
+    color: var(--scp-text-muted);
+}
+.scp-msg-body { 
+    flex: 1; min-width: 0; display: flex; flex-direction: column; 
+    position: relative; padding-bottom: 18px; 
+}
+.scp-msg-content {
+    color: var(--scp-text); font-size: var(--scp-font-size, 13px); line-height: 1.6;
+    word-break: break-word; overflow-wrap: break-word;
+}
+.scp-msg-content strong { color: var(--scp-text); font-weight: 600; }
+.scp-msg-content em { font-style: italic; color: var(--scp-text-muted); }
+
+.scp-h1, .scp-h2, .scp-h3 {
+    display: block; font-weight: 700; color: var(--scp-accent); margin: 4px 0 2px;
+}
+.scp-h1 { font-size: 15px; }
+.scp-h2 { font-size: 13px; }
+.scp-h3 { font-size: 12px; }
+
+.scp-inline-code {
+    font-family: var(--scp-font-mono); font-size: 11.5px;
+    background: var(--scp-code-bg); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 3px; padding: 1px 5px; color: var(--scp-accent);
+}
+.scp-code-block {
+    font-family: var(--scp-font-mono); font-size: 11.5px;
+    background: var(--scp-code-bg); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 6px; padding: 10px 12px; overflow-x: auto;
+    margin: 6px 0; color: var(--scp-text); white-space: pre;
+}
+
+.scp-msg-meta { 
+    font-size: 10px; color: var(--scp-text-muted); 
+    position: absolute; bottom: 0; left: 0; 
+}
+.scp-msg:hover .scp-msg-meta { opacity: 1; }
+
+.scp-msg-actions {
+    display: flex; gap: 3px; opacity: 0; pointer-events: none;
+    transition: opacity 0.15s; 
+    position: absolute; bottom: -2px; right: 0;
+}
+
+.scp-msg-btn {
+    background: none; border: 1px solid transparent; color: var(--scp-text-muted);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 5px; transition: all 0.15s; padding: 0;
+}
+.scp-msg-btn svg { overflow: visible; flex-shrink: 0; }
+.scp-msg-btn:hover { color: var(--scp-accent); background: var(--scp-accent-bg); border-color: var(--scp-accent-dim); }
+.scp-msg-btn-danger:hover { color: var(--scp-danger); background: rgba(255,92,92,0.08); border-color: rgba(255,92,92,0.3); }
+.scp-msg.is-editing .scp-msg-actions { display: none; }
+
+.scp-msg-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.scp-msg-att-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.1);
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.scp-msg-att-badge:hover {
+    background: rgba(255,255,255,0.05);
+}
+.scp-msg-att-badge img {
+    width: 20px;
+    height: 20px;
+    object-fit: cover;
+    border-radius: 3px;
+}
+
+.scp-edit-ta {
+    width: 100%; background: var(--scp-input-bg); border: 1px solid var(--scp-accent-dim);
+    border-radius: 6px; color: var(--scp-text); font-family: var(--scp-font);
+    font-size: 13px; line-height: 1.5; padding: 8px 10px;
+    resize: vertical;
+    outline: none; box-sizing: border-box;
+    min-height: 60px; max-height: 600px;
+    transition: border-color 0.15s;
+}
+.scp-edit-ta:focus { border-color: var(--scp-accent); }
+
+.scp-edit-actions { display: flex; gap: 6px; margin-top: 6px; }
+.scp-edit-btn {
+    display: flex; align-items: center; gap: 5px; padding: 4px 10px;
+    border-radius: 5px; font-size: 11px; cursor: pointer; border: 1px solid;
+    transition: all 0.15s; font-family: var(--scp-font);
+}
+.scp-edit-save { background: var(--scp-accent-bg); border-color: var(--scp-accent-dim); color: var(--scp-accent); }
+.scp-edit-save:hover { background: var(--scp-accent); color: #fff; border-color: var(--scp-accent); }
+.scp-edit-cancel { background: transparent; border-color: rgba(255,255,255,0.1); color: var(--scp-text-muted); }
+.scp-edit-cancel:hover { background: rgba(255,255,255,0.06); color: var(--scp-text); }
+
+/* ── Thinking Bar ────────────────────────────────────────────── */
+
+.scp-thinking-bar {
+    flex-shrink: 0; display: flex; align-items: center; gap: 10px;
+    padding: 7px 12px; background: var(--scp-accent-bg);
+    border-top: 1px solid var(--scp-accent-dim);
+    font-size: 11px; color: var(--scp-accent);
+}
+.scp-dots { display: flex; gap: 3px; align-items: center; }
+.scp-dots span {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--scp-accent);
+    animation: scp-dot-bounce 1.2s infinite ease-in-out;
+}
+.scp-dots span:nth-child(1) { animation-delay: 0s; }
+.scp-dots span:nth-child(2) { animation-delay: 0.2s; }
+.scp-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes scp-dot-bounce {
+    0%,80%,100% { transform: translateY(0); opacity: 0.4; }
+    40%          { transform: translateY(-4px); opacity: 1; }
+}
+#scp-thinking-text { flex: 1; }
+
+.scp-stop-btn {
+    background: none; border: 1px solid rgba(255,92,92,0.3); color: var(--scp-danger);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 5px; transition: all 0.15s;
+    padding: 0; flex-shrink: 0;
+}
+.scp-stop-btn:hover { background: rgba(255,92,92,0.12); border-color: var(--scp-danger); }
+
+/* ── Actions Bar ─────────────────────────────────────────────── */
+
+.scp-actions-bar {
+    flex-shrink: 0; display: flex; align-items: center; gap: 6px;
+    padding: 5px 10px; background: var(--scp-toolbar-bg); border-top: var(--scp-border);
+}
+.scp-action-btn {
+    display: flex; align-items: center; gap: 5px; padding: 3px 9px;
+    border-radius: 5px; font-size: 11px; cursor: pointer;
+    background: none; border: var(--scp-border); color: var(--scp-text-muted);
+    font-family: var(--scp-font); transition: all 0.15s;
+    line-height: 1; overflow: visible; box-sizing: border-box;
+}
+.scp-action-btn.active {
+    color: var(--scp-accent);
+    background: var(--scp-accent-bg);
+    border-color: var(--scp-accent-dim);
+}
+.scp-action-btn:hover { color: var(--scp-accent); background: var(--scp-accent-bg); border-color: var(--scp-accent-dim); }
+.scp-action-btn:disabled { opacity: 0.3; cursor: default; pointer-events: none; }
+.scp-action-btn svg { overflow: visible; flex-shrink: 0; }
+.scp-flex-grow { flex: 1; }
+.scp-msg-count { font-size: 10px; color: var(--scp-text-muted); }
+
+/* ── Input Row ───────────────────────────────────────────────── */
+
+.scp-input-row {
+    flex-shrink: 0; display: flex; gap: 8px; padding: 8px 10px;
+    background: var(--scp-toolbar-bg); border-top: var(--scp-border);
+    align-items: stretch;
+}
+.scp-input {
+    flex: 1; background: var(--scp-input-bg); border: var(--scp-border);
+    border-radius: 7px; color: var(--scp-text); font-family: var(--scp-font);
+    font-size: var(--scp-font-size, 13px); line-height: 1.5; padding: 8px 11px; resize: none;
+    outline: none; min-height: 36px; max-height: 180px; overflow-y: auto;
+    transition: border-color 0.15s; box-sizing: border-box;
+}
+.scp-input:focus { border-color: var(--scp-accent-dim); }
+.scp-input::placeholder { color: var(--scp-text-muted); font-style: italic; }
+.scp-input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.scp-send-btn {
+    flex-shrink: 0; 
+    width: 35px;
+    height: 35px;
+    background: var(--scp-accent-bg); 
+    border: 1px solid var(--scp-accent-dim);
+    color: var(--scp-accent); 
+    border-radius: 7px; 
+    cursor: pointer;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    transition: all 0.15s; 
+    padding: 0;
+    align-self: flex-end;
+    margin-bottom: 2px;
+}
+.scp-send-btn:hover { background: var(--scp-accent); color: #fff; border-color: var(--scp-accent); box-shadow: 0 0 12px var(--scp-accent-dim); }
+.scp-send-btn:active { transform: scale(0.93); }
+.scp-send-btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+/* ── Dock Icon ───────────────────────────────────────────────── */
+
+.scp-dock-icon {
+    position: fixed; 
+    bottom: 80px; 
+    right: 20px;
+    width: 46px; 
+    height: 46px; 
+    border-radius: 50%;
+    background: var(--scp-accent-bg); 
+    border: 1px solid var(--scp-accent-dim);
+    color: var(--scp-accent); 
+    cursor: pointer;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    z-index: 99999;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+    transition: transform 0.2s;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    animation: scp-dock-appear 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+.scp-dock-icon:hover {
+    background: var(--scp-accent); color: #fff;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 20px var(--scp-accent-dim);
+    transform: scale(1.08);
+}
+.scp-dock-icon.scp-icon-dragging {
+    transition: none !important;
+    cursor: grabbing !important;
+    will-change: left, top;
+    transform: scale(1.0) !important;
+}
+.scp-dock-pulse {
+    position: absolute; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--scp-success); top: 2px; right: 2px;
+    border: 2px solid rgba(0,0,0,0.5);
+}
+@keyframes scp-dock-appear {
+    from { transform: scale(0.4); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+}
+
+/* ── Context Inspector Modal ─────────────────────────────────── */
+
+.scp-modal-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; width: 100vw;
+    height: 100vh; height: 100dvh;
+    background: rgba(0,0,0,0.82);
+    backdrop-filter: blur(8px); z-index: 99999;
+    display: flex; align-items: center; justify-content: center;
+    animation: scp-modal-fade 0.15s ease;
+    box-sizing: border-box;
+    padding: 16px;
+}
+@keyframes scp-modal-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.scp-modal {
+    background: var(--scp-bg); border: var(--scp-border);
+    border-radius: 12px; box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+    width: 680px; max-width: 100%; max-height: 80vh; max-height: 80dvh;
+    display: flex; flex-direction: column; overflow: hidden;
+    animation: scp-modal-slide 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    color: var(--scp-text); font-family: var(--scp-font);
+}
+@keyframes scp-modal-slide {
+    from { transform: translateY(16px) scale(0.97); opacity: 0; }
+    to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.scp-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; background: var(--scp-header-bg);
+    border-bottom: var(--scp-border); font-size: 13px; font-weight: 600; gap: 8px;
+}
+.scp-modal-header span { display: flex; align-items: center; gap: 7px; color: var(--scp-accent); }
+
+.scp-modal-tabs {
+    display: flex; gap: 2px; padding: 8px 12px 0;
+    background: var(--scp-header-bg); border-bottom: var(--scp-border);
+}
+.scp-modal-tab {
+    background: none; border: none; color: var(--scp-text-muted); cursor: pointer;
+    font-size: 11px; font-family: var(--scp-font); padding: 5px 12px;
+    border-radius: 5px 5px 0 0; border-bottom: 2px solid transparent;
+    transition: all 0.15s; margin-bottom: -1px;
+}
+.scp-modal-tab:hover { color: var(--scp-text); }
+.scp-modal-tab.active { color: var(--scp-accent); border-bottom-color: var(--scp-accent); background: var(--scp-accent-bg); }
+
+.scp-modal-body { flex: 1; overflow: auto; padding: 14px 16px; }
+.scp-ctx-pre {
+    font-family: var(--scp-font-mono); font-size: 11.5px; line-height: 1.65;
+    color: var(--scp-text); white-space: pre-wrap; word-break: break-word; margin: 0;
+}
+.scp-modal-footer {
+    padding: 8px 14px; border-top: var(--scp-border);
+    background: var(--scp-toolbar-bg); display: flex; justify-content: flex-end;
+}
+
+/* ── Custom Dialog ───────────────────────────────────────────── */
+
+.scp-dialog-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; width: 100vw;
+    height: 100vh; height: 100dvh;
+    background: rgba(0,0,0,0.72);
+    backdrop-filter: blur(8px); z-index: 999999;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.15s;
+    box-sizing: border-box;
+    padding: 20px 16px;
+    overscroll-behavior: contain;
+}
+.scp-dialog-overlay.visible { opacity: 1; }
+
+.scp-dialog-box {
+    background: var(--SmartThemeBlurTrans, rgba(16,16,20,0.98));
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 26px 26px 22px;
+    min-width: 280px; max-width: 440px; width: min(90vw, 440px);
+    max-height: calc(100dvh - 40px); max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04) inset;
+    animation: scp-dialog-in 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    color: var(--SmartThemeBodyColorText, #e2e2e6);
+    font-family: var(--primaryFontFamily, system-ui, sans-serif);
+    box-sizing: border-box;
+}
+@keyframes scp-dialog-in {
+    from { transform: scale(0.88) translateY(-10px); opacity: 0; }
+    to   { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.scp-dialog-title {
+    font-size: 15px; font-weight: 700; margin-bottom: 8px;
+    color: var(--SmartThemeBodyColorText, #e2e2e6);
+}
+.scp-dialog-msg {
+    font-size: 13px; line-height: 1.7; margin-bottom: 18px;
+    color: var(--SmartThemeBodyColorTextMuted, #9090a8);
+}
+
+.scp-dialog-input {
+    width: 100%; box-sizing: border-box;
+    background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.13);
+    border-radius: 7px; color: var(--SmartThemeBodyColorText, #e2e2e6);
+    font-family: var(--primaryFontFamily, system-ui); font-size: 13px;
+    padding: 9px 12px; margin-bottom: 20px; outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.scp-dialog-input:focus {
+    border-color: var(--scp-accent);
+    box-shadow: 0 0 0 3px var(--scp-accent-bg);
+}
+
+.scp-dialog-btns { display: flex; gap: 8px; justify-content: flex-end; }
+
+.scp-dialog-btn {
+    padding: 8px 20px; border-radius: 8px; font-size: 12px; font-weight: 600;
+    font-family: var(--primaryFontFamily, system-ui); cursor: pointer;
+    border: 1px solid; transition: all 0.15s;
+}
+.scp-dialog-cancel {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.1);
+    color: var(--SmartThemeBodyColorTextMuted, #888);
+}
+.scp-dialog-cancel:hover { background: rgba(255,255,255,0.09); color: var(--SmartThemeBodyColorText, #e2e2e6); }
+
+.scp-dialog-ok {
+    background: var(--scp-accent-bg);
+    border-color: var(--scp-accent-dim);
+    color: var(--scp-accent);
+}
+.scp-dialog-ok:hover { 
+    background: var(--scp-accent); 
+    border-color: var(--scp-accent); 
+    color: #fff; 
+}
+.scp-dialog-ok.danger {
+    background: rgba(255,92,92,0.12);
+    border-color: rgba(255,92,92,0.35);
+    color: #ff8080;
+}
+.scp-dialog-ok.danger:hover { background: rgba(255,92,92,0.28); border-color: rgba(255,92,92,0.6); color: #fff; }
+
+/* ── Settings Panel ──────────────────────────────────────────── */
+
+.st-copilot-settings small {
+    color: var(--SmartThemeBodyColorTextMuted, #888);
+    font-size: 11px; display: block;
+}
+
+.st-copilot-settings .menu_button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.st-copilot-settings .inline-drawer-toggle.inline-drawer-header {
+    border-left: 2px solid rgba(119, 119, 119, 0.5) !important;
+    border-radius: 4px !important;
+    padding-left: 10px !important;
+    background: linear-gradient(90deg, rgba(107, 107, 107, 0.185) 0%, transparent 100%) !important;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+
+.st-copilot-settings .inline-drawer-toggle.inline-drawer-header:hover {
+    background: linear-gradient(90deg, rgba(78, 78, 78, 0.493) 0%, transparent 100%) !important;
+    border-left-color: rgba(153, 153, 153, 0.75) !important;
+}
+
+.st-copilot-settings .inline-drawer-toggle.inline-drawer-header b {
+    letter-spacing: 0.02em;
+}
+
+.scp-settings-section {
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 8px; overflow: hidden; margin-bottom: 6px;
+}
+
+.scp-profile-bar {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(0,0,0,0.2); border-radius: 7px;
+    padding: 4px; border: 1px solid rgba(255,255,255,0.08);
+}
+.scp-profile-bar select {
+    flex: 1; background: transparent; border: none;
+    color: var(--SmartThemeBodyColorText, #e2e2e6);
+    font-family: var(--primaryFontFamily, system-ui);
+    font-size: 12px; outline: none; cursor: pointer;
+    padding: 3px 6px;
+}
+.scp-profile-bar select option { background: #1a1a20; }
+
+.scp-profile-icon-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--SmartThemeBodyColorTextMuted, #72728a);
+    display: flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 5px;
+    transition: color 0.15s, background 0.15s;
+    font-size: 12px;
+}
+.scp-profile-icon-btn:hover { color: var(--SmartThemeBodyColorText, #e2e2e6); background: rgba(255,255,255,0.08); }
+.scp-profile-icon-btn.danger:hover { color: #ff5c5c; background: rgba(255,92,92,0.1); }
+
+.scp-binding-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.03); border-radius: 6px;
+    margin-top: 6px; flex-wrap: wrap;
+}
+.scp-binding-label {
+    font-size: 11px; color: var(--SmartThemeBodyColorTextMuted, #888);
+    flex-shrink: 0;
+}
+.scp-bind-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 5px;
+    font-size: 11px; cursor: pointer;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--SmartThemeBodyColorTextMuted, #888);
+    transition: all 0.15s; font-family: var(--primaryFontFamily, system-ui);
+}
+.scp-bind-btn:hover { background: rgba(255,255,255,0.1); color: var(--SmartThemeBodyColorText, #e2e2e6); }
+.scp-bind-btn.active {
+    background: rgba(124,109,250,0.15);
+    border-color: rgba(124,109,250,0.4);
+    color: #a99bfb;
+}
+
+/* ── Theme Editor ────────────────────────────────────────────── */
+
+.scp-theme-preset-row { margin-bottom: 10px; }
+.scp-theme-preset-label {
+    font-size: 10px; color: var(--SmartThemeBodyColorTextMuted, #888);
+    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;
+}
+.scp-theme-preset-btns { display: flex; flex-wrap: wrap; gap: 5px; }
+.scp-preset-pill {
+    padding: 3px 10px; border-radius: 20px; font-size: 11px; cursor: pointer;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    color: var(--SmartThemeBodyColorTextMuted, #888);
+    transition: all 0.15s; font-family: var(--primaryFontFamily, system-ui);
+}
+.scp-preset-pill:hover {
+    background: rgba(124,109,250,0.15); border-color: rgba(124,109,250,0.4); color: #a99bfb;
+}
+
+.scp-profile-bar select optgroup {
+    background: #1a1a20;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: rgba(255,255,255,0.35);
+}
+.scp-profile-bar select option {
+    background: #1a1a20;
+    color: var(--SmartThemeBodyColorText, #e2e2e6);
+    padding: 3px 6px;
+}
+
+.scp-theme-var-grid {
+    display: grid; grid-template-columns: 1fr; gap: 5px;
+}
+.scp-theme-var-item { display: flex; flex-direction: column; gap: 3px; }
+.scp-theme-var-label { font-size: 10px; color: var(--SmartThemeBodyColorTextMuted, #888); text-transform: uppercase; letter-spacing: 0.04em; }
+.scp-theme-var-wrap { display: flex; align-items: center; gap: 7px; }
+.scp-theme-var-preview {
+    width: 20px; height: 20px; border-radius: 4px; flex-shrink: 0;
+    border: 1px solid rgba(255,255,255,0.1); background: transparent;
+}
+.scp-theme-var-input {
+    flex: 1; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 5px; color: var(--SmartThemeBodyColorText, #e2e2e6);
+    font-size: 11px; font-family: var(--monospaceFontFamily, monospace);
+    padding: 4px 8px; outline: none; transition: border-color 0.15s;
+}
+.scp-theme-var-input:focus { border-color: rgba(124,109,250,0.5); }
+.scp-theme-var-reset {
+    background: none; border: 1px solid transparent; color: var(--SmartThemeBodyColorTextMuted, #72728a);
+    cursor: pointer; border-radius: 4px; width: 20px; height: 20px; padding: 0;
+    font-size: 13px; line-height: 1; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.scp-theme-var-reset:hover:not(:disabled) {
+    color: var(--SmartThemeBodyColorText, #e2e2e6);
+    background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.12);
+}
+.scp-theme-var-reset:disabled { opacity: 0.18; cursor: default; }
+
+/* ── Color Picker Popup ───────────────────────────────────────── */
+
+.scp-color-pop {
+    background: var(--SmartThemeBlurTrans, rgba(14,14,18,0.98));
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 12px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.65), 0 4px 12px rgba(0,0,0,0.35);
+    display: flex; flex-direction: column; gap: 10px;
+    width: 210px;
+    animation: scp-panel-in 0.15s ease;
+    font-family: var(--primaryFontFamily, system-ui, sans-serif);
+    color: var(--SmartThemeBodyColorText, #e2e2e6);
+}
+.scp-color-pop-row { display: flex; align-items: center; gap: 12px; }
+.scp-color-pop-wheel {
+    width: 54px; height: 54px; border: 2px solid rgba(255,255,255,0.12);
+    padding: 0; border-radius: 8px; cursor: pointer;
+    background: none; flex-shrink: 0; outline: none;
+    transition: border-color 0.15s;
+}
+.scp-color-pop-wheel:hover { border-color: rgba(255,255,255,0.25); }
+.scp-color-pop-wheel::-webkit-color-swatch-wrapper { padding: 0; border-radius: 6px; }
+.scp-color-pop-wheel::-webkit-color-swatch { border: none; border-radius: 6px; }
+.scp-color-pop-alpha-col { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.scp-color-pop-alpha-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--SmartThemeBodyColorTextMuted, #72728a);
+}
+.scp-color-pop-alpha-val {
+    font-size: 10px; color: var(--SmartThemeBodyColorText, #e2e2e6);
+    text-align: right;
+}
+.scp-color-pop-text {
+    font-size: 11px !important;
+    font-family: var(--monospaceFontFamily, monospace) !important;
+    padding: 5px 8px !important;
+    border-radius: 5px !important;
+    height: auto !important;
+    min-height: unset !important;
+}
+.scp-theme-var-preview.scp-color-clickable {
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    outline: 1px solid transparent;
+}
+.scp-theme-var-preview.scp-color-clickable:hover {
+    transform: scale(1.2);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    outline-color: rgba(255,255,255,0.25);
+}
+
+/* ── Settings Redesign ───────────────────────────────────────── */
+
+.scp-settings-flat-section {
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+}
+.scp-settings-flat-title {
+    font-weight: 700; font-size: 13px; color: var(--SmartThemeBodyColorText, #e2e2e6);
+    margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+}
+.scp-settings-drawer {
+    background: rgba(0, 0, 0, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-radius: 6px !important;
+    margin-bottom: 6px;
+    overflow: hidden;
+}
+.scp-settings-drawer .inline-drawer-header {
+    background: rgba(255, 255, 255, 0.02) !important;
+    padding: 8px 12px !important;
+    border-bottom: none !important;
+}
+.scp-settings-drawer .inline-drawer-content {
+    padding: 12px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.03) !important;
+}
+
+.scp-token-count { font-size: 10px; color: var(--scp-accent); opacity: 0.8; margin-right: 6px; }
+
+/* ── Chat Search Bar ─────────────────────────────────────────── */
+
+.scp-search-bar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0 8px;
+    background: var(--scp-toolbar-bg);
+    border-bottom: var(--scp-border);
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: max-height 0.22s cubic-bezier(0.4,0,0.2,1),
+                opacity 0.18s ease,
+                padding 0.22s cubic-bezier(0.4,0,0.2,1);
+}
+.scp-search-bar.scp-search-open {
+    max-height: 44px;
+    opacity: 1;
+    pointer-events: auto;
+    padding: 5px 8px;
+}
+.scp-search-bar-icon {
+    color: var(--scp-text-muted);
+    display: flex;
+    flex-shrink: 0;
+    opacity: 0.6;
+}
+.scp-search-input {
+    flex: 1;
+    min-width: 0;
+    background: var(--scp-input-bg);
+    border: var(--scp-border);
+    border-radius: 6px;
+    color: var(--scp-text);
+    font-family: var(--scp-font);
+    font-size: 12px;
+    padding: 5px 9px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-sizing: border-box;
+}
+.scp-search-input:focus {
+    border-color: var(--scp-accent-dim);
+    box-shadow: 0 0 0 2px rgba(124,109,250,0.1);
+}
+.scp-search-count {
+    font-size: 10px;
+    color: var(--scp-text-muted);
+    white-space: nowrap;
+    min-width: 34px;
+    text-align: center;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+}
+.scp-search-nav,
+.scp-search-close-btn {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--scp-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 5px;
+    font-size: 13px;
+    flex-shrink: 0;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.scp-search-nav:hover {
+    color: var(--scp-accent);
+    background: var(--scp-accent-bg);
+    border-color: var(--scp-accent-dim);
+}
+.scp-search-nav.active {
+    color: var(--scp-accent);
+    background: var(--scp-accent-bg);
+    border-color: var(--scp-accent-dim);
+}
+.scp-search-nav.active:hover {
+    background: var(--scp-accent);
+    color: #fff;
+}
+.scp-search-close-btn:hover {
+    color: var(--scp-danger);
+    background: rgba(255,92,92,0.1);
+}
+
+mark.scp-search-hl {
+    background: rgba(255, 200, 50, 0.32);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+    transition: background 0.15s, box-shadow 0.15s;
+}
+mark.scp-search-hl.scp-search-current {
+    background: rgba(255, 150, 0, 0.72);
+    color: #fff;
+    box-shadow: 0 0 0 2px rgba(255,150,0,0.35);
+    border-radius: 2px;
+}
+
+/* ── Lists ───────────────────────────────────────────────────── */
+
+.scp-list {
+    margin: 6px 0 6px 10px;
+    padding: 0;
+}
+ul.scp-list {
+    list-style: none;
+    position: relative;
+    padding-left: 0;
+}
+ul.scp-list::before {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 14px;
+    bottom: 14px;
+    width: 1px;
+    transform: translateX(-50%);
+    background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.12) 15%, rgba(255,255,255,0.12) 85%, transparent);
+    pointer-events: none;
+}
+ul.scp-list > li {
+    position: relative;
+    padding-left: 20px;
+}
+ul.scp-list > li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 11px;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--scp-accent);
+    border: 1px solid var(--scp-accent-dim);
+    box-shadow: 0 0 4px var(--scp-accent-dim);
+    z-index: 1;
+    box-sizing: border-box;
+}
+ol.scp-list { list-style: decimal; padding-left: 16px; }
+.scp-list li {
+    margin: 3px 0;
+    line-height: 1.6;
+    color: var(--scp-text);
+}
+.scp-list .scp-list {
+    margin-top: 4px;
+    margin-bottom: 0;
+}
+
+/* ── Markdown Extras ─────────────────────────────────────────── */
+
+.scp-hr {
+    border: none; border-top: 1px solid rgba(255, 255, 255, 0.21);
+    margin: 14px 0;
+}
+
+.scp-blockquote {
+    border-left: 3px solid var(--scp-accent);
+    margin: 8px 0; padding: 6px 12px;
+    color: var(--scp-text-muted);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 0 6px 6px 0;
+}
+
+.scp-table-wrap {
+    width: 100%; overflow-x: auto; margin: 10px 0;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+}
+.scp-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 12px; text-align: left;
+}
+.scp-table th, .scp-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+.scp-table th:last-child, .scp-table td:last-child { border-right: none; }
+.scp-table tr:last-child td { border-bottom: none; }
+.scp-table th {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--scp-accent); font-weight: 600;
+}
+.scp-table tr:hover td { background: rgba(255, 255, 255, 0.03); }
+
+.scp-msg-content del {
+    text-decoration: line-through;
+    opacity: 0.8;
+}
+
+/* ── Reasoning Block ─────────────────────────────────────────── */
+
+.scp-reasoning-block {
+    margin-bottom: 8px;
+    border: 1px solid var(--scp-accent-dim);
+    border-radius: 6px;
+    overflow: hidden;
+    background: rgba(0,0,0,0.18);
+}
+.scp-reasoning-summary {
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--scp-accent);
+    opacity: 0.75;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    transition: opacity 0.15s;
+}
+.scp-reasoning-summary::-webkit-details-marker { display: none; }
+.scp-reasoning-summary::before {
+    content: '▶';
+    font-size: 7px;
+    display: inline-block;
+    transition: transform 0.18s;
+    flex-shrink: 0;
+}
+details.scp-reasoning-block[open] .scp-reasoning-summary::before { transform: rotate(90deg); }
+.scp-reasoning-summary:hover { opacity: 1; }
+.scp-reasoning-content {
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--scp-text-muted);
+    border-top: 1px solid var(--scp-accent-dim);
+    max-height: 260px;
+    overflow-y: auto;
+    line-height: 1.6;
+}
+
+/* ── HTML Block ──────────────────────────────────────────────── */
+
+.scp-html-block {
+    margin: 8px 0;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(0,0,0,0.15);
+}
+.scp-html-block-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 8px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.scp-html-block-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--scp-text-muted);
+    flex: 1;
+}
+.scp-html-block-btn {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--scp-text-muted);
+    cursor: pointer;
+    font-size: 10px;
+    font-family: var(--scp-font);
+    padding: 2px 8px;
+    border-radius: 4px;
+    transition: all 0.15s;
+}
+.scp-html-block-btn:hover,
+.scp-html-block-btn.active {
+    color: var(--scp-accent);
+    background: var(--scp-accent-bg);
+    border-color: var(--scp-accent-dim);
+}
+.scp-html-block-iframe {
+    display: block;
+    width: 100%;
+    border: none;
+    min-height: 40px;
+    height: 40px;
+    max-height: 1200px;
+    background: transparent;
+    transition: height 0.2s ease;
+}
+.scp-html-block-code {
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    border-top: 1px solid rgba(255,255,255,0.06) !important;
+}
+.scp-html-block-error {
+    padding: 5px 10px;
+    font-size: 11px;
+    color: var(--scp-danger);
+    background: rgba(255,92,92,0.07);
+    border-bottom: 1px solid rgba(255,92,92,0.15);
+}
+
+
+/* ── Preset Manager Bar ──────────────────────────────────────── */
+
+.scp-preset-mgr-bar {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(0,0,0,0.18);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 8px;
+    padding: 5px;
+}
+
+.scp-preset-mgr-trigger {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 5px 10px;
+    background: var(--scp-input-bg, rgba(0,0,0,0.3));
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    color: var(--scp-text-muted, #72728a);
+    font-family: var(--scp-font, system-ui);
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    user-select: none;
+}
+.scp-preset-mgr-trigger:hover,
+.scp-preset-mgr-trigger.open {
+    border-color: var(--scp-accent-dim, rgba(124,109,250,0.45));
+    background: var(--scp-accent-bg, rgba(124,109,250,0.08));
+    color: var(--scp-text, #e2e2e6);
+}
+.scp-preset-mgr-trigger.scp-pmt--has-value {
+    color: var(--scp-text, #e2e2e6);
+}
+
+.scp-pmt-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.scp-pmt-chevron {
+    flex-shrink: 0;
+    color: var(--scp-text-muted, #72728a);
+    transition: transform 0.2s;
+}
+.scp-preset-mgr-trigger.open .scp-pmt-chevron { transform: rotate(180deg); }
+
+.scp-preset-mgr-btn {
+    flex-shrink: 0;
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    color: var(--scp-text-muted, #72728a);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.scp-preset-mgr-btn:hover:not(:disabled) {
+    color: var(--scp-accent, #7c6dfa);
+    background: var(--scp-accent-bg, rgba(124,109,250,0.12));
+    border-color: var(--scp-accent-dim, rgba(124,109,250,0.45));
+}
+.scp-preset-mgr-btn.danger:hover:not(:disabled) {
+    color: var(--scp-danger, #ff5c5c);
+    background: rgba(255,92,92,0.1);
+    border-color: rgba(255,92,92,0.35);
+}
+
+/* ── Preset Dropdown Panel ───────────────────────────────────── */
+
+.scp-pdd-panel {
+    position: fixed;
+    z-index: 999999;
+    background: var(--scp-bg, rgba(18,18,22,0.97));
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    box-shadow:
+        0 24px 64px rgba(0,0,0,0.72),
+        0 6px 20px rgba(0,0,0,0.45),
+        0 0 0 1px rgba(255,255,255,0.04) inset;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 380px;
+    max-width: calc(100vw - 16px);
+    animation: scp-panel-in 0.18s cubic-bezier(0.34,1.4,0.64,1);
+    font-family: var(--scp-font, system-ui, sans-serif);
+}
+
+.scp-pdd-search-wrap {
+    padding: 8px 8px 6px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    flex-shrink: 0;
+}
+
+.scp-pdd-search {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 7px;
+    color: var(--scp-text, #e2e2e6);
+    font-family: var(--scp-font, system-ui);
+    font-size: 12px;
+    padding: 6px 10px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.scp-pdd-search:focus {
+    border-color: var(--scp-accent-dim, rgba(124,109,250,0.45));
+    box-shadow: 0 0 0 2px rgba(124,109,250,0.1);
+}
+.scp-pdd-search::placeholder { color: var(--scp-text-muted); font-style: italic; }
+
+.scp-pdd-list {
+    overflow-y: auto;
+    padding: 5px;
+    flex: 1;
+}
+.scp-pdd-list::-webkit-scrollbar { width: 4px; }
+.scp-pdd-list::-webkit-scrollbar-track { background: transparent; }
+.scp-pdd-list::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.14);
+    border-radius: 2px;
+}
+
+.scp-pdd-group-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    color: var(--scp-text-muted, #72728a);
+    padding: 8px 10px 4px;
+    opacity: 0.7;
+}
+.scp-pdd-group-label:first-child { padding-top: 4px; }
+
+.scp-pdd-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 8px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.12s, border-color 0.12s, transform 0.1s;
+}
+.scp-pdd-item:hover {
+    background: var(--scp-accent-bg, rgba(124,109,250,0.12));
+    border-color: var(--scp-accent-dim, rgba(124,109,250,0.35));
+    transform: translateX(2px);
+}
+
+.scp-pdd-item-top {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.scp-pdd-item-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--scp-text, #e2e2e6);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.scp-pdd-item-preview {
+    font-size: 11px;
+    color: var(--scp-text-muted, #72728a);
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.scp-pdd-empty {
+    padding: 24px 10px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--scp-text-muted, #72728a);
+    font-style: italic;
+}
+
+.scp-pdd-badge {
+    flex-shrink: 0;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 1px 6px;
+    border-radius: 10px;
+    border: 1px solid;
+}
+.scp-pdd-badge--profile {
+    background: var(--scp-accent-bg, rgba(124,109,250,0.12));
+    border-color: var(--scp-accent-dim, rgba(124,109,250,0.45));
+    color: var(--scp-accent, #7c6dfa);
+}
+.scp-pdd-badge--custom {
+    background: rgba(255,180,50,0.12);
+    border-color: rgba(255,180,50,0.35);
+    color: #ffb432;
+}
+.scp-pdd-badge--active {
+    background: rgba(76,175,125,0.12);
+    border-color: rgba(76,175,125,0.4);
+    color: var(--scp-success, #4caf7d);
+}
+
+/* ── Mobile / Tablet ─────────────────────────────────────────── */
+
+@media screen and (max-width: 900px) {
+    .scp-window {
+        min-width: unset !important;
+        max-width: calc(100vw - 10px) !important;
+        max-height: calc(100dvh - 10px) !important;
+    }
+    .scp-toolbar { padding: 6px 5px; gap: 4px; }
+    .scp-tbtn { width: 24px; height: 24px; }
+    .scp-sess-wrap { min-width: 110px; }
+    .scp-depth-slider { width: 40px; }
+
+    .scp-dock-icon {
+        bottom: 120px;
+        right: 16px;
+    }
+    .scp-dialog-box {
+        width: min(90vw, 420px);
+        max-height: calc(90dvh - 40px);
+        max-height: calc(90vh - 40px);
+    }
+    .scp-modal { max-width: 100%; max-height: calc(90dvh); max-height: calc(90vh); }
+    .scp-rh-n  { height: 10px; }
+    .scp-rh-s  { height: 10px; }
+    .scp-rh-e  { width: 10px; }
+    .scp-rh-w  { width: 10px; }
+    .scp-rh-ne, .scp-rh-se, .scp-rh-sw, .scp-rh-nw { width: 20px; height: 20px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LOREBOOK MANAGER — unified with scp-window theme vars
+═══════════════════════════════════════════════════════════════ */
+
+.scp-lb-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; width: 100vw;
+    height: 100vh; height: 100dvh;
+    background: rgba(0,0,0,0.72);
+    backdrop-filter: blur(6px); z-index: 99998;
+    display: flex; align-items: center; justify-content: center;
+    animation: scp-modal-fade 0.18s ease;
+    box-sizing: border-box;
+    padding: 16px;
+    overscroll-behavior: contain;
+    -webkit-tap-highlight-color: transparent;
+    --scp-bg: rgba(18,18,22,0.97);
+    --scp-blur: blur(14px);
+    --scp-border: 1px solid rgba(255,255,255,0.09);
+    --scp-text: #e2e2e6;
+    --scp-text-muted: #72728a;
+    --scp-accent: #7c6dfa;
+    --scp-accent-dim: rgba(124,109,250,0.45);
+    --scp-accent-bg: rgba(124,109,250,0.12);
+    --scp-header-bg: rgba(255,255,255,0.04);
+    --scp-toolbar-bg: rgba(0,0,0,0.25);
+    --scp-input-bg: rgba(0,0,0,0.30);
+    --scp-font: var(--primaryFontFamily, system-ui, sans-serif);
+    --scp-font-mono: var(--monospaceFontFamily, monospace);
+    --scp-radius: 10px;
+    --scp-danger: #ff5c5c;
+    --scp-success: #4caf7d;
+    --scp-shadow: 0 24px 64px rgba(0,0,0,0.6);
+}
+
+.scp-lb-panel {
+    width: min(1100px, calc(100vw - 32px));
+    height: min(760px, calc(100vh - 32px));
+    height: min(760px, calc(100dvh - 32px));
+    background: var(--scp-bg);
+    backdrop-filter: var(--scp-blur);
+    -webkit-backdrop-filter: var(--scp-blur);
+    border: var(--scp-border);
+    border-radius: 14px;
+    box-shadow: var(--scp-shadow), 0 0 0 1px rgba(255,255,255,0.04) inset;
+    display: flex; flex-direction: column; overflow: hidden;
+    color: var(--scp-text);
+    font-family: var(--scp-font);
+    flex-shrink: 0;
+    animation: scp-modal-slide 0.22s cubic-bezier(0.34,1.4,0.64,1);
+}
+
+/* ── LB Header ───────────────────────────────────────────────── */
+.scp-lb-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 13px 18px;
+    background: var(--scp-header-bg);
+    border-bottom: var(--scp-border);
+    flex-shrink: 0;
+}
+.scp-lb-header-left { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.scp-lb-title-icon { color: var(--scp-accent); display: flex; }
+.scp-lb-title { font-weight: 700; font-size: 14px; letter-spacing: 0.02em; color: var(--scp-text); }
+
+.scp-lb-header-center { flex: 1; min-width: 0; }
+.scp-lb-search-wrap {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--scp-input-bg); border: var(--scp-border);
+    border-radius: 8px; padding: 0 12px; max-width: 480px; width: 100%;
+    transition: border-color 0.2s;
+}
+.scp-lb-search-wrap:focus-within { border-color: var(--scp-accent-dim); }
+.scp-lb-search-wrap svg { color: var(--scp-text-muted); flex-shrink: 0; }
+.scp-lb-search {
+    flex: 1; background: none; border: none; outline: none;
+    color: var(--scp-text); font-family: var(--scp-font);
+    font-size: 12px; padding: 8px 0;
+}
+.scp-lb-search::placeholder { color: var(--scp-text-muted); font-style: italic; }
+
+.scp-lb-header-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+.scp-lb-toggle-wrap { display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+.scp-lb-toggle-label { font-size: 11px; color: var(--scp-text-muted); white-space: nowrap; }
+.scp-lb-toggle {
+    width: 34px; height: 18px; border-radius: 9px;
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+    position: relative; cursor: pointer; transition: background 0.2s, border-color 0.2s;
+}
+.scp-lb-toggle.active { 
+    background: var(--scp-accent-bg, rgba(124,109,250,0.12)); 
+    border-color: var(--scp-accent-dim, rgba(124,109,250,0.45)); 
+}
+.scp-lb-toggle-knob {
+    position: absolute; top: 2px; left: 2px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--scp-text-muted, #9090a8);
+    transition: transform 0.22s cubic-bezier(0.34,1.4,0.64,1), background 0.2s;
+}
+.scp-lb-toggle.active .scp-lb-toggle-knob { 
+    transform: translateX(16px); 
+    background: var(--scp-accent, #7c6dfa); 
+}
+
+/* ── LB Body ─────────────────────────────────────────────────── */
+.scp-lb-body { flex: 1; display: flex; min-height: 0; overflow: hidden; }
+
+/* ── LB Sidebar ──────────────────────────────────────────────── */
+.scp-lb-sidebar {
+    width: 240px; flex-shrink: 0;
+    border-right: var(--scp-border);
+    display: flex; flex-direction: column; overflow: hidden;
+}
+.scp-lb-sidebar-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--scp-header-bg);
+    border-bottom: var(--scp-border);
+    flex-shrink: 0;
+}
+.scp-lb-sidebar-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--scp-text-muted); }
+.scp-lb-sidebar-legend {
+    display: flex; gap: 8px; padding: 6px 12px; flex-wrap: wrap;
+    border-top: var(--scp-border);
+    background: var(--scp-header-bg);
+    flex-shrink: 0;
+}
+.scp-lb-legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--scp-text-muted); }
+
+.scp-lb-book-list { flex: 1; overflow-y: auto; padding: 5px; }
+.scp-lb-loading { padding: 16px 12px; font-size: 12px; color: var(--scp-text-muted); text-align: center; }
+
+.scp-lb-book-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 10px; border-radius: 7px; cursor: pointer;
+    transition: background 0.15s, transform 0.1s; position: relative;
+    border: 1px solid transparent;
+}
+.scp-lb-book-item:hover { background: rgba(255,255,255,0.04); border-color: var(--scp-border); }
+.scp-lb-book-item.lb-book-open {
+    background: var(--scp-accent-bg); border-color: var(--scp-accent-dim);
+    transform: translateX(2px);
+}
+.scp-lb-book-item.selected { background: rgba(255,255,255,0.03); }
+
+.scp-lb-book-check {
+    width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(0,0,0,0.2);
+    cursor: pointer; transition: all 0.18s;
+    display: flex; align-items: center; justify-content: center;
+}
+.scp-lb-book-check:hover { border-color: var(--scp-accent-dim); background: var(--scp-accent-bg); }
+.scp-lb-book-check.checked { background: var(--scp-accent); border-color: var(--scp-accent); }
+.scp-lb-book-check.checked::after { content: '✓'; font-size: 10px; color: #fff; line-height: 1; }
+
+.scp-lb-book-info { flex: 1; min-width: 0; }
+.scp-lb-book-name {
+    display: block; font-size: 12px; font-weight: 500; color: var(--scp-text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.scp-lb-book-meta { font-size: 10px; color: var(--scp-text-muted); }
+.scp-lb-book-active-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--scp-success); flex-shrink: 0;
+    box-shadow: 0 0 6px rgba(76,175,125,0.6);
+    animation: scp-pulse 2s infinite;
+}
+@keyframes scp-pulse {
+    0%,100% { box-shadow: 0 0 4px rgba(76,175,125,0.5); }
+    50% { box-shadow: 0 0 10px rgba(76,175,125,0.9); }
+}
+.scp-lb-embedded-badge {
+    display: inline-block; font-size: 9px; padding: 1px 5px; border-radius: 3px;
+    background: var(--scp-accent-bg); color: var(--scp-accent);
+    border: 1px solid var(--scp-accent-dim); vertical-align: middle; margin-left: 4px;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+}
+
+/* ── Source Badges ───────────────────────────────────────────── */
+.scp-lb-src-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; min-width: 16px; height: 16px;
+    padding: 0 3px; border-radius: 3px; letter-spacing: 0.03em; flex-shrink: 0;
+}
+.scp-lb-src-global { background: rgba(76,175,125,0.18); color: #4caf7d; border: 1px solid rgba(76,175,125,0.35); }
+.scp-lb-src-character { background: var(--scp-accent-bg); color: var(--scp-accent); border: 1px solid var(--scp-accent-dim); }
+.scp-lb-src-chat { background: rgba(255,180,50,0.15); color: #ffb432; border: 1px solid rgba(255,180,50,0.3); }
+.scp-lb-src-embedded { background: rgba(255,255,255,0.06); color: var(--scp-text-muted); border: 1px solid rgba(255,255,255,0.1); }
+.scp-lb-src-persona { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
+
+/* ── LB Main Panel ───────────────────────────────────────────── */
+.scp-lb-main { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+
+.scp-lb-main-toolbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 9px 14px; flex-shrink: 0;
+    border-bottom: var(--scp-border);
+    background: var(--scp-header-bg);
+}
+.scp-lb-entries-label { font-size: 12px; font-weight: 600; color: var(--scp-text-muted); }
+.scp-lb-main-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.scp-lb-bulk-btn {
+    padding: 3px 10px; border-radius: 5px; font-size: 11px; cursor: pointer;
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(255,255,255,0.04); border: var(--scp-border); color: var(--scp-text-muted);
+    transition: all 0.15s; font-family: var(--scp-font);
+}
+.scp-lb-bulk-btn:hover { background: rgba(255,255,255,0.09); color: var(--scp-text); border-color: rgba(255,255,255,0.18); }
+.scp-lb-add-btn { color: var(--scp-accent); border-color: var(--scp-accent-dim); background: var(--scp-accent-bg); }
+.scp-lb-add-btn:hover { background: var(--scp-accent); color: #fff; border-color: var(--scp-accent); }
+
+/* ── Context Legend ──────────────────────────────────────────── */
+.scp-lb-ctx-legend {
+    display: flex; gap: 12px; padding: 6px 14px; flex-wrap: wrap;
+    background: rgba(0,0,0,0.12); border-bottom: var(--scp-border);
+    font-size: 10px; color: var(--scp-text-muted); flex-shrink: 0;
+    animation: scp-fade-in 0.2s ease;
+}
+.scp-lb-ctx-legend-item { display: flex; align-items: center; gap: 5px; }
+.scp-lb-ind-demo {
+    width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.18);
+    flex-shrink: 0;
+}
+.scp-lb-ind-demo.scp-lb-ind-in-ctx { background: var(--scp-accent); box-shadow: 0 0 6px var(--scp-accent-dim); }
+.scp-lb-ind-demo.forced-on { background: var(--scp-success); }
+.scp-lb-ind-demo.forced-off { background: var(--scp-danger); }
+.scp-lb-ind-demo.scp-lb-ind-demo-disabled { background: rgba(255,255,255,0.1); }
+
+/* ── Entry List ──────────────────────────────────────────────── */
+.scp-lb-entries-container { flex: 1; display: flex; overflow: hidden; position: relative; }
+
+.scp-lb-entries {
+    flex: 1; overflow-y: auto; padding: 8px;
+    display: flex; flex-direction: column; gap: 2px;
+}
+.scp-lb-entries::-webkit-scrollbar { width: 5px; }
+.scp-lb-entries::-webkit-scrollbar-track { background: transparent; }
+.scp-lb-entries::-webkit-scrollbar-thumb { background: var(--scp-text-muted); border-radius: 3px; }
+
+.scp-lb-empty-state {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 12px;
+    color: var(--scp-text-muted); font-size: 13px; text-align: center; padding: 32px;
+}
+.scp-lb-empty-state svg { opacity: 0.15; }
+
+.scp-lb-entry-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 6px; cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, transform 0.1s;
+    border: 1px solid transparent;
+}
+.scp-lb-entry-row:hover { background: rgba(255,255,255,0.04); border-color: var(--scp-border); transform: translateX(1px); }
+.scp-lb-entry-row.lb-disabled { opacity: 0.45; }
+.scp-lb-entry-row.lb-in-ctx { 
+    background: var(--scp-accent-bg); 
+    border-color: var(--scp-accent-dim); 
+}
+
+.scp-lb-entry-indicator {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+    background: rgba(255,255,255,0.18); transition: all 0.2s;
+}
+.scp-lb-entry-indicator.forced-on { background: var(--scp-success); box-shadow: 0 0 6px rgba(76,175,125,0.5); }
+.scp-lb-entry-indicator.forced-off { background: var(--scp-danger); }
+.scp-lb-entry-indicator.scp-lb-ind-in-ctx { background: var(--scp-accent); box-shadow: 0 0 6px var(--scp-accent-dim); }
+
+.scp-lb-entry-info { flex: 1; min-width: 0; }
+.scp-lb-entry-name {
+    display: block; font-size: 12px; font-weight: 500; color: var(--scp-text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.scp-lb-entry-keys {
+    display: block; font-size: 10px; color: var(--scp-text-muted);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px;
+}
+.scp-lb-entry-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.scp-lb-in-ctx-badge {
+    display: inline-block; font-size: 9px; padding: 1px 5px; border-radius: 3px;
+    background: var(--scp-accent-bg); color: var(--scp-accent); border: 1px solid var(--scp-accent-dim);
+    vertical-align: middle; margin-left: 4px; font-weight: 600;
+}
+.scp-lb-entry-toggle-btn, .scp-lb-entry-view-btn {
+    width: 24px; height: 24px; border-radius: 5px; border: 1px solid transparent;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; background: none; color: var(--scp-text-muted); transition: all 0.15s;
+}
+.scp-lb-entry-toggle-btn:hover { background: rgba(255,255,255,0.08); color: var(--scp-text); }
+.scp-lb-entry-toggle-btn.forced-on { color: var(--scp-success); background: rgba(76,175,125,0.1); border-color: rgba(76,175,125,0.3); }
+.scp-lb-entry-toggle-btn.forced-off { color: var(--scp-danger); background: rgba(255,92,92,0.08); border-color: rgba(255,92,92,0.3); }
+.scp-lb-entry-view-btn:hover { color: var(--scp-accent); background: var(--scp-accent-bg); border-color: var(--scp-accent-dim); }
+
+/* ── Entry Detail ─────────────────────────────────────────────── */
+.scp-lb-entry-detail {
+    position: absolute; inset: 0;
+    background: var(--scp-bg);
+    backdrop-filter: var(--scp-blur);
+    display: flex; flex-direction: column; overflow: hidden;
+    animation: scp-panel-in 0.18s cubic-bezier(0.34,1.2,0.64,1);
+}
+.scp-lb-detail-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; flex-shrink: 0;
+    border-bottom: var(--scp-border);
+    background: var(--scp-header-bg);
+}
+.scp-lb-back-btn {
+    background: none; border: var(--scp-border); border-radius: 5px;
+    color: var(--scp-text-muted); cursor: pointer; font-size: 11px; padding: 3px 9px;
+    font-family: var(--scp-font); transition: all 0.15s; flex-shrink: 0;
+}
+.scp-lb-back-btn:hover { color: var(--scp-text); background: rgba(255,255,255,0.06); }
+.scp-lb-detail-title { flex: 1; font-size: 13px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--scp-text); }
+.scp-lb-detail-actions { display: flex; gap: 5px; flex-shrink: 0; }
+.scp-lb-detail-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer;
+    background: rgba(255,255,255,0.04); border: var(--scp-border);
+    color: var(--scp-text-muted); transition: all 0.15s; font-family: var(--scp-font);
+}
+.scp-lb-detail-btn:hover { background: rgba(255,255,255,0.09); color: var(--scp-text); }
+.scp-lb-detail-save-btn { color: var(--scp-accent); border-color: var(--scp-accent-dim); background: var(--scp-accent-bg); }
+.scp-lb-detail-save-btn:hover { background: var(--scp-accent); color: #fff; border-color: var(--scp-accent); }
+.scp-lb-detail-danger:hover { color: var(--scp-danger); background: rgba(255,92,92,0.1); border-color: rgba(255,92,92,0.35); }
+
+.scp-lb-detail-body { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+
+.scp-lb-detail-row { display: flex; flex-direction: column; gap: 5px; }
+.scp-lb-detail-row-grow { display: flex; flex-direction: column; }
+.scp-lb-detail-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--scp-text-muted); }
+.scp-lb-label-hint { font-size: 9px; text-transform: none; letter-spacing: 0; color: var(--scp-text-muted); opacity: 0.7; }
+.scp-lb-detail-input {
+    width: 100%; box-sizing: border-box;
+    background: var(--scp-input-bg); border: var(--scp-border);
+    border-radius: 6px; color: var(--scp-text); font-family: var(--scp-font);
+    font-size: 12px; padding: 8px 10px; outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.scp-lb-detail-input:focus { border-color: var(--scp-accent-dim); box-shadow: 0 0 0 2px rgba(124,109,250,0.1); }
+.scp-lb-detail-textarea {
+    height: 200px; min-height: 100px; width: 100%; box-sizing: border-box; resize: vertical;
+    background: rgba(0,0,0,0.2); border: var(--scp-border);
+    border-radius: 6px; color: var(--scp-text); font-family: var(--scp-font-mono);
+    font-size: 12px; line-height: 1.6; padding: 10px 12px; outline: none; transition: border-color 0.15s;
+}
+.scp-lb-detail-textarea:focus { border-color: var(--scp-accent-dim); }
+
+.scp-lb-detail-meta-row { display: flex; gap: 20px; flex-wrap: wrap; }
+.scp-lb-detail-meta-item { display: flex; flex-direction: column; gap: 6px; }
+
+.scp-lb-detail-status {
+    display: inline-flex; align-items: center; padding: 4px 12px;
+    border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer;
+    transition: all 0.18s; border: 1px solid;
+    align-self: flex-start; width: fit-content;
+}
+.scp-lb-detail-status.status-enabled { background: rgba(76,175,125,0.12); border-color: rgba(76,175,125,0.35); color: var(--scp-success); }
+.scp-lb-detail-status.status-enabled:hover { background: rgba(76,175,125,0.22); }
+.scp-lb-detail-status.status-disabled { background: rgba(255,92,92,0.1); border-color: rgba(255,92,92,0.3); color: var(--scp-danger); }
+.scp-lb-detail-status.status-disabled:hover { background: rgba(255,92,92,0.2); }
+
+.scp-lb-detail-injection { display: flex; gap: 5px; }
+.scp-lb-inj-hint { font-size: 10px; color: var(--scp-text-muted); line-height: 1.5; font-style: italic; }
+.scp-lb-inj-btn {
+    padding: 3px 10px; border-radius: 5px; font-size: 11px; cursor: pointer;
+    background: rgba(255,255,255,0.04); border: var(--scp-border);
+    color: var(--scp-text-muted); transition: all 0.15s; font-family: var(--scp-font);
+}
+.scp-lb-inj-btn:hover { background: rgba(255,255,255,0.09); color: var(--scp-text); }
+.scp-lb-inj-btn.active { background: var(--scp-accent-bg); border-color: var(--scp-accent-dim); color: var(--scp-accent); }
+[data-val="true"].scp-lb-inj-btn.active { background: rgba(76,175,125,0.15); border-color: rgba(76,175,125,0.45); color: var(--scp-success); }
+[data-val="false"].scp-lb-inj-btn.active { background: rgba(255,92,92,0.12); border-color: rgba(255,92,92,0.4); color: var(--scp-danger); }
+
+/* ── LB Footer ───────────────────────────────────────────────── */
+.scp-lb-footer {
+    padding: 8px 18px; flex-shrink: 0;
+    border-top: var(--scp-border);
+    background: rgba(0,0,0,0.12);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.scp-lb-footer-info { font-size: 11px; color: var(--scp-text-muted); }
+.scp-lb-footer-ctx { font-size: 11px; color: var(--scp-accent); opacity: 0.8; }
+
+/* ── Proposal Card ───────────────────────────────────────────── */
+.scp-lb-proposal-card {
+    background: var(--scp-accent-bg);
+    border: 1px solid var(--scp-accent-dim);
+    border-radius: 10px; padding: 14px; margin: 4px 10px 10px;
+    animation: scp-fade-in 0.2s ease;
+}
+@keyframes scp-fade-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.scp-lb-proposal-header {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+}
+.scp-lb-proposal-icon { color: var(--scp-accent); display: flex; }
+.scp-lb-proposal-title { font-weight: 600; font-size: 12px; flex: 1; color: var(--scp-text); }
+.scp-lb-proposal-count {
+    font-size: 10px; padding: 2px 8px; border-radius: 20px;
+    background: var(--scp-accent-bg); color: var(--scp-accent); border: 1px solid var(--scp-accent-dim);
+}
+.scp-lb-proposal-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.scp-lb-proposal-item {
+    padding: 9px 10px; border-radius: 7px; background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-left: 3px solid rgba(255,255,255,0.1); position: relative;
+    transition: border-color 0.15s;
+}
+.scp-lb-proposal-add { border-left-color: var(--scp-success); }
+.scp-lb-proposal-edit { border-left-color: var(--scp-accent); }
+.scp-lb-proposal-delete { border-left-color: var(--scp-danger); }
+.scp-lb-proposal-action {
+    display: inline-flex; align-items: center; padding: 1px 7px;
+    border-radius: 10px; font-size: 9px; font-weight: 700;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--scp-text-muted); flex-shrink: 0;
+}
+.scp-lb-proposal-add .scp-lb-proposal-action { background: rgba(76,175,125,0.12); border-color: rgba(76,175,125,0.3); color: var(--scp-success); }
+.scp-lb-proposal-edit .scp-lb-proposal-action { background: var(--scp-accent-bg); border-color: var(--scp-accent-dim); color: var(--scp-accent); }
+.scp-lb-proposal-delete .scp-lb-proposal-action { background: rgba(255,92,92,0.1); border-color: rgba(255,92,92,0.3); color: var(--scp-danger); }
+.scp-lb-proposal-item-info { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.scp-lb-proposal-name { font-size: 12px; font-weight: 600; color: var(--scp-text); }
+.scp-lb-proposal-world { font-size: 10px; color: var(--scp-text-muted); }
+.scp-lb-proposal-preview { font-size: 11px; color: var(--scp-text-muted); margin-top: 5px; font-style: italic; line-height: 1.5; }
+.scp-lb-proposal-triggers { font-size: 10px; color: var(--scp-accent); opacity: 0.7; margin-top: 3px; }
+.scp-lb-proposal-diff-btn {
+    font-size: 10px; border-radius: 4px; cursor: pointer;
+    background: rgba(255,255,255,0.06); border: var(--scp-border); color: var(--scp-text-muted);
+    font-family: var(--scp-font); transition: all 0.15s;
+}
+.scp-lb-proposal-diff-btn:hover { color: var(--scp-accent); background: var(--scp-accent-bg); border-color: var(--scp-accent-dim); }
+.scp-lb-proposal-footer { display: flex; gap: 8px; }
+.scp-lb-proposal-apply, .scp-lb-proposal-reject {
+    padding: 5px 14px; border-radius: 6px; font-size: 11px; font-weight: 600;
+    cursor: pointer; border: 1px solid; transition: all 0.18s;
+    font-family: var(--scp-font);
+}
+.scp-lb-proposal-apply {
+    background: rgba(76,175,125,0.15); border-color: rgba(76,175,125,0.4); color: var(--scp-success);
+}
+.scp-lb-proposal-apply:hover { background: rgba(76,175,125,0.3); color: #fff; }
+.scp-lb-proposal-apply:disabled { opacity: 0.5; cursor: not-allowed; }
+.scp-lb-proposal-reject {
+    background: rgba(255,92,92,0.08); border-color: rgba(255,92,92,0.3); color: rgba(255,92,92,0.7);
+}
+.scp-lb-proposal-reject:hover { background: rgba(255,92,92,0.18); color: var(--scp-danger); }
+.scp-lb-proposal-done { padding: 8px; text-align: center; font-size: 12px; color: var(--scp-text-muted); }
+.scp-lb-proposal-rejected { color: rgba(255,92,92,0.5) !important; }
+
+/* ── Inline lorebook world dropdown (proposal card) ──────────── */
+.scp-lb-proposal-world-dd {
+    display: flex;
+    align-items: center;
+    margin-top: 5px;
+}
+
+.scp-lb-proposal-world-trigger {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 1px 7px 1px 6px; border-radius: 20px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--scp-text-muted);
+    font-size: 11px; font-family: var(--scp-font);
+    cursor: pointer; transition: all 0.15s;
+    white-space: nowrap; max-width: 220px;
+    line-height: 1.5;
+}
+.scp-lb-proposal-world-trigger:hover,
+.scp-lb-proposal-world-trigger.open {
+    border-color: var(--scp-accent-dim);
+    background: var(--scp-accent-bg);
+    color: var(--scp-text);
+}
+.scp-lb-proposal-world-trigger.warn {
+    border-color: rgba(255,92,92,0.4);
+    background: rgba(255,92,92,0.08);
+    color: var(--scp-danger);
+}
+.scp-lb-proposal-world-trigger.loading {
+    opacity: 0.6; cursor: wait;
+}
+.scp-lb-proposal-world-trigger-text {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;
+}
+.scp-lb-proposal-world-chevron {
+    display: flex; flex-shrink: 0; color: var(--scp-text-muted);
+    transition: transform 0.18s;
+}
+.scp-lb-proposal-world-trigger.open .scp-lb-proposal-world-chevron { transform: rotate(180deg); }
+
+.scp-lb-proposal-world-panel {
+    display: none;
+    position: fixed;
+    min-width: 180px; width: max-content; max-width: 280px;
+    background: var(--scp-bg); border: var(--scp-border);
+    border-radius: 10px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 99960; overflow: hidden;
+    padding: 5px;
+}
+.scp-lb-proposal-world-panel.open {
+    display: block;
+    animation: scp-panel-in 0.15s ease;
+}
+.scp-lb-proposal-world-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; border-radius: 6px; cursor: pointer;
+    transition: background 0.12s; font-size: 12px; color: var(--scp-text);
+}
+.scp-lb-proposal-world-item:hover { background: rgba(255,255,255,0.05); }
+.scp-lb-proposal-world-item.active {
+    background: var(--scp-accent-bg); color: var(--scp-accent);
+}
+.scp-lb-proposal-world-item-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--scp-text-muted); flex-shrink: 0;
+    transition: background 0.15s;
+}
+.scp-lb-proposal-world-item.active .scp-lb-proposal-world-item-dot {
+    background: var(--scp-accent);
+    box-shadow: 0 0 6px var(--scp-accent-dim);
+}
+.scp-lb-proposal-world-sep {
+    height: 1px; background: rgba(255,255,255,0.07); margin: 4px 2px;
+}
+.scp-lb-proposal-world-new {
+    display: flex; align-items: center; gap: 7px;
+    color: var(--scp-accent); font-size: 11px;
+}
+.scp-lb-proposal-world-new:hover { background: var(--scp-accent-bg); }
+.scp-lb-proposal-world-new svg { flex-shrink: 0; }
+.scp-lb-proposal-world-empty {
+    padding: 10px; font-size: 11px; color: var(--scp-text-muted);
+    text-align: center; font-style: italic;
+}
+
+/* ── Proposal card additions ─────────────────────────────────── */
+
+.scp-lb-proposal-item-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.scp-lb-proposal-item-btns {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+    flex-shrink: 0;
+    align-items: center;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    padding-left: 8px;
+}
+
+.scp-lb-proposal-dismiss {
+    background: none;
+    border: none;
+    color: var(--scp-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    padding: 0;
+    margin-left: auto;
+    transition: color 0.15s, background 0.15s;
+    flex-shrink: 0;
+}
+
+.scp-lb-proposal-dismiss:hover {
+    color: var(--scp-danger);
+    background: rgba(255, 92, 92, 0.1);
+}
+
+.scp-lb-proposal-edit-toggle,
+.scp-lb-proposal-diff-btn,
+.scp-lb-proposal-item-apply,
+.scp-lb-proposal-item-reject {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    transition: all 0.15s ease;
+    box-sizing: border-box;
+    padding: 0;
+    border: 1px solid transparent;
+    font-family: var(--scp-font);
+}
+
+.scp-lb-proposal-edit-toggle,
+.scp-lb-proposal-diff-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--scp-text-muted);
+}
+
+.scp-lb-proposal-edit-toggle:hover,
+.scp-lb-proposal-edit-toggle.active,
+.scp-lb-proposal-diff-btn:hover {
+    color: var(--scp-accent);
+    background: var(--scp-accent-bg);
+    border-color: var(--scp-accent-dim);
+}
+
+.scp-lb-proposal-item-apply {
+    background: rgba(76, 175, 125, 0.1);
+    border-color: rgba(76, 175, 125, 0.3);
+    color: var(--scp-success);
+}
+
+.scp-lb-proposal-item-apply:hover:not(:disabled) {
+    background: rgba(76, 175, 125, 0.25);
+    border-color: var(--scp-success);
+    color: #fff;
+}
+
+.scp-lb-proposal-item-reject {
+    background: rgba(255, 92, 92, 0.08);
+    border-color: rgba(255, 92, 92, 0.3);
+    color: var(--scp-danger);
+}
+
+.scp-lb-proposal-item-reject:hover:not(:disabled) {
+    background: rgba(255, 92, 92, 0.2);
+    border-color: var(--scp-danger);
+    color: #fff;
+}
+
+.scp-lb-proposal-item-apply:disabled,
+.scp-lb-proposal-item-reject:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.scp-lb-proposal-edit-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.2);
+    border: var(--scp-border);
+    animation: scp-fade-in 0.15s ease;
+}
+
+.scp-lb-pe-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.scp-lb-pe-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--scp-text-muted);
+}
+
+.scp-lb-pe-input {
+    background: var(--scp-input-bg);
+    border: var(--scp-border);
+    border-radius: 5px;
+    color: var(--scp-text);
+    font-family: var(--scp-font);
+    font-size: 12px;
+    padding: 6px 8px;
+    outline: none;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.scp-lb-pe-input:focus {
+    border-color: var(--scp-accent-dim);
+}
+
+.scp-lb-pe-textarea {
+    background: rgba(0, 0, 0, 0.2);
+    border: var(--scp-border);
+    border-radius: 5px;
+    color: var(--scp-text);
+    font-family: var(--scp-font-mono);
+    font-size: 12px;
+    line-height: 1.55;
+    padding: 6px 8px;
+    outline: none;
+    resize: vertical;
+    min-height: 80px;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.scp-lb-pe-textarea:focus {
+    border-color: var(--scp-accent-dim);
+}
+
+.scp-lb-item-applied {
+    opacity: 0.6;
+    border-left-color: var(--scp-success) !important;
+    background: rgba(76, 175, 125, 0.05);
+}
+
+.scp-lb-item-applied::after {
+    content: '✓ Applied';
+    display: block;
+    font-size: 10px;
+    color: var(--scp-success);
+    margin-top: 4px;
+    font-weight: 600;
+}
+
+.scp-lb-item-rejected {
+    opacity: 0.4;
+    border-left-color: rgba(255, 255, 255, 0.1) !important;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.scp-lb-item-rejected::after {
+    content: '✕ Rejected';
+    display: block;
+    font-size: 10px;
+    color: var(--scp-text-muted);
+    margin-top: 4px;
+}
+
+/* ── LB History Message ──────────────────────────────────────── */
+.scp-msg-lb-history {
+    background: var(--scp-accent-bg);
+    border: 1px solid var(--scp-accent-dim);
+    border-radius: 8px;
+    animation: scp-fade-in 0.3s ease;
+}
+.scp-msg-avatar-lb {
+    background: var(--scp-accent-bg) !important;
+    border-color: var(--scp-accent-dim) !important;
+    color: var(--scp-accent) !important;
+}
+.scp-lb-history-content { font-size: 12px !important; opacity: 0.85; }
+.scp-lb-history-close {
+    position: absolute;
+    top: 4px; right: 4px;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.scp-msg-lb-history:hover .scp-lb-history-close { opacity: 1; }
+
+/* ── Depth slider override indicator ─────────────────────────── */
+.scp-slider.scp-slider-overridden {
+    opacity: 0.4 !important;
+    pointer-events: none !important;
+}
+.scp-depth-val.scp-depth-val-overridden {
+    opacity: 0.4;
+    cursor: default !important;
+    pointer-events: none;
+}
+
+/* ── Diff Modal ──────────────────────────────────────────────── */
+.scp-diff-modal-box { width: 740px; max-width: 96vw; }
+.scp-diff-modal-title { display: flex; align-items: center; gap: 7px; color: var(--scp-accent); font-size: 13px; font-weight: 600; }
+.scp-diff-body { padding: 0 !important; overflow: auto; max-height: 60vh; }
+.scp-diff-unified { font-family: var(--scp-font-mono, monospace); font-size: 12px; line-height: 1.7; }
+.scp-diff-row { padding: 1px 12px; display: flex; gap: 8px; transition: background 0.1s; }
+.scp-diff-row:hover { filter: brightness(1.15); }
+.scp-diff-text { flex: 1; white-space: pre-wrap; word-break: break-word; min-width: 0; }
+
+.scp-diff-word-add { 
+    background: rgba(76, 175, 125, 0.45); 
+    border-radius: 2px; 
+    padding: 1px 2px;
+    margin: 0 -1px;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+}
+
+.scp-diff-word-rem { 
+    background: rgba(255, 92, 92, 0.5); 
+    border-radius: 2px; 
+    padding: 1px 2px;
+    margin: 0 -1px;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+}
+.scp-diff-pfx { 
+    flex-shrink: 0; 
+    width: 14px; 
+    text-align: center;
+    color: var(--scp-text-muted); 
+    margin-right: 8px;
+    user-select: none;
+}
+.scp-diff-add { background: rgba(76,175,125,0.12); color: #8be0b1; border-left: 2px solid var(--scp-success); }
+.scp-diff-rem { background: rgba(255,92,92,0.10); color: #f08080; border-left: 2px solid var(--scp-danger); }
+.scp-diff-ctx { color: var(--scp-text-muted); border-left: 2px solid transparent; }
+.scp-diff-split-table { width: 100%; border-collapse: collapse; font-family: var(--scp-font-mono, monospace); font-size: 12px; table-layout: fixed; }
+.scp-diff-split-table th {
+    background: var(--scp-header-bg); color: var(--scp-text-muted); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px;
+    border-bottom: var(--scp-border); text-align: left; font-weight: 600;
+}
+.scp-diff-split-table td { padding: 2px 12px; line-height: 1.65; vertical-align: top; border-bottom: 1px solid rgba(255,255,255,0.03); white-space: pre-wrap; word-break: break-word; }
+.scp-diff-split-table td.scp-diff-add { background: rgba(76,175,125,0.1); color: #8be0b1; }
+.scp-diff-split-table td.scp-diff-rem { background: rgba(255,92,92,0.08); color: #f08080; }
+.scp-diff-split-table tr.scp-diff-ctx td { color: var(--scp-text-muted); }
+.scp-diff-split-table tr:hover td { filter: brightness(1.12); }
+.scp-diff-word-add { 
+    background: rgba(76, 175, 125, 0.35); 
+    border-radius: 2px; 
+}
+.scp-diff-word-rem { 
+    background: rgba(255, 92, 92, 0.45); 
+    border-radius: 2px; 
+}
+
+/* ── Mobile LB ───────────────────────────────────────────────── */
+@media screen and (max-width: 900px) {
+    .scp-lb-panel {
+        width: calc(100vw - 20px);
+        height: calc(100dvh - 32px);
+        height: calc(100vh - 32px);
+        min-height: 0;
+        border-radius: 10px;
+    }
+    .scp-lb-body { height: 0; }
+    .scp-lb-sidebar { width: 200px; }
+    .scp-lb-header { flex-wrap: wrap; }
+    .scp-lb-header-center { order: 3; width: 100%; }
+}
+
+/* ── Phone: full vertical stack layout ───────────────────────── */
+@media screen and (max-width: 600px) {
+    .scp-lb-overlay {
+        padding: 0 8px;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .scp-lb-panel {
+        width: calc(100vw - 16px);
+        height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 90px);
+        height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 90px);
+        border-radius: 12px;
+    }
+
+    .scp-lb-header {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+        gap: 8px 6px;
+        padding: 9px 12px 8px;
+        align-items: center;
+    }
+    .scp-lb-header-left {
+        grid-column: 1; grid-row: 1;
+        min-width: 0; overflow: hidden;
+    }
+    .scp-lb-title { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .scp-lb-header-right {
+        grid-column: 2; grid-row: 1;
+        margin-left: 0;
+        gap: 5px;
+        flex-shrink: 0;
+    }
+    .scp-lb-header-center {
+        grid-column: 1 / -1; grid-row: 2;
+        width: 100%; order: unset;
+    }
+    .scp-lb-toggle-wrap { flex-direction: column; gap: 3px; align-items: center; }
+    .scp-lb-toggle-label { display: block; font-size: 9px; line-height: 1; }
+    .scp-lb-toggle { width: 30px; height: 16px; }
+    .scp-lb-toggle-knob { width: 10px; height: 10px; }
+    .scp-lb-toggle.active .scp-lb-toggle-knob { transform: translateX(14px); }
+    .scp-lb-search-wrap { max-width: 100%; }
+    .scp-lb-search { font-size: 13px; padding: 9px 0; }
+
+    .scp-lb-body {
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        height: auto;
+    }
+
+    .scp-lb-sidebar {
+        width: 100%;
+        height: auto;
+        flex-shrink: 0;
+        border-right: none;
+        border-bottom: var(--scp-border);
+        flex-direction: column;
+        overflow: visible;
+    }
+    .scp-lb-sidebar-header { display: none; }
+    .scp-lb-sidebar-legend { display: none; }
+    .scp-lb-book-list {
+        display: flex;
+        flex-direction: row;
+        flex: unset;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 8px 8px 8px;
+        gap: 6px;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+    }
+    .scp-lb-book-item {
+        flex-direction: column;
+        align-items: flex-start;
+        min-width: 120px;
+        max-width: 150px;
+        flex-shrink: 0;
+        padding: 7px 9px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.025);
+        border-radius: 8px;
+        gap: 4px;
+    }
+    .scp-lb-book-item.lb-book-open {
+        transform: none;
+        background: var(--scp-accent-bg);
+        border-color: var(--scp-accent-dim);
+    }
+    .scp-lb-book-check { flex-shrink: 0; }
+    .scp-lb-book-info { width: 100%; }
+    .scp-lb-book-name { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
+    .scp-lb-book-meta { font-size: 9px; }
+    .scp-lb-book-active-dot {
+        width: 5px; height: 5px;
+        position: absolute; top: 5px; right: 5px;
+    }
+    .scp-lb-src-badge { font-size: 8px; min-width: 13px; height: 13px; }
+    .scp-lb-embedded-badge { display: none; }
+
+    .scp-lb-main { flex: 1; min-height: 0; }
+    .scp-lb-main-toolbar {
+        padding: 7px 10px;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    .scp-lb-entries-label { font-size: 11px; width: 100%; }
+    .scp-lb-main-actions { gap: 4px; }
+    .scp-lb-bulk-btn { font-size: 10px; padding: 4px 8px; }
+    .scp-lb-add-btn { font-size: 11px; padding: 4px 10px; }
+
+    .scp-lb-ctx-legend { display: none; }
+
+    .scp-lb-entry-row { padding: 11px 10px; }
+    .scp-lb-entry-name { font-size: 13px; }
+    .scp-lb-entry-keys { font-size: 11px; }
+    .scp-lb-entry-indicator { width: 9px; height: 9px; }
+    .scp-lb-entry-toggle-btn,
+    .scp-lb-entry-view-btn {
+        width: 32px; height: 32px; font-size: 13px;
+    }
+    .scp-lb-in-ctx-badge { font-size: 9px; }
+
+    .scp-lb-detail-header { padding: 10px 12px; }
+    .scp-lb-detail-input { font-size: 13px; padding: 9px 11px; }
+    .scp-lb-detail-textarea { font-size: 13px; height: 220px; min-height: 100px; }
+    .scp-lb-detail-label { font-size: 11px; }
+    .scp-lb-detail-btn { font-size: 11px; padding: 5px 11px; }
+    .scp-lb-inj-btn { font-size: 11px; padding: 5px 11px; }
+    .scp-lb-detail-body { padding: 10px 12px; gap: 10px; }
+
+    /* Footer: minimal */
+    .scp-lb-footer { padding: 6px 12px; }
+    .scp-lb-footer-info { font-size: 10px; }
+    .scp-lb-footer-ctx { font-size: 10px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SETTINGS PANEL OVERLAY
+═══════════════════════════════════════════════════════════════ */
+
+.scp-settings-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh; height: 100dvh;
+    background: rgba(0,0,0,0.72);
+    backdrop-filter: blur(6px);
+    z-index: 99997;
+    display: flex; align-items: center; justify-content: center;
+    animation: scp-modal-fade 0.18s ease;
+    box-sizing: border-box;
+    padding: 16px;
+    overscroll-behavior: contain;
+    --scp-bg: rgba(18,18,22,0.97);
+    --scp-blur: blur(14px);
+    --scp-border: 1px solid rgba(255,255,255,0.09);
+    --scp-text: #e2e2e6;
+    --scp-text-muted: #72728a;
+    --scp-accent: #7c6dfa;
+    --scp-accent-dim: rgba(124,109,250,0.45);
+    --scp-accent-bg: rgba(124,109,250,0.12);
+    --scp-header-bg: rgba(255,255,255,0.04);
+    --scp-toolbar-bg: rgba(0,0,0,0.25);
+    --scp-input-bg: rgba(0,0,0,0.30);
+    --scp-font: var(--primaryFontFamily, system-ui, sans-serif);
+    --scp-font-mono: var(--monospaceFontFamily, monospace);
+    --scp-radius: 10px;
+    --scp-danger: #ff5c5c;
+    --scp-success: #4caf7d;
+    --scp-shadow: 0 24px 64px rgba(0,0,0,0.6);
+}
+
+.scp-settings-panel {
+    width: min(760px, calc(100vw - 32px));
+    height: min(88vh, 880px);
+    height: min(88dvh, 880px);
+    background: var(--scp-bg);
+    backdrop-filter: var(--scp-blur);
+    -webkit-backdrop-filter: var(--scp-blur);
+    border: var(--scp-border);
+    border-radius: 14px;
+    box-shadow: var(--scp-shadow), 0 0 0 1px rgba(255,255,255,0.04) inset;
+    display: flex; flex-direction: column; overflow: hidden;
+    color: var(--scp-text);
+    font-family: var(--scp-font);
+    font-size: 13px;
+    animation: scp-modal-slide 0.22s cubic-bezier(0.34,1.4,0.64,1);
+}
+
+/* ── SP Header ───────────────────────────────────────────────── */
+
+.scp-sp-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px 10px 16px;
+    background: var(--scp-header-bg);
+    border-bottom: var(--scp-border);
+    flex-shrink: 0;
+    gap: 10px;
+}
+
+.scp-sp-header-left {
+    display: flex; align-items: center; gap: 8px;
+    flex: 0 0 auto;
+}
+.scp-sp-title {
+    font-weight: 700; font-size: 14px; letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.scp-sp-tabs {
+    display: flex; align-items: center; gap: 2px;
+    background: rgba(0,0,0,0.35);
+    border-radius: 8px;
+    padding: 3px;
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3) inset;
+    white-space: nowrap;
+    flex: 0 1 auto;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.scp-sp-tabs::-webkit-scrollbar { display: none; }
+
+.scp-sp-header-right {
+    display: flex; align-items: center; justify-content: flex-end;
+    flex: 0 0 auto;
+}
+
+.scp-sp-tab {
+    padding: 5px 24px; border-radius: 6px;
+    background: transparent; border: none;
+    color: var(--scp-text-muted); font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: var(--scp-font);
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    white-space: nowrap;
+}
+
+.scp-sp-tab:hover { color: var(--scp-text); }
+.scp-sp-tab.active {
+    background: rgba(255,255,255,0.12);
+    color: var(--scp-text);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3), 0 1px 1px rgba(255,255,255,0.1) inset;
+}
+
+.scp-sp-override-dot {
+    position: absolute; top: 4px; right: 6px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #ffb432;
+    border: 1px solid rgba(0,0,0,0.4);
+    box-shadow: 0 0 4px rgba(255,180,50,0.6);
+}
+
+/* Gear button override indicator */
+.scp-hbtn-gear { position: relative; }
+.scp-gear-ov-dot {
+    position: absolute; top: 2px; right: 2px;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #ffb432;
+    border: 1px solid rgba(0,0,0,0.5);
+}
+
+/* ── SP Body ─────────────────────────────────────────────────── */
+
+.scp-sp-body {
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+    padding: 14px 16px;
+    display: flex; flex-direction: column;
+    gap: 0;
+}
+
+.scp-sp-body::-webkit-scrollbar { width: 5px; }
+.scp-sp-body::-webkit-scrollbar-track { background: transparent; }
+.scp-sp-body::-webkit-scrollbar-thumb { background: var(--scp-text-muted); border-radius: 3px; }
+
+.scp-sp-tab-pane { display: flex; flex-direction: column; gap: 10px; }
+
+/* ── SP Groups ───────────────────────────────────────────────── */
+
+.scp-sp-group {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 8px;
+}
+
+.scp-sp-group-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--scp-text-muted);
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 2px;
+}
+
+/* ── SP Form elements ────────────────────────────────────────── */
+
+.scp-sp-check {
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer; font-size: 12px; color: var(--scp-text);
+    user-select: none;
+}
+
+.scp-sp-check input[type=checkbox] {
+    width: 15px; height: 15px; accent-color: var(--scp-accent);
+    cursor: pointer; flex-shrink: 0;
+}
+
+.scp-sp-row { display: flex; align-items: center; gap: 8px; }
+
+.scp-sp-field {
+    display: flex; flex-direction: column; gap: 4px;
+}
+
+.scp-sp-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--scp-text-muted);
+}
+
+.scp-sp-hint {
+    font-size: 9px; text-transform: none; letter-spacing: 0;
+    opacity: 0.65; color: var(--scp-text-muted);
+}
+
+.scp-sp-input {
+    background: var(--scp-input-bg); border: var(--scp-border);
+    border-radius: 6px; color: var(--scp-text); font-family: var(--scp-font);
+    font-size: 12px; padding: 7px 10px; outline: none;
+    transition: border-color 0.15s; box-sizing: border-box; width: 100%;
+}
+
+.scp-sp-input:focus { border-color: var(--scp-accent-dim); box-shadow: 0 0 0 2px rgba(124,109,250,0.1); }
+
+.scp-sp-select {
+    background: var(--scp-input-bg); border: var(--scp-border);
+    border-radius: 6px; color: var(--scp-text); font-family: var(--scp-font);
+    font-size: 12px; padding: 7px 10px; outline: none; cursor: pointer;
+    transition: border-color 0.15s; box-sizing: border-box; width: 100%;
+}
+
+.scp-sp-select:focus { border-color: var(--scp-accent-dim); }
+.scp-sp-select option { background: #1a1a20; }
+
+.scp-sp-textarea {
+    background: var(--scp-input-bg); border: var(--scp-border);
+    border-radius: 6px; color: var(--scp-text); font-family: var(--scp-font);
+    font-size: 12px; line-height: 1.5; padding: 8px 10px; outline: none;
+    resize: vertical; transition: border-color 0.15s;
+    box-sizing: border-box; width: 100%;
+}
+
+.scp-sp-textarea:focus { border-color: var(--scp-accent-dim); }
+.scp-sp-textarea-lg { min-height: 120px; }
+
+/* ── Session override styles ─────────────────────────────────── */
+
+.scp-sp-session-banner {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; border-radius: 8px;
+    background: var(--scp-accent-bg); border: 1px solid var(--scp-accent-dim);
+    font-size: 11px; color: var(--scp-text-muted);
+}
+
+.scp-sp-session-banner span:first-child { color: var(--scp-accent); flex-shrink: 0; }
+.scp-sp-session-banner span:nth-child(2) { flex: 1; }
+
+.scp-sp-reset-all-btn {
+    background: none; border: 1px solid rgba(255,92,92,0.3);
+    border-radius: 5px; color: var(--scp-danger); font-size: 10px;
+    font-weight: 600; cursor: pointer; padding: 3px 8px; flex-shrink: 0;
+    font-family: var(--scp-font); transition: all 0.15s;
+}
+.scp-sp-reset-all-btn:hover { background: rgba(255,92,92,0.12); border-color: var(--scp-danger); }
+
+.scp-sp-ov-wrap {
+    display: flex; align-items: center; gap: 6px;
+}
+
+.scp-sp-ov-wrap-col {
+    display: flex; flex-direction: column; gap: 4px;
+    align-items: stretch;
+}
+
+.scp-sp-ov-wrap-col .scp-sp-ov-clear {
+    align-self: flex-end;
+}
+
+.scp-sp-ov-clear {
+    flex-shrink: 0; width: 24px; height: 24px;
+    background: none; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 5px; color: var(--scp-text-muted); cursor: pointer;
+    font-size: 13px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+}
+
+.scp-sp-ov-clear:not(:disabled):hover {
+    color: var(--scp-accent); background: var(--scp-accent-bg);
+    border-color: var(--scp-accent-dim);
+}
+
+.scp-sp-ov-clear:disabled { opacity: 0.22; cursor: default; }
+.scp-sp-ov-clear.active { color: #ffb432; border-color: rgba(255,180,50,0.4); background: rgba(255,180,50,0.08); }
+
+.scp-sp-ov-label { transition: color 0.15s; }
+.scp-sp-ov-label.has-override { color: #ffb432 !important; }
+
+.scp-sp-ov-check-row {
+    display: flex; align-items: center; gap: 6px;
+}
+
+.scp-sp-ov-check-row .scp-sp-check { flex: 1; }
+
+.scp-sp-ov-label-row {
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 2px;
+}
+
+.scp-sp-ov-label-row .scp-sp-ov-label { flex: 1; }
+
+/* ── SP Footer ───────────────────────────────────────────────── */
+
+.scp-sp-footer {
+    padding: 7px 16px; flex-shrink: 0;
+    border-top: var(--scp-border);
+    background: rgba(0,0,0,0.1);
+    min-height: 28px; display: flex; align-items: center;
+}
+
+.scp-sp-footer-info {
+    font-size: 11px; color: #ffb432;
+    opacity: 0.85;
+}
+
+.scp-sp-danger-btn {
+    color: var(--scp-danger) !important;
+    border-color: rgba(255,92,92,0.3) !important;
+    background: rgba(255,92,92,0.06) !important;
+    align-self: flex-start;
+}
+.scp-sp-danger-btn:hover {
+    background: rgba(255,92,92,0.15) !important;
+    border-color: rgba(255,92,92,0.5) !important;
+}
+
+/* ── Mobile SP ───────────────────────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════════════════
+   QUICK PROMPTS
+═══════════════════════════════════════════════════════════════ */
+
+/* ── QP Bar ──────────────────────────────────────────────────── */
+
+.scp-qp-bar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    /* closed state */
+    max-height: 0;
+    padding: 0 10px;
+    opacity: 0;
+    pointer-events: none;
+    overflow: hidden;
+    background: var(--scp-toolbar-bg);
+    border-top: 0px solid transparent;
+    transition:
+        max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity    0.22s ease,
+        padding    0.28s cubic-bezier(0.4, 0, 0.2, 1),
+        border-top 0.28s ease;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%);
+}
+.scp-qp-bar::-webkit-scrollbar { display: none; }
+
+.scp-qp-bar--open {
+    max-height: 52px;
+    padding: 6px 10px;
+    opacity: 1;
+    pointer-events: auto;
+    border-top: var(--scp-border);
+}
+
+.scp-qp-toggle-action {
+    padding: 3px 8px;
+    min-width: 26px;
+    justify-content: center;
+}
+.scp-qp-toggle-action svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+.scp-qp-toggle-action.active {
+    color: var(--scp-accent) !important;
+    background: var(--scp-accent-bg) !important;
+    border-color: var(--scp-accent-dim) !important;
+}
+
+/* ── QP Chip buttons ─────────────────────────────────────────── */
+
+.scp-qp-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px 3px 7px;
+    border-radius: 20px;
+    border: 1px solid var(--scp-accent-dim);
+    background: var(--scp-accent-bg);
+    color: var(--scp-accent);
+    font-size: 11px;
+    font-family: var(--scp-font);
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+.scp-qp-chip:hover {
+    background: var(--scp-accent);
+    border-color: var(--scp-accent);
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px var(--scp-accent-dim);
+}
+.scp-qp-chip:active { transform: translateY(0); box-shadow: none; }
+
+.scp-qp-icon { font-size: 13px; line-height: 1; }
+.scp-qp-label { font-weight: 500; }
+
+/* ── Icon Picker popup ───────────────────────────────────────── */
+
+.scp-qp-icon-picker {
+    display: grid;
+    grid-template-columns: repeat(10, 28px);
+    gap: 3px;
+    padding: 8px;
+    background: var(--SmartThemeBlurTrans, rgba(14,14,18,0.98));
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.65), 0 4px 12px rgba(0,0,0,0.35);
+    animation: scp-panel-in 0.15s ease;
+    max-width: min(320px, 92vw);
+}
+
+.scp-qp-icon-option {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; border-radius: 6px;
+    border: 1px solid transparent; background: none;
+    cursor: pointer; transition: background 0.12s, border-color 0.12s, transform 0.1s;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+.scp-qp-icon-option:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.15);
+    transform: scale(1.25);
+}
+.scp-qp-icon-option.active {
+    background: var(--scp-accent-bg, rgba(124,109,250,0.12));
+    border-color: var(--scp-accent-dim, rgba(124,109,250,0.45));
+}
+
+/* ── QP Settings UI ──────────────────────────────────────────── */
+
+.scp-qp-settings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.scp-qp-settings-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.18);
+    border: 1px solid rgba(255,255,255,0.05);
+    transition: border-color 0.15s;
+}
+.scp-qp-settings-row:hover { border-color: rgba(255,255,255,0.1); }
+
+.scp-qp-settings-row-top {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.scp-qp-settings-icon-btn {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    border-radius: 7px; border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05);
+    font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, border-color 0.15s, transform 0.12s;
+}
+.scp-qp-settings-icon-btn:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: var(--scp-accent-dim);
+    transform: scale(1.1);
+}
+
+.scp-qp-settings-label-input {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 8px !important;
+    font-size: 12px !important;
+}
+
+.scp-qp-settings-controls {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.scp-qp-settings-move {
+    width: 24px; height: 24px;
+    background: none; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 5px; color: var(--scp-text-muted);
+    cursor: pointer; font-size: 12px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; padding: 0;
+}
+.scp-qp-settings-move:hover:not(:disabled) {
+    color: var(--scp-accent);
+    background: var(--scp-accent-bg);
+    border-color: var(--scp-accent-dim);
+}
+.scp-qp-settings-move:disabled { opacity: 0.2; cursor: default; }
+
+.scp-qp-settings-del {
+    width: 24px; height: 24px;
+    background: none; border: 1px solid transparent;
+    border-radius: 5px; color: var(--scp-text-muted);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; padding: 0;
+}
+.scp-qp-settings-del:hover {
+    color: var(--scp-danger);
+    background: rgba(255,92,92,0.1);
+    border-color: rgba(255,92,92,0.3);
+}
+
+.scp-qp-settings-text {
+    font-size: 12px !important;
+    min-height: 52px !important;
+    resize: vertical;
+}
+
+@media screen and (max-width: 600px) {
+    .scp-qp-bar { padding: 5px 8px; gap: 4px; }
+    .scp-qp-chip { font-size: 12px; padding: 4px 10px 4px 7px; }
+    .scp-qp-icon-picker { grid-template-columns: repeat(8, 32px); gap: 4px; }
+    .scp-qp-icon-option { width: 32px; height: 32px; font-size: 18px; }
+}
+
+@media screen and (max-width: 900px) {
+    .scp-settings-overlay { padding: 0 8px; }
+    .scp-settings-panel {
+        width: calc(100vw - 16px);
+        height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 90px);
+        height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 90px);
+        border-radius: 12px;
+    }
+
+    .scp-sp-header {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+        gap: 10px 8px;
+        padding: 12px;
+    }
+
+    .scp-sp-header-left { grid-column: 1; grid-row: 1; flex: unset; }
+    
+    .scp-sp-header-right { 
+        grid-column: 2; grid-row: 1; 
+        justify-self: end; 
+        flex: unset; 
+    }
+
+    .scp-sp-tabs {
+        grid-column: 1 / -1; grid-row: 2;
+        width: 100%; display: flex; box-sizing: border-box;
+        position: relative; left: auto; transform: none;
+        overflow-x: auto; scrollbar-width: none;
+    }
+    .scp-sp-tabs::-webkit-scrollbar { display: none; }
+    .scp-sp-tab { flex-shrink: 0; padding: 5px 14px; }
+
+    .scp-sp-tab { flex: 1; text-align: center; }
+
+    .scp-sp-body { padding: 10px 12px; gap: 8px; }
+
+    .scp-sp-group { padding: 10px 12px; gap: 6px; }
+
+    .scp-sp-input, .scp-sp-select, .scp-sp-textarea { font-size: 13px; }
+
+    .scp-sp-check { font-size: 13px; }
+    .scp-sp-check input[type=checkbox] { width: 17px; height: 17px; }
+
+    .scp-sp-ov-clear { width: 28px; height: 28px; font-size: 14px; }
+
+    .scp-sp-session-banner { font-size: 12px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STATISTICS MODULE
+═══════════════════════════════════════════════════════════════ */
+
+.scp-stats-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.scp-stats-pill-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.scp-stats-pill-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--scp-text-muted);
+    min-width: 42px;
+    flex-shrink: 0;
+}
+
+.scp-stats-pill {
+    padding: 3px 11px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: var(--scp-font);
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    color: var(--scp-text-muted);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+
+.scp-stats-pill:hover {
+    color: var(--scp-text);
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.18);
+}
+
+.scp-stats-pill.active {
+    background: var(--scp-accent-bg);
+    border-color: var(--scp-accent-dim);
+    color: var(--scp-accent);
+}
+
+/* ── Metric Cards ─────────────────────────────────────────── */
+
+.scp-stats-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.scp-stats-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 14px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.025);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.scp-stats-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 2px;
+    background: var(--scp-stat-color, var(--scp-accent));
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.scp-stats-card:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.12); transform: translateY(-1px); }
+
+.scp-stats-card.active {
+    background: rgba(255,255,255,0.05);
+    border-color: var(--scp-stat-color, var(--scp-accent));
+}
+
+.scp-stats-card.active::before { opacity: 1; }
+
+.scp-stats-card-val {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--scp-text);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+.scp-stats-card.active .scp-stats-card-val { color: var(--scp-stat-color, var(--scp-accent)); }
+
+.scp-stats-card-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--scp-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+
+/* ── Chart ────────────────────────────────────────────────── */
+
+.scp-stats-chart-wrap {
+    margin-bottom: 16px;
+}
+
+.scp-stats-chart-inner {
+    position: relative;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.15);
+    padding: 4px 0 0;
+}
+
+.scp-stats-svg {
+    display: block;
+    min-width: 480px;
+    width: 100%;
+    height: auto;
+    cursor: crosshair;
+    overflow: visible;
+}
+
+.scp-stats-axis-label {
+    font-size: 9px;
+    fill: var(--scp-text-muted, #72728a);
+    font-family: var(--scp-font, system-ui);
+}
+
+.scp-stats-dot {
+    transition: r 0.18s cubic-bezier(0.34,1.56,0.64,1), fill 0.35s ease, opacity 0.3s ease;
+    cursor: pointer;
+}
+.scp-stats-line-path {
+    transition: stroke 0.35s ease;
+}
+.scp-stats-area-path {
+    transition: fill 0.35s ease;
+}
+
+/* ── Tooltip ──────────────────────────────────────────────── */
+
+.scp-stats-tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--scp-bg, rgba(18,18,22,0.97));
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 7px;
+    padding: 5px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    min-width: 72px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    z-index: 10;
+    backdrop-filter: blur(8px);
+    animation: scp-fade-in 0.1s ease;
+}
+
+.scp-stats-tt-label {
+    font-size: 9px;
+    color: var(--scp-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.scp-stats-tt-val {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+}
+
+/* ── Danger zone ──────────────────────────────────────────── */
+
+.scp-stats-danger {
+    margin-top: 4px;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+
+@media screen and (max-width: 600px) {
+    .scp-stats-cards { grid-template-columns: repeat(2, 1fr); gap: 5px; }
+    .scp-stats-card { padding: 8px 10px; }
+    .scp-stats-card-val { font-size: 16px; }
+    .scp-stats-pill { font-size: 12px; padding: 4px 10px; }
+    .scp-stats-pill-label { min-width: 36px; font-size: 9px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CHAT MESSAGE PICKER
+═══════════════════════════════════════════════════════════════ */
+
+.scp-picker-box {
+    width: min(800px, calc(100vw - 32px));
+    max-height: min(110vh, 850px);
+    max-height: min(110dvh, 850px);
+}
+
+.scp-picker-hint {
+    flex-shrink: 0;
+    padding: 6px 16px;
+    font-size: 11px;
+    color: var(--scp-text-muted);
+    background: var(--scp-header-bg);
+    border-bottom: var(--scp-border);
+    font-style: italic;
+}
+
+.scp-picker-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px !important;
+}
+
+.scp-picker-count {
+    font-size: 11px;
+    color: var(--scp-accent);
+    background: var(--scp-accent-bg);
+    border: 1px solid var(--scp-accent-dim);
+    border-radius: 12px;
+    padding: 2px 9px;
+    white-space: nowrap;
+}
+
+.scp-picker-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.12s, border-color 0.12s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+.scp-picker-row:hover {
+    background: rgba(255,255,255,0.04);
+    border-color: var(--scp-border);
+}
+.scp-picker-row.selected {
+    background: var(--scp-accent-bg);
+    border-color: var(--scp-accent-dim);
+}
+.scp-picker-row.user .scp-picker-name { color: var(--scp-accent); }
+.scp-picker-row:not(.user) .scp-picker-name { color: var(--scp-success); }
+
+.scp-picker-cb {
+    width: 16px; height: 16px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(0,0,0,0.2);
+    flex-shrink: 0;
+    margin-top: 2px;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+}
+.scp-picker-cb.checked {
+    background: var(--scp-accent);
+    border-color: var(--scp-accent);
+}
+.scp-picker-cb.checked::after {
+    content: '✓';
+    font-size: 10px;
+    color: #fff;
+    line-height: 1;
+}
+
+.scp-picker-info-col {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.scp-picker-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.scp-picker-idx {
+    font-size: 10px;
+    color: var(--scp-text-muted);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+
+.scp-picker-name {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.scp-picker-text {
+    font-size: 12px;
+    color: var(--scp-text-muted);
+    line-height: 1.5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.scp-picker-row.selected .scp-picker-text { color: var(--scp-text); }
+
+.scp-picker-apply-btn {
+    color: var(--scp-accent) !important;
+    border-color: var(--scp-accent-dim) !important;
+    background: var(--scp-accent-bg) !important;
+    font-weight: 600 !important;
+}
+.scp-picker-apply-btn:hover {
+    background: var(--scp-accent) !important;
+    color: #fff !important;
+    border-color: var(--scp-accent) !important;
+}
+
+.scp-picker-header {
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.scp-picker-header > span:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+}
+.scp-picker-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-shrink: 0;
+}
+
+@media screen and (max-width: 520px) {
+    .scp-picker-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .scp-picker-header > span:first-child {
+        width: 100%;
+    }
+    .scp-picker-header-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
+/* ── Pick button badge ───────────────────────────────────────── */
+.scp-pick-wrap { position: relative; display: flex; align-items: center; }
+
+.scp-pick-badge {
+    position: absolute;
+    top: -4px; right: -5px;
+    min-width: 14px; height: 14px;
+    border-radius: 7px;
+    background: var(--scp-accent);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 3px;
+    border: 1px solid rgba(0,0,0,0.4);
+    pointer-events: none;
+    line-height: 1;
+    box-shadow: 0 0 6px var(--scp-accent-dim);
+}
+
+@media screen and (max-width: 600px) {
+    .scp-picker-box { max-height: 88dvh; max-height: 88vh; }
+    .scp-picker-row { padding: 10px 10px; }
+    .scp-picker-text { font-size: 13px; }
+    .scp-picker-cb { width: 20px; height: 20px; }
+}
+/* ── Favorites button ────────────────────────────────────────── */
+.scp-fav-toggle-action {
+    padding: 3px 8px;
+    min-width: 26px;
+    justify-content: center;
+    font-size: 14px;
+    line-height: 1;
+}
+.scp-fav-toggle-action svg,
+.scp-fav-toggle-action i,
+.scp-fav-toggle-action .fa-solid {
+    width: 14px;
+    height: 14px;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+.scp-fav-toggle-action.active {
+    color: #ffb432 !important;
+    background: rgba(255,180,50,0.12) !important;
+    border-color: rgba(255,180,50,0.4) !important;
+}
+
+/* ── Star button on messages ─────────────────────────────────── */
+.scp-msg-btn-star:hover { color: #ffb432 !important; background: rgba(255,180,50,0.1) !important; border-color: rgba(255,180,50,0.35) !important; }
+.scp-msg-btn-star.starred { color: #ffb432 !important; background: rgba(255,180,50,0.1) !important; border-color: rgba(255,180,50,0.3) !important; }
+.scp-msg.scp-msg-starred { box-shadow: inset 2px 0 0 #ffb432; }
+
+/* ── Continue button ─────────────────────────────────────────── */
+.scp-msg-btn-continue { display: none; }
+.scp-msg-last-assistant .scp-msg-btn-continue {
+    display: flex;
+    color: var(--scp-accent) !important;
+}
+.scp-msg-btn-continue:hover {
+    color: #fff !important;
+    background: var(--scp-accent) !important;
+    border-color: var(--scp-accent) !important;
+}
+
+/* ── Favorites panel ─────────────────────────────────────────── */
+.scp-fav-panel {
+    position: absolute;
+    inset: 0;
+    background: var(--scp-bg);
+    backdrop-filter: var(--scp-blur);
+    -webkit-backdrop-filter: var(--scp-blur);
+    display: flex;
+    flex-direction: column;
+    z-index: 20;
+    animation: scp-panel-in 0.2s cubic-bezier(0.34,1.2,0.64,1);
+}
+.scp-fav-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: var(--scp-border);
+    background: var(--scp-header-bg);
+    flex-shrink: 0;
+}
+.scp-fav-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #ffb432;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.scp-fav-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.scp-fav-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 32px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--scp-text-muted);
+    line-height: 1.6;
+}
+.scp-fav-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.025);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.12s;
+}
+.scp-fav-item:hover {
+    background: rgba(255,180,50,0.07);
+    border-color: rgba(255,180,50,0.3);
+    transform: translateX(2px);
+}
+.scp-fav-item-icon { color: #ffb432; font-size: 13px; flex-shrink: 0; margin-top: 1px; display: flex; }
+.scp-fav-item-body { flex: 1; min-width: 0; }
+.scp-fav-item-meta {
+    font-size: 10px;
+    color: var(--scp-text-muted);
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.scp-fav-item-role {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--scp-accent);
+    font-size: 9px;
+}
+.scp-fav-item-text {
+    font-size: 12px;
+    color: var(--scp-text);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.scp-fav-item-remove {
+    flex-shrink: 0;
+    width: 20px; height: 20px;
+    border-radius: 4px;
+    border: none;
+    background: none;
+    color: var(--scp-text-muted);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s, background 0.15s;
+    padding: 0;
+    font-size: 12px;
+}
+.scp-fav-item:hover .scp-fav-item-remove { opacity: 1; }
+.scp-fav-item-remove:hover { color: var(--scp-danger); background: rgba(255,92,92,0.1); }
+
+/* ── Save Dirty Dot ──────────────────────────────────────────── */
+.scp-save-dirty-dot {
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #ffb432;
+    border: 1px solid rgba(0,0,0,0.4);
+    box-shadow: 0 0 4px rgba(255,180,50,0.7);
+    pointer-events: none;
+    animation: scp-dirty-pulse 2s ease-in-out infinite;
+}
+@keyframes scp-dirty-pulse {
+    0%,100% { box-shadow: 0 0 3px rgba(255,180,50,0.5); }
+    50% { box-shadow: 0 0 8px rgba(255,180,50,0.9); }
+}
+.scp-profile-icon-btn { position: relative; }
+
+/* ── History Message Collapsible ─────────────────────────────── */
+
+.scp-hist-details {
+    margin-top: 5px;
+}
+
+.scp-hist-summary {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--scp-text-muted);
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+}
+.scp-hist-summary::-webkit-details-marker { display: none; }
+.scp-hist-summary::before {
+    content: '▶';
+    font-size: 7px;
+    transition: transform 0.18s;
+    flex-shrink: 0;
+}
+details.scp-hist-details[open] .scp-hist-summary::before { transform: rotate(90deg); }
+.scp-hist-summary:hover { opacity: 1; }
+
+.scp-hist-body {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding-left: 4px;
+    border-left: 2px solid rgba(255,255,255,0.08);
+}
+
+/* ── ST Stream Buttons ───────────────────────────────────────── */
+.scp-stream-btn.active {
+    color: var(--scp-accent) !important;
+    background: var(--scp-accent-bg) !important;
+    border-color: var(--scp-accent-dim) !important;
+}
+
+@keyframes scp-msg-flash {
+    0%  { outline: 2px solid rgba(255,180,50,0.7); outline-offset: 2px; }
+    60% { outline: 2px solid rgba(255,180,50,0.2); outline-offset: 3px; }
+    100% { outline: 2px solid transparent; outline-offset: 2px; }
+}
+.scp-msg-flash { animation: scp-msg-flash 1.4s ease forwards; }
+
+/* ── Changelog modal ─────────────────────────────────────────── */
+.scp-changelog-modal-box { width: 640px; max-width: calc(100vw - 32px); max-height: 80vh; max-height: 80dvh; }
+.scp-changelog-body { padding: 0 !important; }
+.scp-cl-current {
+    padding: 18px 20px;
+    border-bottom: var(--scp-border);
+}
+.scp-cl-version-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: rgba(255,180,50,0.15);
+    border: 1px solid rgba(255,180,50,0.4);
+    color: #ffb432;
+    margin-bottom: 12px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+.scp-cl-notes {
+    font-size: 13px;
+    line-height: 1.75;
+    color: var(--scp-text);
+}
+.scp-cl-notes ul { margin: 6px 0 6px 18px; padding: 0; list-style: disc; }
+.scp-cl-notes li { margin: 4px 0; }
+.scp-cl-notes strong { color: var(--scp-accent); font-weight: 600; }
+.scp-cl-history { padding: 8px; }
+.scp-cl-entry {
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    margin-bottom: 5px;
+    overflow: hidden;
+}
+.scp-cl-entry-summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    font-size: 12px;
+    color: var(--scp-text-muted);
+    transition: background 0.12s;
+}
+.scp-cl-entry-summary::-webkit-details-marker { display: none; }
+.scp-cl-entry-summary::before {
+    content: '▶';
+    font-size: 8px;
+    transition: transform 0.18s;
+    flex-shrink: 0;
+}
+details.scp-cl-entry[open] .scp-cl-entry-summary::before { transform: rotate(90deg); }
+.scp-cl-entry-summary:hover { background: rgba(255,255,255,0.04); }
+.scp-cl-entry-ver { font-weight: 700; font-size: 11px; color: var(--scp-text); }
+.scp-cl-entry-body {
+    padding: 10px 14px 12px;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--scp-text-muted);
+    border-top: 1px solid rgba(255,255,255,0.06);
+}
+.scp-cl-entry-body ul { margin: 6px 0 6px 16px; padding: 0; list-style: disc; }
+.scp-cl-entry-body li { margin: 3px 0; }
+
+/* ── Message Token Count ──────────────────────────────────────── */
+.scp-msg-token-count {
+    font-size: 9px;
+    color: var(--scp-text-muted);
+    opacity: 0.55;
+    text-align: center;
+    margin-top: 4px;
+    letter-spacing: 0.03em;
+    font-variant-numeric: tabular-nums;
+    user-select: none;
+    pointer-events: none;
+    line-height: 1;
+}
+
+/* ── Swipes ───────────────────────────────────────────────────── */
+.scp-swipe-bar {
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px; padding: 4px 8px 2px; flex-shrink: 0;
+}
+
+.scp-swipe-btn {
+    background: none; border: 1px solid rgba(255,255,255,0.1); border-radius: 5px;
+    color: var(--scp-text-muted); cursor: pointer;
+    width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; padding: 0; transition: all 0.15s; flex-shrink: 0;
+}
+.scp-swipe-btn:hover:not(:disabled) {
+    color: var(--scp-accent); background: var(--scp-accent-bg); border-color: var(--scp-accent-dim);
+}
+.scp-swipe-btn:disabled { opacity: 0.2; cursor: default; }
+
+.scp-swipe-counter {
+    font-size: 10px; color: var(--scp-text-muted); min-width: 36px;
+    text-align: center; font-variant-numeric: tabular-nums; user-select: none;
+}
+.scp-swipe-counter span { color: var(--scp-accent); }
+
+@keyframes scp-swipe-in-right {
+    from { opacity: 0; transform: translateX(18px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes scp-swipe-in-left {
+    from { opacity: 0; transform: translateX(-18px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes scp-swipe-out-right {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(18px); }
+}
+@keyframes scp-swipe-out-left {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(-18px); }
+}
+
+.scp-swipe-anim-right { animation: scp-swipe-in-right 0.22s cubic-bezier(0.34,1.2,0.64,1); }
+.scp-swipe-anim-left  { animation: scp-swipe-in-left  0.22s cubic-bezier(0.34,1.2,0.64,1); }
+.scp-swipe-anim-out-right { animation: scp-swipe-out-right 0.15s ease forwards; }
+.scp-swipe-anim-out-left  { animation: scp-swipe-out-left 0.15s ease forwards; }
+
+/* ── Chat Edit Proposal Card ─────────────────────────────────── */
+.scp-chat-proposal-card {
+    margin: 4px 0 8px 0;
+}
+
+/* ── Proposal card buttons text centering fix ──────────────── */
+.scp-lb-proposal-edit-toggle,
+.scp-lb-proposal-item-apply,
+.scp-lb-proposal-item-reject {
+    padding-bottom: 2px !important;
+}
+/* ── Streaming cursor (already exists, keep) ─────────────────── */
+@keyframes scp-cursor-blink {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0; }
+}
+.scp-stream-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    background: var(--scp-accent);
+    border-radius: 1px;
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    animation: scp-cursor-blink 0.8s ease infinite;
+}
+
+@media screen and (max-width: 600px) {
+    .scp-fav-item { padding: 11px 10px; }
+    .scp-fav-item-text { font-size: 13px; }
+    .scp-changelog-modal-box { max-height: 90dvh; max-height: 90vh; }
+}
+/* ═══════════════════════════════════════════════════════════════
+   NEW FEATURES STYLES
+═══════════════════════════════════════════════════════════════ */
+
+/* ── 3-state lorebook check ──────────────────────────────────── */
+.scp-lb-book-check.excluded {
+    background: rgba(255,92,92,0.15) !important;
+    border-color: rgba(255,92,92,0.5) !important;
+}
+.scp-lb-book-check.excluded::after {
+    content: '✕';
+    font-size: 10px;
+    color: var(--scp-danger);
+    line-height: 1;
+}
+.scp-lb-book-item.lb-excluded {
+    opacity: 0.75;
+}
+.scp-lb-book-item.lb-excluded .scp-lb-book-name {
+    color: var(--scp-danger);
+    opacity: 0.8;
+}
+.scp-lb-entries.lb-entries-dimmed {
+    opacity: 0.45;
+    pointer-events: auto;
+    position: relative;
+}
+.scp-lb-entries.lb-entries-dimmed::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 6px,
+        rgba(255,255,255,0.02) 6px,
+        rgba(255,255,255,0.02) 12px
+    );
+    pointer-events: none;
+    border-radius: 4px;
+}
+
+/* ── Window custom background ────────────────────────────────── */
+.scp-window.scp-has-bg {
+    background: none !important;
+}
+.scp-window.scp-has-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--scp-radius);
+    background-image: var(--scp-bg-image, none);
+    background-size: cover;
+    background-position: center;
+    z-index: -2;
+}
+.scp-window.scp-has-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--scp-radius);
+    background: rgba(0,0,0,var(--scp-bg-dim, 0.5));
+    z-index: -1;
+}
+
+/* ── Attachment bar ──────────────────────────────────────────── */
+.scp-attachment-bar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 6px 10px;
+    background: var(--scp-toolbar-bg);
+    border-top: var(--scp-border);
+    overflow-x: auto;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    flex-wrap: wrap;
+    max-height: 140px;
+}
+
+.scp-att-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+}
+
+.scp-att-thumb {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.15);
+    cursor: zoom-in;
+    transition: transform 0.15s, border-color 0.15s;
+}
+.scp-att-thumb:hover {
+    transform: scale(1.05);
+    border-color: var(--scp-accent-dim);
+}
+
+.scp-att-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--scp-text-muted);
+    font-size: 20px;
+}
+
+.scp-att-label {
+    font-size: 9px;
+    color: var(--scp-text-muted);
+    text-align: center;
+    max-width: 56px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.scp-att-remove {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--scp-danger);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-size: 11px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.scp-att-item:hover .scp-att-remove {
+    opacity: 1;
+}
+
+/* ── Attach button ───────────────────────────────────────────── */
+.scp-attach-btn {
+    flex-shrink: 0;
+    width: 35px;
+    height: 35px;
+    background: none;
+    border: var(--scp-border);
+    border-radius: 7px;
+    color: var(--scp-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    padding: 0;
+    align-self: flex-end;
+    margin-bottom: 2px;
+}
+.scp-attach-btn:hover {
+    color: var(--scp-accent);
+    background: var(--scp-accent-bg);
+    border-color: var(--scp-accent-dim);
+}
+
+/* ── Lightbox ────────────────────────────────────────────────── */
+.scp-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 9999999;
+    background: rgba(0,0,0,0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: scp-modal-fade 0.15s ease;
+    backdrop-filter: blur(4px);
+    cursor: zoom-in;
+}
+.scp-lightbox-text {
+    width: 90vw;
+    height: 90vh;
+    background: var(--scp-bg);
+    color: var(--scp-text);
+    padding: 20px;
+    overflow: auto;
+    font-family: var(--scp-font-mono);
+    font-size: 12px;
+    border-radius: 8px;
+    border: var(--scp-border);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    box-sizing: border-box;
+    box-shadow: 0 0 60px rgba(0,0,0,0.8);
+}
+.scp-lightbox-img {
+    max-width: 92vw;
+    max-height: 92vh;
+    border-radius: 6px;
+    box-shadow: 0 0 60px rgba(0,0,0,0.8);
+    transition: transform 0.25s cubic-bezier(0.34,1.2,0.64,1), transform-origin 0.15s;
+    cursor: zoom-in;
+    user-select: none;
+}
+
+/* ── Picker multi-line preview ───────────────────────────────── */
+.scp-picker-text {
+    white-space: pre-wrap !important;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* ── Lorebook footer note ────────────────────────────────────── */
+.scp-lb-footer-note {
+    font-size: 10px;
+    color: var(--scp-danger);
+    opacity: 0.8;
+}
+
+/* ── Video Background ────────────────────────────────────────── */
+.scp-bg-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -2;
+    border-radius: var(--scp-radius);
+    pointer-events: none;
+}
+
+/* ── Background Fit Modes ── */
+.scp-window.bg-cover::before, .scp-bg-video.bg-cover { object-fit: cover; background-size: cover; }
+.scp-window.bg-contain::before, .scp-bg-video.bg-contain { object-fit: contain; background-size: contain; background-repeat: no-repeat; }
+.scp-window.bg-fill::before, .scp-bg-video.bg-fill { object-fit: fill; background-size: 100% 100%; }
+.scp-window.bg-center::before, .scp-bg-video.bg-center { object-fit: none; background-position: center; background-repeat: no-repeat; }
+
+/* ── Media Background Engine ── */
+.scp-bg-media {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+    border-radius: var(--scp-radius);
+    pointer-events: none;
+}
+.scp-bg-media.bg-cover { object-fit: cover; }
+.scp-bg-media.bg-contain { object-fit: contain; }
+.scp-bg-media.bg-fill { object-fit: fill; }
+.scp-bg-media.bg-center { object-fit: none; }
+
+/* ── Stream Modes Settings Fix ── */
+.st-copilot-settings .scp-stream-btn {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    color: var(--SmartThemeBodyColorTextMuted, #888) !important;
+    padding: 6px 14px !important;
+    border-radius: 5px !important;
+    cursor: pointer !important;
+    font-size: 11px !important;
+    font-family: var(--primaryFontFamily, system-ui, sans-serif) !important;
+    transition: all 0.15s ease !important;
+}
+
+.st-copilot-settings .scp-stream-btn:hover {
+    border-color: rgba(255, 255, 255, 0.18) !important;
+    color: var(--SmartThemeBodyColorText, #e2e2e6) !important;
+}
+
+.st-copilot-settings .scp-stream-btn.active {
+    background: rgba(124, 109, 250, 0.12) !important;
+    border-color: rgba(124, 109, 250, 0.5) !important;
+    color: var(--SmartThemeQuoteColor, #a99bfb) !important;
+    font-weight: 600 !important;
+    box-shadow: 0 0 8px rgba(124, 109, 250, 0.15) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MEMORY SYSTEM
+═══════════════════════════════════════════════════════════════ */
+
+.scp-memory-item-toggle, .scp-memory-item-edit, .scp-memory-item-del {
+    width: 24px; height: 24px;
+    border-radius: 5px;
+    border: 1px solid transparent;
+    background: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    transition: all 0.15s;
+    padding: 0;
+    color: var(--scp-text-muted);
+}
+.scp-memory-item-toggle:hover, .scp-memory-item-edit:hover { color: var(--scp-accent); background: var(--scp-accent-bg); border-color: var(--scp-accent-dim); }
+.scp-memory-item-del:hover { color: var(--scp-danger); background: rgba(255,92,92,0.1); border-color: rgba(255,92,92,0.3); }
+
+.scp-mem-tree-details {
+    margin-bottom: 2px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+}
+.scp-mem-tree-summary {
+    padding: 6px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--scp-text);
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.15s;
+    list-style: none;
+    border-radius: 5px;
+}
+.scp-mem-tree-summary::-webkit-details-marker { display: none; }
+.scp-mem-tree-summary:hover { background: rgba(255,255,255,0.05); }
+.scp-mem-tree-summary i { color: var(--scp-text-muted); opacity: 0.7; width: 14px; text-align: center; }
+.scp-mem-tree-summary::after {
+    content: '▶';
+    font-size: 8px;
+    margin-left: auto;
+    transition: transform 0.2s;
+    color: var(--scp-text-muted);
+}
+.scp-mem-tree-details[open] > .scp-mem-tree-summary::after { transform: rotate(90deg); }
+.scp-mem-tree-content {
+    padding: 4px 0 4px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-top: none;
+    border-left: 1px solid rgba(255,255,255,0.08);
+    margin-left: 12px;
+    margin-top: 2px;
+}
+
+.scp-memory-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.06);
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+}
+.scp-memory-item:hover { border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); }
+
+.scp-memory-item-icon {
+    color: var(--scp-accent);
+    font-size: 12px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    opacity: 0.7;
+}
+
+.scp-memory-item-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.scp-memory-item-key {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--scp-accent);
+    opacity: 0.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.scp-memory-item-val {
+    font-size: 12px;
+    color: var(--scp-text);
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.scp-memory-item-meta {
+    font-size: 10px;
+    color: var(--scp-text-muted);
+    margin-top: 2px;
+}
+
+.scp-memory-item-actions {
+    display: flex;
+    gap: 3px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.scp-memory-item:hover .scp-memory-item-actions { opacity: 1; }
+
+.scp-memory-item-edit, .scp-memory-item-del {
+    width: 22px; height: 22px;
+    border-radius: 5px;
+    border: 1px solid transparent;
+    background: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    transition: all 0.15s;
+    padding: 0;
+    color: var(--scp-text-muted);
+}
+.scp-memory-item-edit:hover { color: var(--scp-accent); background: var(--scp-accent-bg); border-color: var(--scp-accent-dim); }
+.scp-memory-item-del:hover { color: var(--scp-danger); background: rgba(255,92,92,0.1); border-color: rgba(255,92,92,0.3); }
+
+.scp-memory-new-badge {
+    position: absolute;
+    top: -4px; right: -4px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--scp-success);
+    border: 1px solid rgba(0,0,0,0.4);
+    box-shadow: 0 0 5px rgba(76,175,125,0.7);
+    animation: scp-pulse 2s infinite;
+}
+
+/* Memory notification toast */
+.scp-memory-toast {
+    position: fixed;
+    bottom: 90px;
+    right: 24px;
+    z-index: 999999;
+    background: var(--scp-accent-bg);
+    border: 1px solid var(--scp-accent-dim);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--scp-text);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    animation: scp-toast-in 0.3s cubic-bezier(0.34,1.4,0.64,1);
+    max-width: 300px;
+    font-family: var(--scp-font, system-ui);
+}
+@keyframes scp-toast-in {
+    from { transform: translateY(16px) scale(0.95); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes scp-toast-out {
+    from { transform: translateY(0) scale(1); opacity: 1; }
+    to { transform: translateY(12px) scale(0.95); opacity: 0; }
+}
+.scp-memory-toast-icon { color: var(--scp-accent); font-size: 15px; flex-shrink: 0; }
+.scp-memory-toast-body { flex: 1; min-width: 0; }
+.scp-memory-toast-title { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--scp-accent); }
+.scp-memory-toast-text { font-size: 11px; color: var(--scp-text-muted); margin-top: 1px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.scp-sp-memory-dot {
+    position: absolute; top: 4px; right: 4px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--scp-success);
+    border: 1px solid rgba(0,0,0,0.4);
+    box-shadow: 0 0 4px rgba(76,175,125,0.6);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOOL CALLS
+═══════════════════════════════════════════════════════════════ */
+
+/* Tool toggle row in settings */
+.scp-tool-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.18);
+    border: 1px solid rgba(255,255,255,0.05);
+    transition: border-color 0.15s;
+}
+.scp-tool-toggle-row:hover { border-color: rgba(255,255,255,0.1); }
+
+.scp-tool-toggle-info { flex: 1; min-width: 0; }
+.scp-tool-toggle-name { font-size: 12px; font-weight: 600; color: var(--scp-text); }
+.scp-tool-toggle-desc { font-size: 10px; color: var(--scp-text-muted); margin-top: 2px; line-height: 1.4; }
+
+/* Tool call bubble in message */
+.scp-tool-call-wrap {
+    margin: 6px 0;
+}
+
+.scp-tool-call-item {
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.08);
+    overflow: hidden;
+    background: rgba(0,0,0,0.15);
+    transition: border-color 0.15s;
+}
+.scp-tool-call-item:hover { border-color: var(--scp-accent-dim); }
+
+.scp-tool-call-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    cursor: pointer;
+    user-select: none;
+    background: rgba(255,255,255,0.02);
+    transition: background 0.12s;
+}
+.scp-tool-call-header:hover { background: rgba(255,255,255,0.05); }
+
+.scp-tool-call-icon {
+    width: 20px; height: 20px;
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+    background: var(--scp-accent-bg);
+    color: var(--scp-accent);
+    border: 1px solid var(--scp-accent-dim);
+}
+.scp-tool-call-icon.running {
+    background: rgba(255,180,50,0.1);
+    color: #ffb432;
+    border-color: rgba(255,180,50,0.4);
+}
+.scp-tool-call-icon.done {
+    background: rgba(76,175,125,0.12);
+    color: var(--scp-success);
+    border-color: rgba(76,175,125,0.35);
+}
+.scp-tool-call-icon.error {
+    background: rgba(255,92,92,0.1);
+    color: var(--scp-danger);
+    border-color: rgba(255,92,92,0.3);
+}
+
+.scp-tool-call-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--scp-text);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.scp-tool-call-status {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+.scp-tool-call-status.running {
+    background: rgba(255,180,50,0.12);
+    color: #ffb432;
+    border: 1px solid rgba(255,180,50,0.35);
+}
+.scp-tool-call-status.done {
+    background: rgba(76,175,125,0.12);
+    color: var(--scp-success);
+    border: 1px solid rgba(76,175,125,0.35);
+}
+.scp-tool-call-status.error {
+    background: rgba(255,92,92,0.1);
+    color: var(--scp-danger);
+    border: 1px solid rgba(255,92,92,0.3);
+}
+
+.scp-tool-call-chevron {
+    color: var(--scp-text-muted);
+    transition: transform 0.2s;
+    font-size: 10px;
+    flex-shrink: 0;
+}
+.scp-tool-call-item.open .scp-tool-call-chevron { transform: rotate(90deg); }
+
+.scp-tool-call-body {
+    padding: 8px 10px 10px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: none;
+    font-family: var(--scp-font-mono, monospace);
+    font-size: 11px;
+    line-height: 1.6;
+    animation: scp-fade-in 0.18s ease;
+}
+.scp-tool-call-item.open .scp-tool-call-body { display: block; }
+
+.scp-tool-call-section-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--scp-text-muted);
+    margin-bottom: 4px;
+    font-family: var(--scp-font, system-ui);
+}
+
+.scp-tool-call-args {
+    background: rgba(0,0,0,0.2);
+    border-radius: 5px;
+    padding: 6px 8px;
+    color: var(--scp-text);
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 11px;
+    border: 1px solid rgba(255,255,255,0.06);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.scp-tool-call-result {
+    background: rgba(76,175,125,0.06);
+    border-radius: 5px;
+    padding: 6px 8px;
+    color: var(--scp-text-muted);
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 11px;
+    border: 1px solid rgba(76,175,125,0.15);
+    max-height: 280px;
+    overflow-y: auto;
+    margin-top: 8px;
+}
+
+.scp-tool-call-result.error-result {
+    background: rgba(255,92,92,0.06);
+    border-color: rgba(255,92,92,0.15);
+    color: var(--scp-danger);
+}
+
+/* Running spinner */
+@keyframes scp-tool-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.scp-tool-spin { animation: scp-tool-spin 0.8s linear infinite; display: inline-block; }
+
+/* Ask-user tool special UI */
+.scp-tool-ask-wrap {
+    padding: 10px 12px;
+    background: var(--scp-accent-bg);
+    border-radius: 8px;
+    border: 1px solid var(--scp-accent-dim);
+    margin: 6px 0;
+    animation: scp-fade-in 0.25s ease;
+}
+.scp-tool-ask-question {
+    font-size: 13px;
+    color: var(--scp-text);
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+.scp-tool-ask-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--scp-input-bg);
+    border: var(--scp-border);
+    border-radius: 6px;
+    color: var(--scp-text);
+    font-family: var(--scp-font);
+    font-size: 12px;
+    padding: 8px 10px;
+    outline: none;
+    resize: none;
+    min-height: 36px;
+    transition: border-color 0.15s;
+}
+.scp-tool-ask-input:focus { border-color: var(--scp-accent-dim); }
+.scp-tool-ask-submit {
+    margin-top: 6px;
+    padding: 5px 14px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--scp-accent-bg);
+    border: 1px solid var(--scp-accent-dim);
+    color: var(--scp-accent);
+    font-family: var(--scp-font);
+    transition: all 0.15s;
+}
+.scp-tool-ask-submit:hover { background: var(--scp-accent); color: #fff; border-color: var(--scp-accent); }
+
+/* ── Settings Panel (ST Drawer Colors fix) ───────────────────── */
+.st-copilot-settings .inline-drawer-toggle.inline-drawer-header {
+    border-left: 2px solid var(--SmartThemeQuoteColor, rgba(119, 119, 119, 0.5)) !important;
+    border-radius: 4px !important;
+    padding-left: 10px !important;
+    background: transparent !important;
+    transition: background 0.2s, border-color 0.2s;
+    color: var(--SmartThemeBodyColorText, #e2e2e6);
+}
+.st-copilot-settings .inline-drawer-toggle.inline-drawer-header:hover {
+    background: rgba(128, 128, 128, 0.1) !important;
+    border-left-color: var(--SmartThemeMenuColorText, rgba(153, 153, 153, 0.75)) !important;
+}
+
+/* ── Settings Header Fix ── */
+.scp-sp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px 10px 16px;
+    background: var(--scp-header-bg);
+    border-bottom: var(--scp-border);
+    flex-shrink: 0;
+    gap: 10px;
+}
+.scp-sp-header-left { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.scp-sp-tabs { flex: 0 0 auto; display: flex; align-items: center; gap: 2px; background: rgba(0,0,0,0.35); border-radius: 8px; padding: 3px; border: 1px solid rgba(255,255,255,0.06); box-shadow: 0 2px 4px rgba(0,0,0,0.3) inset; }
+.scp-sp-header-right { flex: 1; display: flex; justify-content: flex-end; min-width: 0; }
+
+/* ── Context Inspector Modal (Independent Scroll Fix) ────────────────────── */
+#scp-ctx-formatted { overflow: hidden !important; padding: 0 !important; }
+.scp-ctx-inspector { display:flex; height:100%; gap:0; align-items:flex-start; overflow:visible; position:relative; }
+.scp-ctx-nav { 
+    width:160px; flex-shrink:0; overflow-y:auto; max-height:100%;
+    border-right:1px solid rgba(255,255,255,0.06); padding:6px 4px; 
+    display:flex; flex-direction:column; gap:1px; 
+    position: sticky; top: 0;
+}
+.scp-ctx-nav-btn { 
+    all:unset; cursor:pointer; padding:4px 7px; border-radius:5px; 
+    font-size:calc(var(--scp-font-size, 13px) - 3px); font-weight:600; 
+    color:var(--scp-text-muted); display:block; white-space:nowrap; 
+    overflow:hidden; text-overflow:ellipsis; transition:all 0.12s; 
+    box-sizing:border-box; width:100%; 
+}
+.scp-ctx-nav-btn:hover { background:var(--scp-accent-bg); color:var(--scp-text); }
+.scp-ctx-nav-details { width: 100%; margin-top: 4px; }
+.scp-ctx-nav-details > summary { list-style: none; }
+.scp-ctx-nav-details > summary::-webkit-details-marker { display: none; }
+.scp-ctx-body { flex:1; overflow-y:auto; padding:0 10px 12px; height:100%; scroll-behavior: smooth; }
+
+/* ── Memory Toast Enhancements ── */
+.scp-memory-toast {
+    box-shadow: 0 16px 40px rgba(0,0,0,0.8) !important;
+    border-left: 4px solid var(--scp-accent) !important;
+    transform-origin: bottom right;
+}
+
+/* ── Smooth Accordion Arrow Rotation ── */
+.st-copilot-settings .inline-drawer-icon {
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.st-copilot-settings .inline-drawer-icon.up {
+    transform: rotate(180deg) !important;
+}
+
+.st-copilot-settings .inline-drawer-icon.fa-circle-chevron-up::before {
+    content: "\f13a" !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOOL CALLS STYLES
+═══════════════════════════════════════════════════════════════ */
+.scp-inline-tool-call { 
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    border-radius: 8px !important; 
+    margin: 0 0 12px 20px !important; 
+    background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%) !important; 
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: visible !important;
+}
+.scp-inline-tool-call:hover {
+    border-color: var(--scp-accent-dim) !important;
+    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%) !important;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25) !important;
+}
+.scp-inline-tool-call::before {
+    content: ''; position: absolute; left: -13px; width: 2px;
+    background: var(--scp-accent-dim); opacity: 0.4; z-index: 0;
+}
+.scp-tc-chain-start::before { top: 18px; bottom: -18px; }
+.scp-tc-chain-mid::before { top: -12px; bottom: -18px; }
+.scp-tc-chain-end::before { top: -12px; bottom: calc(100% - 18px); }
+.scp-tc-chain-start.scp-tc-chain-end::before { display: none; }
+.scp-inline-tool-call::after {
+    content: ''; position: absolute; left: -17px; top: 13px;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--scp-bg); border: 2px solid var(--scp-accent);
+    box-shadow: 0 0 6px var(--scp-accent-dim); z-index: 1; box-sizing: border-box;
+}
+.scp-tool-call-header { padding: 8px 12px !important; display: flex; align-items: center; gap: 10px; }
+.scp-tool-call-name { 
+    font-size: 11px !important; font-weight: 600 !important; letter-spacing: 0.02em;
+    text-transform: uppercase; opacity: 0.95; flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.scp-tool-call-icon { 
+    width: 20px !important; 
+    height: 20px !important; 
+    border-radius: 6px !important; 
+    background: var(--scp-accent-bg) !important;
+    border: 1px solid var(--scp-accent-dim) !important; 
+    color: var(--scp-accent);
+    display: flex !important; 
+    align-items: center !important; 
+    justify-content: center !important; 
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.scp-tool-call-icon i,
+.scp-tool-call-icon span,
+.scp-tool-call-icon svg {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 11px !important;
+    line-height: 1 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    text-align: center !important;
+    transform: none !important;
+    position: static !important;
+    letter-spacing: 0 !important;
+}
+
+.scp-tool-call-icon i::before {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1 !important;
+}
+.scp-tool-call-status { 
+    font-size: 9px !important; font-weight: 700 !important; text-transform: uppercase;
+    letter-spacing: 0.05em; padding: 2px 8px !important; border-radius: 20px !important;
+}
+.scp-tool-call-status.done { background: rgba(76, 175, 125, 0.1) !important; color: var(--scp-success) !important; border: 1px solid rgba(76, 175, 125, 0.25) !important; }
+.scp-tool-call-status.running { background: rgba(255, 180, 50, 0.1) !important; color: #ffb432 !important; border: 1px solid rgba(255, 180, 50, 0.25) !important; }
+.scp-tool-call-status.error { background: rgba(255, 92, 92, 0.1) !important; color: var(--scp-danger) !important; border: 1px solid rgba(255, 92, 92, 0.25) !important; }
+.scp-tool-call-chevron { font-size: 9px !important; opacity: 0.6; }
+.scp-tool-call-body { padding: 8px 12px 12px !important; border-top: 1px solid rgba(255,255,255,0.04) !important; }
+.scp-tool-call-section-label { font-size: 9px !important; margin-bottom: 4px !important; opacity: 0.7; font-family: var(--scp-font); }
+.scp-tool-call-args, .scp-tool-call-result { font-size: 10px !important; padding: 6px 10px !important; max-height: 140px !important; background: rgba(0,0,0,0.15) !important; border: 1px solid rgba(255,255,255,0.04) !important; border-radius: 6px !important; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
+
+/* ═══════════════════════════════════════════════════════════════
+   CONTEXT INSPECTOR STYLES
+═══════════════════════════════════════════════════════════════ */
+#scp-ctx-formatted { height:100% !important; overflow:hidden !important; padding:0 !important; display:flex; flex-direction:column; }
+.scp-ctx-inspector { display:flex; height:100%; width:100%; gap:0; overflow:hidden; }
+.scp-ctx-nav { width:160px; flex-shrink:0; height:100%; overflow-y:auto; border-right:1px solid rgba(255,255,255,0.06); padding:6px 4px; display:flex; flex-direction:column; gap:1px; }
+.scp-ctx-nav::-webkit-scrollbar { width: 4px; }
+.scp-ctx-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+.scp-ctx-nav-btn { all:unset; cursor:pointer; padding:4px 7px; border-radius:5px; font-size:calc(var(--scp-font-size, 13px) - 3px); font-weight:600; color:var(--scp-text-muted); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:all 0.12s; box-sizing:border-box; width:100%; }
+.scp-ctx-nav-btn:hover { background:var(--scp-accent-bg); color:var(--scp-text); }
+.scp-ctx-nav-sub { font-weight:400; padding-left:14px; }
+.scp-ctx-nav-details { width:100%; margin-top:4px; }
+.scp-ctx-nav-details > summary { list-style:none; }
+.scp-ctx-nav-details > summary::-webkit-details-marker { display:none; }
+.scp-ctx-nav-system { color:var(--scp-accent) !important; }
+.scp-ctx-nav-user { color:#5bc0eb !important; }
+.scp-ctx-nav-assistant { color:var(--scp-success) !important; }
+.scp-ctx-nav-divider { height:1px; background:rgba(255,255,255,0.06); margin:4px 0; }
+.scp-ctx-body { flex:1; height:100%; overflow-y:auto; padding:10px 14px 20px; position:relative; scroll-behavior:smooth; }
+.scp-ctx-block { margin-bottom:16px; }
+.scp-ctx-block-header { font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; padding:5px 10px; border-radius:6px 6px 0 0; }
+.scp-ctx-role-system { background:rgba(124,109,250,0.15); color:var(--scp-accent); }
+.scp-ctx-role-user { background:rgba(91,192,235,0.1); color:#5bc0eb; }
+.scp-ctx-role-assistant { background:rgba(76,175,125,0.1); color:var(--scp-success); }
+.scp-ctx-block-sep { height:1px; background:rgba(255,255,255,0.05); }
+.scp-ctx-block-body { background:rgba(0,0,0,0.18); border-radius:0 0 6px 6px; padding:10px 12px; border:1px solid rgba(255,255,255,0.04); border-top:none; }
+.scp-ctx-pre { font-size:calc(var(--scp-font-size, 13px) - 2px); line-height:1.55; white-space:pre-wrap; word-break:break-word; margin:0; font-family:var(--scp-font,monospace); color:var(--scp-text); }
+.scp-ctx-hl-tag { color:#71b7fb; }
+.scp-ctx-hl-macro { color:#ffd670; }
+.scp-ctx-hl-header { color:var(--scp-accent); font-weight:600; }
+.scp-ctx-anchor { display:block; position:relative; top:-8px; }
+
+/* ── Mobile Settings Tabs Fix (3x2 grid) ── */
+@media screen and (max-width: 600px) {
+    .scp-settings-panel {
+        height: 90dvh !important;
+        max-height: calc(100vh - 40px) !important;
+    }
+
+    .scp-sp-header {
+        display: grid !important;
+        grid-template-columns: 1fr auto !important;
+        grid-template-rows: auto auto !important;
+        gap: 12px 8px !important;
+        padding: 12px 14px !important;
+        height: auto !important;
+    }
+    
+    .scp-sp-header-left {
+        grid-column: 1 !important;
+        grid-row: 1 !important;
+        flex: unset !important;
+    }
+    
+    .scp-sp-header-right {
+        grid-column: 2 !important;
+        grid-row: 1 !important;
+        flex: unset !important;
+        justify-self: end !important;
+    }
+
+    .scp-sp-tabs {
+        grid-column: 1 / -1 !important;
+        grid-row: 2 !important;
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 4px !important;
+        white-space: normal !important;
+        overflow: hidden !important;
+        padding: 4px !important;
+    }
+    
+    .scp-sp-tab {
+        padding: 6px 2px !important;
+        font-size: 10.5px !important;
+        white-space: normal !important;
+        line-height: 1.15 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        flex: unset !important;
+        min-height: 32px !important;
+    }
+    
+    .scp-sp-override-dot, 
+    .scp-sp-memory-dot {
+        top: 2px !important;
+        right: 2px !important;
+    }
+}
+@media screen and (max-width: 600px) {
+    .scp-lb-panel {
+        height: 90dvh !important;
+        max-height: calc(100vh - 40px) !important;
+    }
+    
+    .scp-picker-box,
+    .scp-dialog-box {
+        max-height: calc(100vh - 40px) !important;
+        max-height: 90dvh !important;
+    }
+}
+
+/* ── Menu Dropdown ────────────────────────────────────────────── */
+.scp-menu-dropdown { position: relative; display: flex; align-items: center; flex-shrink: 0; }
+.scp-menu-panel {
+    display: none; position: absolute; top: calc(100% + 5px); right: 0;
+    min-width: 170px; width: max-content;
+    background: var(--scp-bg); border: var(--scp-border);
+    border-radius: 10px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 99950; overflow: hidden; padding: 5px;
+}
+.scp-menu-panel.open { display: block; animation: scp-panel-in 0.15s ease; }
+.scp-menu-item {
+    width: 100%; display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; background: none; border: none;
+    color: var(--scp-text); font-size: 12px; cursor: pointer;
+    border-radius: 6px; transition: background 0.12s, color 0.12s;
+    font-family: var(--scp-font); text-align: left;
+}
+.scp-menu-item:hover { background: var(--scp-accent-bg); color: var(--scp-accent); }
+.scp-menu-item svg { flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════════════════════════
+   CHARACTER MANAGER
+═══════════════════════════════════════════════════════════════ */
+
+.scp-char-overlay {
+    position: fixed; top: 0; left: 0;
+    width: 100vw; height: 100vh; height: 100dvh;
+    background: rgba(0,0,0,0.72);
+    backdrop-filter: blur(6px); z-index: 99998;
+    display: flex; align-items: center; justify-content: center;
+    animation: scp-modal-fade 0.18s ease;
+    box-sizing: border-box; padding: 16px;
+    overscroll-behavior: contain;
+    --scp-bg: rgba(18,18,22,0.97);
+    --scp-blur: blur(14px);
+    --scp-border: 1px solid rgba(255,255,255,0.09);
+    --scp-text: #e2e2e6;
+    --scp-text-muted: #72728a;
+    --scp-accent: #7c6dfa;
+    --scp-accent-dim: rgba(124,109,250,0.45);
+    --scp-accent-bg: rgba(124,109,250,0.12);
+    --scp-header-bg: rgba(255,255,255,0.04);
+    --scp-toolbar-bg: rgba(0,0,0,0.25);
+    --scp-input-bg: rgba(0,0,0,0.30);
+    --scp-font: var(--primaryFontFamily, system-ui, sans-serif);
+    --scp-radius: 10px;
+    --scp-danger: #ff5c5c;
+    --scp-success: #4caf7d;
+    --scp-shadow: 0 24px 64px rgba(0,0,0,0.6);
+}
+.scp-char-panel {
+    width: min(1000px, calc(100vw - 32px));
+    height: min(720px, calc(100vh - 32px));
+    height: min(720px, calc(100dvh - 32px));
+    background: var(--scp-bg);
+    backdrop-filter: var(--scp-blur);
+    -webkit-backdrop-filter: var(--scp-blur);
+    border: var(--scp-border);
+    border-radius: 14px;
+    box-shadow: var(--scp-shadow), 0 0 0 1px rgba(255,255,255,0.04) inset;
+    display: flex; flex-direction: column; overflow: hidden;
+    color: var(--scp-text); font-family: var(--scp-font);
+    animation: scp-modal-slide 0.22s cubic-bezier(0.34,1.4,0.64,1);
+}
+.scp-char-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 18px; background: var(--scp-header-bg);
+    border-bottom: var(--scp-border); flex-shrink: 0;
+}
+.scp-char-header-left { display: flex; align-items: center; gap: 8px; }
+.scp-char-title-icon { color: var(--scp-accent); display: flex; }
+.scp-char-title { font-weight: 700; font-size: 14px; letter-spacing: 0.02em; }
+
+.scp-char-body { flex: 1; display: flex; min-height: 0; overflow: hidden; }
+.scp-char-sidebar { width: 220px; flex-shrink: 0; border-right: var(--scp-border); display: flex; flex-direction: column; overflow: hidden; }
+.scp-char-sidebar-header {
+    padding: 10px 12px; background: var(--scp-header-bg); border-bottom: var(--scp-border);
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--scp-text-muted); flex-shrink: 0;
+}
+.scp-char-list { flex: 1; overflow-y: auto; padding: 5px; display: flex; flex-direction: column; gap: 2px; }
+.scp-char-list-empty { padding: 16px 10px; font-size: 11px; color: var(--scp-text-muted); text-align: center; font-style: italic; }
+
+.scp-char-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 8px; border-radius: 7px; cursor: pointer;
+    transition: background 0.12s;
+}
+.scp-char-row:hover { background: rgba(255,255,255,0.05); }
+.scp-char-row.selected { background: var(--scp-accent-bg); }
+.scp-char-row-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.1); }
+.scp-char-row-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--scp-text); }
+.scp-char-row-cb {
+    width: 16px; height: 16px; border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2);
+    flex-shrink: 0; cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+}
+.scp-char-row-cb.checked { background: var(--scp-accent); border-color: var(--scp-accent); }
+.scp-char-row-cb.checked::after { content: '✓'; font-size: 10px; color: #fff; line-height: 1; }
+.scp-char-row-lock { color: var(--scp-text-muted); opacity: 0.6; display: flex; flex-shrink: 0; cursor: default; }
+
+.scp-char-main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; min-width: 0; }
+.scp-char-empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--scp-text-muted); }
+
+.scp-char-banner {
+    position: relative; flex-shrink: 0; padding: 20px;
+    display: flex; align-items: center; gap: 16px;
+    overflow: hidden; min-height: 90px;
+    background: var(--scp-header-bg);
+}
+.scp-char-banner::before {
+    content: ''; position: absolute; inset: 0;
+    background-image: var(--scp-char-banner-img, none);
+    background-size: cover; background-position: center;
+    filter: blur(15px) saturate(1.2); transform: scale(1.1); z-index: 0;
+}
+.scp-char-banner::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(0,0,0,0.78), rgba(0,0,0,0.35));
+    z-index: 1;
+}
+.scp-char-banner-avatar {
+    position: relative; z-index: 2; width: 64px; height: 64px;
+    border-radius: 14px; object-fit: cover;
+    border: 2px solid rgba(255,255,255,0.25);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5); flex-shrink: 0;
+}
+.scp-char-banner-info { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.scp-char-banner-name {
+    font-size: 20px; font-weight: 700; color: #fff;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.scp-char-banner-tokens { font-size: 11px; color: rgba(255,255,255,0.75); letter-spacing: 0.03em; }
+
+.scp-char-tabs { flex-shrink: 0; display: flex; gap: 2px; padding: 8px 16px 0; border-bottom: var(--scp-border); background: var(--scp-header-bg); }
+.scp-char-tab {
+    background: none; border: none; color: var(--scp-text-muted); cursor: pointer;
+    font-size: 12px; font-family: var(--scp-font); padding: 7px 14px;
+    border-radius: 6px 6px 0 0; border-bottom: 2px solid transparent;
+    transition: all 0.15s; margin-bottom: -1px;
+}
+.scp-char-tab:hover { color: var(--scp-text); }
+.scp-char-tab.active { color: var(--scp-accent); border-bottom-color: var(--scp-accent); background: var(--scp-accent-bg); }
+.scp-char-tab:disabled { opacity: 0.3; cursor: default; }
+
+.scp-char-pane { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.scp-char-section { display: flex; flex-direction: column; gap: 12px; }
+.scp-char-section-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--scp-accent); padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.scp-char-field-row { display: flex; flex-direction: column; gap: 4px; }
+.scp-char-field-label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.scp-char-field-label { font-size: 11px; font-weight: 600; color: var(--scp-text); }
+.scp-char-field-tokens { font-size: 10px; color: var(--scp-accent); opacity: 0.75; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.scp-char-field-input, .scp-char-field-textarea {
+    width: 100%; box-sizing: border-box;
+    background: var(--scp-input-bg); border: var(--scp-border);
+    border-radius: 6px; color: var(--scp-text); font-family: var(--scp-font);
+    font-size: 12px; padding: 8px 10px; outline: none; transition: border-color 0.15s;
+}
+.scp-char-field-textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
+.scp-char-field-input:focus, .scp-char-field-textarea:focus { border-color: var(--scp-accent-dim); }
+
+.scp-char-save-footer { display: flex; gap: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06); }
+
+.scp-char-ov-hint { font-size: 11px; color: var(--scp-text-muted); font-style: italic; margin-bottom: 6px; }
+.scp-char-ov-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; transition: background 0.15s; }
+.scp-char-ov-row-active { background: rgba(255,180,50,0.06); }
+
+@media screen and (max-width: 600px) {
+    .scp-char-overlay { padding: 0 8px; }
+    .scp-char-panel { width: calc(100vw - 16px); height: calc(100dvh - 90px); height: calc(100vh - 90px); border-radius: 12px; }
+    .scp-char-body { flex-direction: column; }
+    .scp-char-sidebar { width: 100%; height: auto; max-height: 160px; border-right: none; border-bottom: var(--scp-border); }
+    .scp-char-banner-avatar { width: 52px; height: 52px; }
+    .scp-char-banner-name { font-size: 16px; }
+}
+
+/* ── Banner save/revert buttons ──────────────────────────────────── */
+.scp-char-banner-actions {
+    position: absolute; bottom: 12px; right: 14px; top: auto;
+    z-index: 3; display: flex; gap: 6px; align-items: center;
+}
+.scp-char-banner-actions .scp-action-btn {
+    background: rgba(0, 0, 0, 0.65) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: #fff !important;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.scp-char-banner-save-btn {
+    background: rgba(76, 175, 125, 0.4) !important;
+    border-color: rgba(76, 175, 125, 0.6) !important;
+}
+.scp-char-banner-save-btn:hover:not(:disabled) {
+    background: rgba(76, 175, 125, 0.7) !important;
+    border-color: #4caf7d !important;
+}
+.scp-char-banner-actions .scp-action-btn:disabled {
+    background: rgba(0, 0, 0, 0.4) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+    color: rgba(255, 255, 255, 0.4) !important;
+    box-shadow: none;
+}
+.scp-provider-badge{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;color:var(--scp-text-muted);border:var(--scp-border);border-radius:4px;padding:1px 5px}
+
+/* ═══════════════════════════════════════════════════════════════
+   VAULT LORE MANAGER — native TauriTavern lore directories
+═══════════════════════════════════════════════════════════════ */
+
+#scp-vault-lore-overlay[hidden] {
+    display: none !important;
+}
+
+.scp-vl-panel {
+    width: min(1040px, calc(100vw - 32px));
+}
+
+.scp-vl-title {
+    color: var(--scp-text);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.scp-vl-close {
+    display: grid;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    place-items: center;
+    border: var(--scp-border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--scp-text-muted);
+    font: inherit;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.scp-vl-close:hover,
+.scp-vl-close:focus-visible {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--scp-text);
+}
+
+.scp-vl-body {
+    min-height: 0;
+}
+
+.scp-vl-sidebar {
+    width: 238px;
+}
+
+.scp-vl-folder {
+    gap: 7px;
+}
+
+.scp-vl-folder-icon {
+    flex: 0 0 14px;
+    color: var(--scp-accent);
+    font-size: 13px;
+    text-align: center;
+}
+
+.scp-vl-main {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+.scp-vl-toolbar {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 12px;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: var(--scp-border);
+    background: var(--scp-toolbar-bg);
+}
+
+.scp-vl-heading-wrap {
+    min-width: 0;
+}
+
+.scp-vl-heading {
+    overflow: hidden;
+    color: var(--scp-text);
+    font-size: 12px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.scp-vl-summary {
+    margin-top: 2px;
+    color: var(--scp-text-muted);
+    font-size: 10px;
+}
+
+.scp-vl-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 6px;
+}
+
+.scp-vl-btn {
+    padding: 5px 9px;
+    border: var(--scp-border);
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--scp-text);
+    font: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.scp-vl-btn:hover:not(:disabled),
+.scp-vl-btn:focus-visible:not(:disabled) {
+    border-color: var(--scp-accent-dim);
+    background: var(--scp-accent-bg);
+}
+
+.scp-vl-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.scp-vl-entries {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.scp-vl-entry {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    padding: 10px 11px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.025);
+    cursor: pointer;
+}
+
+.scp-vl-entry:hover {
+    border-color: var(--scp-border);
+    background: rgba(255, 255, 255, 0.045);
+}
+
+.scp-vl-entry-main {
+    min-width: 0;
+}
+
+.scp-vl-entry-title {
+    overflow: hidden;
+    color: var(--scp-text);
+    font-size: 12px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.scp-vl-entry-meta,
+.scp-vl-entry-path {
+    overflow: hidden;
+    color: var(--scp-text-muted);
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.scp-vl-entry-path {
+    margin-top: 1px;
+    color: var(--scp-accent-dim);
+}
+
+.scp-vl-entry-preview {
+    display: -webkit-box;
+    margin-top: 4px;
+    overflow: hidden;
+    color: var(--scp-text-muted);
+    font-size: 10px;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.scp-vl-entry-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 4px;
+}
+
+.scp-vl-status {
+    flex: 0 0 auto;
+    min-height: 16px;
+    padding: 0 12px 8px;
+    color: var(--scp-text-muted);
+    font-size: 10px;
+}
+
+.scp-vl-error {
+    color: var(--scp-danger) !important;
+}
+
+@media screen and (max-width: 700px) {
+    .scp-vl-sidebar {
+        width: 180px;
+    }
+
+    .scp-vl-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .scp-vl-actions {
+        flex-wrap: wrap;
+    }
+}

@@ -8,6 +8,7 @@ import {
 } from './helpers.js';
 import { createOverlays } from './overlays.js';
 import { createRenderer } from './render.js';
+import { createExperimentOverlay } from './experiments.js';
 const LS_WIDTH = 'tt.fileExplorer.width';
 const LS_VIEW = 'tt.fileExplorer.view';
 function getApi() {
@@ -22,6 +23,11 @@ function getApi() {
 export function createFileExplorer({ api = getApi(), mount = document.body } = {}) {
     const state = createState();
     const host = {};
+    const experiments = createExperimentOverlay({
+        api,
+        getMountId: () => state.currentMountId,
+        mount: document.body,
+    });
     let dock;
     let toggle;
     let content;
@@ -116,7 +122,16 @@ export function createFileExplorer({ api = getApi(), mount = document.body } = {
         const toolbar = el('div', 'tt-fe-toolbar');
         breadcrumbs = el('div', 'tt-fe-breadcrumbs');
         toolbar.append(breadcrumbs);
+        toolbar.append(iconButton('fa-solid fa-sliders', 'Lore defaults', () => window.__TT_LORE_DEFAULTS__?.open()));
+        const experimentButton = iconButton('fa-solid fa-flask', 'Narrative experiments', () => void experiments.openMenu(experimentButton));
+        toolbar.append(experimentButton);
         toolbar.append(iconButton('fa-solid fa-rotate', 'Refresh', () => host.refreshAll()));
+        toolbar.append(iconButton('fa-solid fa-book-open', 'Use this folder for lore', () => {
+            if (!state.currentMountId || state.currentMountId !== state.primaryMountId) return;
+            const relative = state.currentPath.replace(/^\/+|\/+$/g, '');
+            const folder = relative.startsWith('lore') ? relative : `lore/${relative}`;
+            window.dispatchEvent(new CustomEvent('tt:use-lore-folder', { detail: { folder } }));
+        }));
         toolbar.append(iconButton('fa-regular fa-file-circle-plus', 'New file', () => host.createEntry(false)));
         toolbar.append(iconButton('fa-regular fa-folder-plus', 'New folder', () => host.createEntry(true)));
         toolbar.append(iconButton('fa-solid fa-upload', 'Upload files', () => overlays.uploadFiles()));
@@ -164,11 +179,15 @@ export function createFileExplorer({ api = getApi(), mount = document.body } = {
             state.mounts = result.mounts ?? [];
             state.primaryMountId = result.primaryMountId ?? null;
             if (!preserveExpanded) {
-                state.currentMountId = state.primaryMountId ?? state.mounts[0]?.id ?? null;
+                const preferredMount = window.__TT_LORE_DEFAULTS__?.get?.()?.vault?.mountId;
+                state.currentMountId = state.mounts.some((mount) => mount.id === preferredMount)
+                    ? preferredMount
+                    : state.primaryMountId ?? state.mounts[0]?.id ?? null;
                 state.currentPath = '';
             }
             if (!state.currentMountId && state.mounts[0]) state.currentMountId = state.mounts[0].id;
             host.render();
+            publishFocus();
         } catch (error) {
             host.setError(error);
         }
@@ -179,7 +198,8 @@ export function createFileExplorer({ api = getApi(), mount = document.body } = {
         state.children.set(key, null);
         try {
             const entries = await api.list(mountId, path);
-            const visible = entries
+            const overlayEntries = experiments.transformEntries(mountId, path, entries);
+            const visible = overlayEntries
                 .filter((entry) => state.showHidden || !entry.hidden)
                 .filter((entry) => !state.filter || entry.name.toLowerCase().includes(state.filter))
                 .sort((left, right) => compareEntries(state, left, right));
@@ -209,6 +229,7 @@ export function createFileExplorer({ api = getApi(), mount = document.body } = {
             state.selected.add(key);
         }
         state.lastSelected = { mountId, entry };
+        publishFocus();
         host.render();
     }
 
@@ -311,12 +332,44 @@ export function createFileExplorer({ api = getApi(), mount = document.body } = {
         if (!vault) return;
         await ensureChildren(vault.id, state.currentPath);
         host.render();
+        publishFocus();
     }
+    function openFileInTab(vaultId, entry) {
+        const centerTabs = window.__TT_CENTER_TABS__;
+        if (centerTabs?.openFile) {
+            centerTabs.openFile({
+                mountId: vaultId,
+                path: entry.readPath ?? entry.path,
+                name: entry.name,
+                extension: entry.name?.split('.').pop()?.toLowerCase(),
+            });
+            return;
+        }
+        overlays.openPreview(vaultId, entry);
+    }
+
+    async function openPath(mountId, path) {
+        await loadState({ preserveExpanded: true });
+        const resolvedMount = mountId ?? state.primaryMountId;
+        if (!resolvedMount) return;
+        state.currentMountId = resolvedMount;
+        state.currentPath = String(path || '').replace(/^\/+/, '');
+        if (state.currentPath) {
+            state.expanded.add(keyOf(resolvedMount, state.currentPath));
+            const parent = state.currentPath.split('/').slice(0, -1).join('/');
+            if (parent) state.expanded.add(keyOf(resolvedMount, parent));
+        }
+        openDock();
+        await loadCurrent();
+        publishFocus();
+    }
+
     function openFolder(vault, entry) {
         state.currentMountId = vault.id;
         state.currentPath = entry.path;
         state.expanded.add(keyOf(vault.id, entry.path));
         ensureChildren(vault.id, entry.path).then(host.render);
+        publishFocus();
         host.render();
     }
     function setView(view) {
@@ -367,6 +420,29 @@ export function createFileExplorer({ api = getApi(), mount = document.body } = {
         return result;
     }
 
+    function publishFocus() {
+        const vault = state.mounts.find((item) => item.id === state.currentMountId);
+        if (!vault) return;
+        const path = String(state.currentPath || '').replace(/^\/+|\/+$/g, '');
+        const selected = selectedEntries()
+            .filter((item) => item.vault.id === vault.id)
+            .map((item) => item.entry.path);
+        let folder = '';
+        if (vault.id === state.primaryMountId) {
+            folder = path === 'lore' || path.startsWith('lore/') ? path : 'lore';
+        }
+        window.__TAURITAVERN__?.api?.workspace?.setFocus?.({
+            mountId: vault.id,
+            path,
+            folder,
+            primary: vault.id === state.primaryMountId,
+            selected,
+        });
+        window.dispatchEvent(new CustomEvent('tt:vault-focus-changed', {
+            detail: { mountId: vault.id, path, folder, selected },
+        }));
+    }
+
     function findEntry(mountId, path) {
         for (const [key, entries] of state.children) {
             if (!key.startsWith(`${mountId}|`) || !entries) continue;
@@ -414,7 +490,7 @@ export function createFileExplorer({ api = getApi(), mount = document.body } = {
             } else if (event.key === 'Enter') {
                 event.preventDefault();
                 if (first.entry.kind === 'directory') host.toggleExpanded(first.vault.id, first.entry.path);
-                else overlays.openPreview(first.vault.id, first.entry);
+                else host.openFileInTab(first.vault.id, first.entry);
             } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
                 event.preventDefault();
                 moveSelection(event.key === 'ArrowDown' ? 1 : -1, event.shiftKey);
@@ -464,6 +540,7 @@ export function createFileExplorer({ api = getApi(), mount = document.body } = {
             select,
             setError,
             openPreview: overlays.openPreview,
+            openFileInTab,
             showMountMenu: overlays.showMountMenu,
             showEntryMenu: overlays.showEntryMenu,
             makeDropTarget: overlays.makeDropTarget,
@@ -477,7 +554,14 @@ export function createFileExplorer({ api = getApi(), mount = document.body } = {
             state.expanded.add(keyOf(state.primaryMountId, ''));
             await loadCurrent();
         }
-        window.__ttFileExplorer = { open: openDock, close: closeDock, toggle: toggleDock, state, api, refresh: loadCurrent };
+        window.__ttFileExplorer = { open: openDock, close: closeDock, toggle: toggleDock, state, api, refresh: loadCurrent, openPath, experiments };
+        window.__TT_EXPERIMENTS__ = experiments;
+        experiments.setOnChange(() => {
+            state.children.clear();
+            document.querySelector('[title="Narrative experiments"]')
+                ?.classList.toggle('tt-fe-experiment-active', Boolean(experiments.active));
+            void host.refreshAll?.();
+        });
     }
 
     void initialize();

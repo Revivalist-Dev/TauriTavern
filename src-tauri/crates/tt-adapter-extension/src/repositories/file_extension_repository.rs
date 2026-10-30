@@ -58,6 +58,8 @@ const SYSTEM_EXTENSIONS: &[&str] = &[
     "in-app-agent",
     "mcp-manager",
     "translate",
+    "tauritavern-deeplore",
+    "tauritavern-deeplore-copilot",
 ];
 const THIRD_PARTY_EXTENSION_NAME_PREFIX: &str = "third-party/";
 

@@ -8,7 +8,7 @@ const viewport = { width: 1280, height: 900 };
 
 async function panelDescriptors(target) {
     return target.evaluate(() => {
-        const panels = [...document.querySelectorAll('#extensions_settings .inline-drawer, #extensions_settings2 .inline-drawer')];
+        const panels = [...document.querySelectorAll('#extensions_settings > .inline-drawer, #extensions_settings2 > .inline-drawer')];
         panels.forEach((panel, index) => panel.setAttribute('data-layout-panel', String(index)));
         return panels.map((panel, index) => {
             const header = panel.querySelector('.inline-drawer-header');
@@ -23,7 +23,7 @@ async function panelDescriptors(target) {
 
 async function ensureOpen(target, index) {
     const panel = `[data-layout-panel="${index}"]`;
-    const content = target.locator(`${panel} .inline-drawer-content`);
+    const content = target.locator(`${panel} > .inline-drawer-content`);
     if (!(await content.isVisible())) {
         await target.locator(`${panel} .inline-drawer-header`).click();
         await target.waitForTimeout(180);
@@ -52,7 +52,7 @@ test('every extension settings panel opens inside its column without moving the 
     for (const descriptor of panels) {
         await ensureOpen(page, descriptor.index);
         const panel = await rect(page, `[data-layout-panel="${descriptor.index}"]`);
-        const content = await rect(page, `[data-layout-panel="${descriptor.index}"] .inline-drawer-content`);
+        const content = await rect(page, `[data-layout-panel="${descriptor.index}"] > .inline-drawer-content`);
         assert.ok(panel && content, `${descriptor.text}: missing panel geometry`);
         assert.ok(content.height > 0, `${descriptor.text}: panel content is empty`);
         assert.ok(panel.x >= drawerBefore.x - 1, `${descriptor.text}: starts left of the drawer`);

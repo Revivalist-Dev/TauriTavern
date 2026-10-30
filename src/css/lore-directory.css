@@ -1,0 +1,31 @@
+#WI-SP-button {
+    display: none;
+}
+
+#lore-directory .lore-folder-row,
+#lore-directory .lore-entry-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 26px;
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+#lore-directory .lore-folder-row:hover,
+#lore-directory .lore-entry-row:hover {
+    background: rgb(255 255 255 / 7%);
+}
+
+#lore-directory .lore-folder-name,
+#lore-directory .lore-entry-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#lore-directory .lore-entry-row {
+    cursor: pointer;
+}

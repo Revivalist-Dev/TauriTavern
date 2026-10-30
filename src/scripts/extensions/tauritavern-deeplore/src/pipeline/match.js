@@ -1,0 +1,346 @@
+/**
+ * DeepLore — Entry Matching Engine
+ * Extracted from pipeline.js for testability (no SillyTavern imports).
+ *
+ * Performs keyword matching with: constants, bootstrap, warmup/probability/cooldown
+ * gates, cascade links, recursive scanning, BM25 fuzzy search, occurrence-weighted
+ * tiebreakers, and active-character boost.
+ */
+
+import { buildScanText } from '../../core/utils.js';
+import { comparePriority, hasWarmup } from '../helpers.js';
+import { testEntryMatch, testPrimaryMatchOnly, countKeywordOccurrences } from '../../core/matching.js';
+import { vaultIndex, cooldownTracker, trackerKey, fuzzySearchIndex } from '../state.js';
+import { queryBM25 } from '../vault/bm25.js';
+
+const MAX_RECURSION_TEXT = 50000;
+
+/**
+ * #12 — THE runtime-gate predicate, shared by all 4 match paths (primary
+ * keyword, cascade, recursion, BM25 fuzzy). The gate block used to be
+ * copy-pasted per path and drifted: BM25 probability skips were never recorded
+ * (invisible to /dle-why), recursion warmup drops were never recorded, and the
+ * cooldown pre-check existed in two variants. One helper, one behavior.
+ *
+ * Gate order (deterministic first, random roll last):
+ *   1. cooldown — guarded on `entry.cooldown !== null` (frontmatter contract:
+ *      null = no cooldown). A stale cooldownTracker row left behind after an
+ *      author removes `cooldown:` from frontmatter mid-cooldown no longer
+ *      blocks the entry. Silent skip — match-time cooldown drops are not a
+ *      trace collector (applyReinjectionCooldown owns cooldownRemoved).
+ *   2. warmup — canonical `hasWarmup` predicate from helpers.js (gotcha #65
+ *      M-6; do NOT re-inline shape checks). Skipped entirely when
+ *      `getWarmupText` is null: cascade is an explicit author relationship,
+ *      not a keyword trigger, so warmup doesn't apply (BUG-035). Drops are
+ *      recorded in `warmupFailed`.
+ *   3. probability — 0 = never fires (distinct from null = always); (0,1)
+ *      rolls Math.random. Drops are recorded in `probabilitySkipped`. Rolling
+ *      LAST means a deterministically-blocked entry never burns (or falsely
+ *      reports) a probability roll.
+ *
+ * All collector records carry `vaultSource` per-entry (trackerKey invariant,
+ * gotcha #50).
+ *
+ * @param {object} entry - VaultEntry
+ * @param {{probabilitySkipped: Array, warmupFailed: Array}} collectors - trace arrays, mutated
+ * @param {object} settings
+ * @param {(() => string)|null} getWarmupText - lazy scan text for the warmup
+ *   occurrence count, or null to skip the warmup gate (cascade path)
+ * @returns {boolean} true if the entry passes all runtime gates
+ */
+export function passesRuntimeGates(entry, { probabilitySkipped, warmupFailed }, settings, getWarmupText = null) {
+    if (entry.cooldown !== null) {
+        const remaining = cooldownTracker.get(trackerKey(entry));
+        if (remaining !== undefined && remaining > 0) return false;
+    }
+
+    if (getWarmupText !== null && hasWarmup(entry)) {
+        const occurrences = countKeywordOccurrences(entry, getWarmupText(), settings);
+        if (occurrences < entry.warmup) {
+            warmupFailed.push({ title: entry.title, vaultSource: entry.vaultSource || '', needed: entry.warmup, found: occurrences });
+            return false;
+        }
+    }
+
+    if (entry.probability === 0) {
+        probabilitySkipped.push({ title: entry.title, vaultSource: entry.vaultSource || '', probability: 0, roll: 0 });
+        return false;
+    }
+    if (entry.probability !== null && entry.probability < 1.0) {
+        const roll = Math.random();
+        if (roll > entry.probability) {
+            probabilitySkipped.push({ title: entry.title, vaultSource: entry.vaultSource || '', probability: entry.probability, roll });
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * @param {object[]|null} [snapshot] - Defaults to vaultIndex.
+ * @returns {{ matched: VaultEntry[], matchedKeys: Map<string, string>, probabilitySkipped: Array, warmupFailed: Array, fuzzyStats: object, refineKeyBlocked: Array }}
+ */
+export function matchEntries(chat, snapshot = null, { settings, characterName } = {}) {
+    if (!settings) throw new Error('matchEntries: settings parameter is required when called from match.js');
+    const entries = snapshot || vaultIndex;
+    const activeCharName = characterName !== undefined ? characterName : null;
+    /** @type {Set<VaultEntry>} */
+    const matchedSet = new Set();
+    /** @type {Map<string, string>} entry title -> matched key */
+    const matchedKeys = new Map();
+    /** @type {Array<{title: string, probability: number, roll: number}>} */
+    const probabilitySkipped = [];
+    /** @type {Array<{title: string, needed: number, found: number}>} */
+    const warmupFailed = [];
+    /** @type {Array<{title: string, primaryKey: string, refineKeys: string[]}>} */
+    const refineKeyBlocked = [];
+
+    // BUG-AUDIT v2.5: matchedKeys keyed by trackerKey(entry) (vaultSource:title) so
+    // same-titled cross-vault entries don't collide on Map.set/.get. Reads at consumer
+    // sites (index.js, pipeline.js, commands-pipeline.js) use matchedKeys.get(trackerKey(e)).
+
+    // Constants always, regardless of scan depth.
+    for (const entry of entries) {
+        if (entry.constant) {
+            matchedSet.add(entry);
+            matchedKeys.set(trackerKey(entry), '(constant)');
+        }
+    }
+
+    // Bootstrap (cold-start) when chat is short.
+    if (chat.length <= settings.newChatThreshold) {
+        for (const entry of entries) {
+            if (entry.bootstrap && !matchedSet.has(entry)) {
+                matchedSet.add(entry);
+                matchedKeys.set(trackerKey(entry), '(bootstrap)');
+            }
+        }
+    }
+
+    // Memoize buildScanText by depth — shared across keyword + BM25 paths.
+    const scanTextMemo = new Map();
+    function getScanText(depth) {
+        if (!scanTextMemo.has(depth)) scanTextMemo.set(depth, buildScanText(chat, depth));
+        return scanTextMemo.get(depth);
+    }
+
+    // scanDepth=0 → AI-only mode, skip keyword matching entirely.
+    if (settings.scanDepth > 0) {
+        const globalScanText = getScanText(settings.scanDepth);
+
+        for (const entry of entries) {
+            if (entry.constant) continue;
+
+            const scanText = entry.scanDepth !== null
+                ? getScanText(entry.scanDepth)
+                : globalScanText;
+
+            const key = testEntryMatch(entry, scanText, settings);
+            if (!key && entry.refineKeys?.length > 0) {
+                // Primary hit but refine keys blocked. selectiveLogic threaded
+                // so the diagnostic surface (/dle-why, commands-pipeline.js)
+                // can render mode-aware copy instead of hard-coded AND_ANY
+                // phrasing (audit fix-up — pin-the-predicate rule, gotcha #69).
+                const primaryHit = testPrimaryMatchOnly(entry, scanText, settings);
+                if (primaryHit) {
+                    refineKeyBlocked.push({
+                        title: entry.title,
+                        vaultSource: entry.vaultSource || '',
+                        primaryKey: primaryHit,
+                        refineKeys: [...entry.refineKeys],
+                        selectiveLogic: entry.selectiveLogic || 'and_any',
+                    });
+                }
+            }
+            if (key) {
+                // #12: unified runtime gates (cooldown → warmup → probability).
+                if (!passesRuntimeGates(entry, { probabilitySkipped, warmupFailed }, settings, () => scanText)) continue;
+
+                matchedSet.add(entry);
+                matchedKeys.set(trackerKey(entry), key);
+            }
+        }
+
+        // BUG-AUDIT v2.5: same title can exist in multiple vaults; key the lookup map
+        // by title.toLowerCase() → array of entries so cascade_links and
+        // characterContextScan don't silently drop one vault's entry to last-vault-wins.
+        // User-authored cascade_links/character names are bare titles (no vault prefix),
+        // so we union across all same-titled entries instead of trying to disambiguate.
+        // Built LAZILY: only the optional characterContextScan + cascade-link paths consume
+        // it, so a default-config generation (char scan off, no cascade links) never pays the
+        // O(N) full-vault Map build that ran every generation before. Memoized — builds once.
+        let _titleMap = null;
+        const getTitleMap = () => {
+            if (_titleMap) return _titleMap;
+            _titleMap = new Map();
+            for (const e of entries) {
+                const k = e.title.toLowerCase();
+                if (!_titleMap.has(k)) _titleMap.set(k, []);
+                _titleMap.get(k).push(e);
+            }
+            return _titleMap;
+        };
+
+        if (settings.characterContextScan && activeCharName) {
+            const nameLower = activeCharName.toLowerCase();
+            // M-13: UNION of title-matched and key-matched entries, not either/or.
+            // The old `titleMap.get() || entries.filter(keyMatch)` made the two
+            // mutually exclusive — if ANY entry's title equalled the character name,
+            // the key-based fallback never ran, silently dropping entries that
+            // reference the character via `keys:` but carry a different title.
+            // The matchedSet.has() guard below dedups by object identity (both lists
+            // draw from the same `entries`), so an entry matching by BOTH is added once.
+            const titleMatches = getTitleMap().get(nameLower) || [];
+            const keyMatches = entries.filter(e => e.keys.some(k => k.toLowerCase() === nameLower));
+            const charEntries = [...titleMatches, ...keyMatches];
+            for (const charEntry of charEntries) {
+                if (!matchedSet.has(charEntry)) {
+                    matchedSet.add(charEntry);
+                    matchedKeys.set(trackerKey(charEntry), '(active character)');
+                }
+            }
+        }
+
+        // Cascade links: same gates as direct matches except warmup.
+        // M-5 (2026-05-22): track cascade-pulled entries with excludeRecursion=true
+        // separately. They still belong in matchedSet (they ARE matched and will be
+        // injected), but their content must NOT seed the recursion text scan —
+        // author intent for `excludeRecursion: true` is "never use this entry's
+        // content for scanning." The downstream L172 filter (`!e.excludeRecursion`)
+        // already catches this, but the explicit cascade-side filter is
+        // defense-in-depth so a future refactor of the recursion text gathering
+        // cannot silently leak cascade-pulled excluded content for one step.
+        const cascadeExcludedFromRecursion = new Set();
+        const cascadeSource = [...matchedSet];
+        for (const entry of cascadeSource) {
+            if (!entry.cascadeLinks || entry.cascadeLinks.length === 0) continue;
+            for (const linkTitle of entry.cascadeLinks) {
+                const linkedCandidates = getTitleMap().get(linkTitle.toLowerCase()) || [];
+                for (const linked of linkedCandidates) {
+                    if (matchedSet.has(linked)) continue;
+                    // #12: unified runtime gates. getWarmupText=null skips the warmup
+                    // gate — BUG-035: cascade is an explicit author relationship, not a
+                    // keyword trigger, so warmup doesn't apply. L-12: probability skips
+                    // are recorded so /dle-why can explain a cascade-pulled entry that
+                    // didn't inject.
+                    if (!passesRuntimeGates(linked, { probabilitySkipped, warmupFailed }, settings, null)) continue;
+                    // L-11: cascade ALSO intentionally bypasses the refine_keys/selectiveLogic
+                    // gate (unlike the recursion path, which routes through testEntryMatch).
+                    // This asymmetry is by design: a cascade_link is the author explicitly
+                    // naming an entry to pull (a title relationship), not a keyword hit, so the
+                    // secondary-keyword refine gate doesn't apply — same rationale as the
+                    // warmup bypass above. Recursion is keyword-triggered, so it keeps the gate.
+                    matchedSet.add(linked);
+                    matchedKeys.set(trackerKey(linked), `(cascade from: ${entry.title})`);
+                    if (linked.excludeRecursion) cascadeExcludedFromRecursion.add(linked);
+                }
+            }
+        }
+
+        if (settings.recursiveScan && settings.maxRecursionSteps > 0) {
+            let step = 0;
+            // M-5: exclude cascade-pulled excludeRecursion entries from the initial
+            // recursion seed. The L172 `!e.excludeRecursion` filter inside the loop
+            // is the authoritative gate; this is belt-and-suspenders.
+            let newlyMatched = new Set();
+            for (const m of matchedSet) {
+                if (cascadeExcludedFromRecursion.has(m)) continue;
+                newlyMatched.add(m);
+            }
+
+            while (newlyMatched.size > 0 && step < settings.maxRecursionSteps) {
+                step++;
+
+                let recursionText = [...newlyMatched]
+                    .filter(e => !e.excludeRecursion)
+                    .map(e => e.content)
+                    .join('\n');
+                if (recursionText.length > MAX_RECURSION_TEXT) {
+                    recursionText = recursionText.substring(0, MAX_RECURSION_TEXT);
+                }
+
+                if (!recursionText.trim()) break;
+
+                newlyMatched = new Set();
+
+                for (const entry of entries) {
+                    if (matchedSet.has(entry)) continue;
+                    if (entry.constant) continue;
+
+                    const key = testEntryMatch(entry, recursionText, settings);
+                    if (key) {
+                        // #12: unified runtime gates. Warmup occurrences are counted
+                        // against the recursion text (the text that triggered the match).
+                        // Recursion warmup drops are now recorded in warmupFailed (they
+                        // were silently dropped before), same L-12 rationale as the
+                        // probability recording.
+                        const recText = recursionText;
+                        if (!passesRuntimeGates(entry, { probabilitySkipped, warmupFailed }, settings, () => recText)) continue;
+                        matchedSet.add(entry);
+                        newlyMatched.add(entry);
+                        matchedKeys.set(trackerKey(entry), `${key} (recursion step ${step})`);
+                    }
+                }
+            }
+        }
+    }
+
+    // BM25 fuzzy search supplements keyword matches with TF-IDF scored results.
+    // L-1: nullish so an explicit `fuzzySearchMinScore: 0` (match-everything) isn't
+    // coerced to 0.5 by `||` (same falsy-coalesce class as M-1).
+    const fuzzyStats = { active: false, candidates: 0, matched: 0, threshold: settings.fuzzySearchMinScore ?? 0.5 };
+    if (settings.fuzzySearchEnabled && fuzzySearchIndex && settings.scanDepth > 0) {
+        fuzzyStats.active = true;
+        const fuzzyText = getScanText(settings.scanDepth);
+        const bm25Results = queryBM25(fuzzySearchIndex, fuzzyText, 20, fuzzyStats.threshold);
+        fuzzyStats.candidates = bm25Results.length;
+        for (const result of bm25Results) {
+            const entry = result.entry;
+            if (matchedSet.has(entry)) continue;
+            if (entry.constant) continue;
+
+            // #12: unified runtime gates. BM25 probability skips are now recorded in
+            // probabilitySkipped (they were invisible to /dle-why before — the
+            // original L-12 fix missed this path). BUG-AUDIT-8: BM25 fuzzy matches
+            // must also honor warmup. Warmup scan text uses `||` not `??`: a
+            // per-entry scanDepth of 0 ("AI-only, don't keyword-scan") would
+            // otherwise yield empty scan text → 0 occurrences → a fuzzy-matched
+            // entry is silently dropped on warmup. Fall back to the global depth so
+            // warmup can actually be evaluated for entries that matched via BM25.
+            if (!passesRuntimeGates(entry, { probabilitySkipped, warmupFailed }, settings, () => getScanText(entry.scanDepth || settings.scanDepth))) continue;
+
+            matchedSet.add(entry);
+            matchedKeys.set(trackerKey(entry), `(fuzzy, score: ${result.score.toFixed(1)})`);
+            fuzzyStats.matched++;
+        }
+    }
+
+    // Default: priority ascending = higher priority. #16: settings.priorityReversed flips.
+    const matched = [...matchedSet].sort((a, b) => comparePriority(a, b, settings.priorityReversed) || a.title.localeCompare(b.title) || (a.vaultSource || '').localeCompare(b.vaultSource || ''));
+
+    // Tiebreak within priority group using hit count.
+    if (settings.keywordOccurrenceWeighting) {
+        // BUG-AUDIT-H13: use the memo, not a fresh buildScanText.
+        // BUG-AUDIT v2.5: key occurrence cache by trackerKey so same-titled cross-vault
+        // entries don't share a cache slot (their content/scan-depth may differ).
+        const scanText = getScanText(settings.scanDepth);
+        const occurrenceCache = new Map();
+        const getCachedCount = (entry) => {
+            const ck = trackerKey(entry);
+            let count = occurrenceCache.get(ck);
+            if (count === undefined) {
+                count = countKeywordOccurrences(entry, scanText, settings);
+                occurrenceCache.set(ck, count);
+            }
+            return count;
+        };
+        matched.sort((a, b) => {
+            const pri = comparePriority(a, b, settings.priorityReversed);
+            if (pri !== 0) return pri;
+            return getCachedCount(b) - getCachedCount(a) || a.title.localeCompare(b.title) || (a.vaultSource || '').localeCompare(b.vaultSource || '');
+        });
+    }
+
+    return { matched, matchedKeys, probabilitySkipped, warmupFailed, fuzzyStats, refineKeyBlocked };
+}

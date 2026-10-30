@@ -45,7 +45,7 @@ Terms used when translating TauriTavern documentation and UI strings. Keep the E
 
 The following non-English characters are data, not prose, and must not be translated:
 
-- Unicode and encoding fixtures: `tt-adapter-archive` (GB18030 filename fixtures), `tt-domain/src/text_metrics.rs` (CJK width fixtures), `tt-adapter-tokenization` (tokenizer golden fixtures).
+- Unicode and encoding fixtures: `tt-adapter-tokenization` tokenizer golden fixtures. The CJK tokenizer vector is retained because it validates model token IDs; CJK text-metric and GB18030 archive fixtures are retired with the lorebook migration.
 - Tokenizer vocabularies under `src-tauri/resources/tokenizers/` and vendored `lib/` bundles.
 
 ## Style rules

@@ -23,7 +23,7 @@ export const RUNTIME_ONLY_TOOLS = Object.freeze([
 export const KNOWN_TOOLS = Object.freeze([
     'builtin:chat.search',
     'builtin:chat.read_messages',
-    'builtin:worldinfo.read_activated',
+    'builtin:lore.activated',
     'builtin:workspace.list_files',
     'builtin:workspace.search_files',
     'builtin:workspace.read_file',

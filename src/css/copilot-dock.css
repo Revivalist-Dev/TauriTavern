@@ -1,0 +1,268 @@
+:root {
+    --tt-copilot-width: 440px;
+    --tt-left-rail-width: 58px;
+}
+
+#tt-copilot-dock {
+    position: fixed;
+    inset: 0 auto 0 var(--tt-left-rail-width);
+    z-index: 900;
+    display: none;
+    width: var(--tt-copilot-width);
+    min-width: 380px;
+    max-width: 680px;
+    flex-direction: column;
+    background: var(--SmartThemeBlurTintColor, #1b1b20);
+    color: var(--SmartThemeBodyColor, #e8e8ef);
+    border-right: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 12%));
+    box-shadow: 8px 0 28px var(--black30a, rgb(0 0 0 / 25%));
+    font-family: inherit;
+}
+
+body.tt-copilot-open #tt-copilot-dock {
+    display: flex;
+}
+
+body.tt-copilot-open #sheld {
+    right: 0;
+    left: calc(var(--tt-left-rail-width) + var(--tt-copilot-width));
+    width: min(var(--sheldWidth), calc(100vw - var(--tt-left-rail-width) - var(--tt-copilot-width) - 48px));
+    margin-inline: auto;
+}
+
+body.tt-copilot-open.tt-fe-open #sheld {
+    left: calc(var(--tt-left-rail-width) + var(--tt-copilot-width));
+    right: var(--tt-fe-width);
+    width: min(var(--sheldWidth), calc(100vw - var(--tt-left-rail-width) - var(--tt-copilot-width) - var(--tt-fe-width) - 48px));
+    margin-inline: auto;
+}
+
+body.tt-copilot-resizing #tt-copilot-dock,
+body.tt-copilot-resizing #sheld {
+    transition: none;
+}
+
+#tt-copilot-dock .tt-copilot-head {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+    padding: 0 8px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 12%));
+    background: var(--SmartThemeBlurTintColor, #1b1b20);
+    background: color-mix(in srgb, var(--SmartThemeBlurTintColor, #1b1b20) 82%, black);
+}
+
+#tt-copilot-dock .tt-copilot-title {
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+#tt-copilot-dock .tt-copilot-status {
+    flex: 1;
+    overflow: hidden;
+    color: var(--SmartThemeEmColor, #aaa);
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#tt-copilot-dock .tt-copilot-collapse,
+#tt-copilot-toggle {
+    border: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 12%));
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+#tt-copilot-dock .tt-copilot-collapse:hover,
+#tt-copilot-toggle:hover {
+    background: rgb(255 255 255 / 8%);
+    background: color-mix(in srgb, var(--SmartThemeBodyColor, #fff) 8%, transparent);
+    border-color: var(--SmartThemeQuoteColor, #5da9e9);
+}
+
+#tt-copilot-dock .tt-copilot-collapse:focus-visible,
+#tt-copilot-toggle:focus-visible,
+#tt-copilot-dock .tt-copilot-resizer:focus-visible {
+    outline: 2px solid var(--SmartThemeQuoteColor, #5da9e9);
+    outline-offset: 1px;
+}
+
+#tt-copilot-dock .tt-copilot-collapse {
+    width: 22px;
+    height: 22px;
+    line-height: 1;
+}
+
+#tt-copilot-dock.tt-copilot-ready .tt-copilot-head {
+    display: none;
+}
+
+#tt-copilot-dock.tt-copilot-ready .tt-copilot-slot {
+    height: 100%;
+}
+
+#tt-copilot-dock .scp-toolbar {
+    flex-wrap: wrap;
+    white-space: normal;
+    row-gap: 4px;
+}
+
+#tt-copilot-dock .scp-sess-wrap {
+    flex: 1 1 150px;
+    min-width: 120px;
+}
+
+#tt-copilot-dock .scp-depth-slider {
+    width: 52px;
+}
+
+#tt-copilot-dock #scp-ghost-btn,
+#tt-copilot-dock #scp-min-btn {
+    display: none !important;
+}
+
+#tt-copilot-dock #scp-window {
+    position: absolute !important;
+    inset: 0 !important;
+    display: flex !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    transform: none !important;
+    z-index: 1 !important;
+}
+
+#tt-copilot-dock #scp-window .scp-rh,
+#tt-copilot-dock #scp-window #scp-min-btn,
+#tt-copilot-dock #scp-window #scp-ghost-btn {
+    display: none !important;
+}
+
+#tt-copilot-dock .tt-copilot-empty {
+    padding: 16px;
+    color: var(--SmartThemeEmColor, #aaa);
+    font-size: 12px;
+}
+
+#tt-copilot-dock .tt-copilot-empty-message {
+    margin-bottom: 8px;
+}
+
+#tt-copilot-dock .tt-copilot-empty .menu_button {
+    width: auto;
+    margin: 0;
+    padding: 4px 10px;
+    color: var(--SmartThemeBodyColor, #eee);
+    border: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 12%));
+    border-radius: 4px;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+}
+
+#tt-copilot-dock .tt-copilot-empty .menu_button:hover,
+#tt-copilot-dock .tt-copilot-empty .menu_button:focus-visible {
+    background: var(--white20a, rgb(255 255 255 / 12%));
+}
+
+#tt-copilot-dock #scp-window button:focus-visible,
+#tt-copilot-dock #scp-window [tabindex]:focus-visible {
+    outline: 2px solid var(--SmartThemeQuoteColor, #5da9e9);
+    outline-offset: -2px;
+}
+
+#tt-copilot-dock #scp-window .scp-provider-badge {
+    border: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 12%));
+    color: var(--SmartThemeEmColor, #aaa);
+}
+
+#tt-copilot-dock .tt-copilot-resizer {
+    position: absolute;
+    top: 0;
+    right: -3px;
+    bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+    z-index: 1;
+}
+
+#tt-copilot-dock .tt-copilot-resizer:hover,
+#tt-copilot-dock .tt-copilot-resizer:focus-visible {
+    background: var(--SmartThemeQuoteColor, #6a9ee8);
+    opacity: 0.5;
+}
+
+#tt-copilot-toggle {
+    position: fixed;
+    top: 50%;
+    left: var(--tt-left-rail-width);
+    z-index: 3100;
+    width: 22px;
+    height: 54px;
+    padding: 0;
+    border-left: 0;
+    border-radius: 0 6px 6px 0;
+    background: var(--SmartThemeBlurTintColor, #1b1b20);
+    color: var(--SmartThemeBodyColor, #e8e8ef);
+    font-size: 11px;
+    transform: translateY(-50%);
+}
+
+#tt-copilot-toggle:hover {
+    border-left: 0;
+    background: color-mix(in srgb, var(--SmartThemeBlurTintColor, #1b1b20) 78%, var(--SmartThemeQuoteColor, #5da9e9));
+}
+
+body.tt-copilot-open #tt-copilot-toggle {
+    display: none;
+}
+
+#tt-file-explorer,
+#tt-file-explorer *,
+#tt-copilot-dock,
+#tt-copilot-dock * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--SmartThemeQuoteColor, #5da9e9) transparent;
+}
+
+#tt-file-explorer ::-webkit-scrollbar,
+#tt-copilot-dock ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+#tt-file-explorer ::-webkit-scrollbar-track,
+#tt-copilot-dock ::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#tt-file-explorer ::-webkit-scrollbar-thumb,
+#tt-copilot-dock ::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: var(--SmartThemeQuoteColor, #5da9e9);
+}
+
+@media (max-width: 900px) {
+    body.tt-copilot-open #sheld {
+        right: 0;
+        left: 0;
+        width: auto;
+        margin-inline: auto;
+    }
+
+    #tt-copilot-dock {
+        left: 0;
+        width: min(86vw, var(--tt-copilot-width));
+    }
+}

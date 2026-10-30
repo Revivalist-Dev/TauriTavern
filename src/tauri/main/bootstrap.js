@@ -3,7 +3,8 @@ import { installWindowBackdrop } from '../../scripts/window-backdrop.js';
 import { invoke } from '../../tauri-bridge.js';
 import { eventSource, event_types } from '../../scripts/events.js';
 import { createTauriMainContext } from './context.js';
-import { installVaultApi, createVaultApi } from './api/vault.js';
+import { installVaultApi, createVaultApi, createLoreApi } from './api/vault.js';
+import { installWorkspaceApi, createWorkspaceApi } from './api/workspace.js';
 import { createDownloadBridge } from './download-bridge.js';
 import { createInterceptors } from './interceptors.js';
 import { createRouteRegistry } from './router.js';
@@ -259,7 +260,11 @@ export function bootstrapTauriMain() {
 
     const context = createTauriMainContext({ invoke });
     installHostAbi(context); installLayoutApi(); installChatApi(context); installChatSurfaceApi(); installCharacterCardsApi(context);
-    installVaultApi(createVaultApi({ safeInvoke: context.safeInvoke }));
+    installVaultApi(
+        createVaultApi({ safeInvoke: context.safeInvoke }),
+        createLoreApi({ safeInvoke: context.safeInvoke }),
+    );
+    installWorkspaceApi(createWorkspaceApi({ safeInvoke: context.safeInvoke }));
     const restoreAgentAssemblyBridges = installAgentApi(context);
     installLlmConnectionsApi(context); installMcpApi(context); installSkillApi(context); installDevApi(context); installExtensionStoreApi(context); installDbApi(context); installWorldInfoApi();
     installMainApiOptionParking();
@@ -398,9 +403,21 @@ export function bootstrapTauriMain() {
         void import('./ui/sillybunny-shell/index.js')
             .then(({ installSillyBunnyShell }) => installSillyBunnyShell())
             .catch((error) => { console.error('TauriTavern: Failed to install the SillyBunny shell:', error); });
-        void import('./ui/file-explorer/index.js')
+        void import('./ui/lore-defaults/index.js')
+            .then(({ installLoreDefaults }) => installLoreDefaults())
+            .then(() => import('./ui/center-tabs/index.js'))
+            .then(({ installCenterTabs }) => {
+                installCenterTabs();
+                return import('./ui/file-explorer/index.js');
+            })
             .then(({ installFileExplorer }) => installFileExplorer())
-            .catch((error) => { console.error('TauriTavern: Failed to install the file explorer:', error); });
+            .catch((error) => { console.error('TauriTavern: Failed to install lore defaults, center tabs, or file explorer:', error); });
+        void import('../../scripts/lore-directory.js')
+            .then(({ installLoreDirectory }) => installLoreDirectory())
+            .catch((error) => { console.error('TauriTavern: Failed to install the lore directory:', error); });
+        void import('./ui/copilot-dock/index.js')
+            .then(({ installCopilotDock }) => installCopilotDock())
+            .catch((error) => { console.error('TauriTavern: Failed to install the Copilot dock:', error); });
     });
 
     if (perfEnabled) {

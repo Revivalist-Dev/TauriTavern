@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use tauri::{State, WebviewWindow};
-use tt_adapter_local_vault::{LocalVault, VaultEntry, VaultError, VaultState};
+use tt_adapter_local_vault::{
+    LocalVault, LoreDirectory, LoreMigrationReport, LoreRetrieval, LoreState, VaultEntry,
+    VaultError, VaultState,
+};
 
 use crate::platform::file_transfer;
 
@@ -225,4 +228,89 @@ pub async fn vault_reveal(
         let _ = absolute;
     }
     Ok(())
+}
+
+#[tauri::command]
+pub async fn vault_open(
+    mount_id: String,
+    path: String,
+    state: State<'_, Arc<LocalVault>>,
+) -> Result<(), VaultError> {
+    let absolute = vault(&state).await.absolute_path(&mount_id, &path).await?;
+    #[cfg(windows)]
+    {
+        std::process::Command::new("cmd")
+            .args(["/C", "start", "", &absolute.to_string_lossy()])
+            .spawn()
+            .map_err(|error| VaultError::io(error.to_string()))?;
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = absolute;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn lore_get_state(lore: State<'_, Arc<LoreDirectory>>) -> Result<LoreState, VaultError> {
+    lore.state().await
+}
+
+#[tauri::command]
+pub async fn lore_scan(lore: State<'_, Arc<LoreDirectory>>) -> Result<LoreState, VaultError> {
+    lore.scan().await
+}
+
+#[tauri::command]
+pub async fn lore_retrieve(
+    query: String,
+    folders: Vec<String>,
+    token_budget: u64,
+    max_entries: usize,
+    lore: State<'_, Arc<LoreDirectory>>,
+) -> Result<LoreRetrieval, VaultError> {
+    lore.retrieve(&query, &folders, token_budget, max_entries)
+        .await
+}
+
+#[tauri::command]
+pub async fn lore_list_entries(
+    folder: Option<String>,
+    lore: State<'_, Arc<LoreDirectory>>,
+) -> Result<Vec<tt_adapter_local_vault::LoreEntry>, VaultError> {
+    lore.entries(folder.as_deref()).await
+}
+
+#[tauri::command]
+pub async fn lore_search(
+    query: String,
+    folders: Vec<String>,
+    limit: usize,
+    lore: State<'_, Arc<LoreDirectory>>,
+) -> Result<Vec<tt_adapter_local_vault::LoreSearchResult>, VaultError> {
+    lore.search(&query, &folders, limit).await
+}
+
+#[tauri::command]
+pub async fn lore_read(
+    path: String,
+    lore: State<'_, Arc<LoreDirectory>>,
+) -> Result<tt_adapter_local_vault::LoreReadResult, VaultError> {
+    lore.read_entry(&path).await
+}
+
+#[tauri::command]
+pub async fn lore_migrate_legacy(
+    lore: State<'_, Arc<LoreDirectory>>,
+) -> Result<LoreMigrationReport, VaultError> {
+    lore.migrate_legacy().await
+}
+
+#[tauri::command]
+pub async fn lore_migrate_character(
+    avatar: String,
+    book: serde_json::Value,
+    lore: State<'_, Arc<LoreDirectory>>,
+) -> Result<LoreMigrationReport, VaultError> {
+    lore.migrate_character(&avatar, book).await
 }

@@ -97,10 +97,17 @@ pub fn materialize_agent_system_prompt(
             model_alias(tools, "chat.read_messages")
         ));
     }
-    if has_tool(tools, "worldinfo.read_activated") {
+    let lore_tool = if has_tool(tools, "lore.activated") {
+        Some("lore.activated")
+    } else if has_tool(tools, "worldinfo.read_activated") {
+        Some("worldinfo.read_activated")
+    } else {
+        None
+    };
+    if let Some(lore_tool) = lore_tool {
         lines.push(format!(
-            "- When activated world information is relevant to this run, use {}.",
-            model_alias(tools, "worldinfo.read_activated")
+            "- When activated lore is relevant to this run, use {}.",
+            model_alias(tools, lore_tool)
         ));
     }
     if has_tool(tools, "dice.roll") {

@@ -18,10 +18,11 @@ const RETURN_MODE_DENIED_TOOLS: [&str; 5] = [
     AGENT_AWAIT,
 ];
 
-const SESSION_DENIED_TOOLS: [&str; 9] = [
+const SESSION_DENIED_TOOLS: [&str; 10] = [
     "chat.search",
     "chat.read_messages",
     "worldinfo.read_activated",
+    "lore.activated",
     WORKSPACE_COMMIT,
     WORKSPACE_FINISH,
     AGENT_DELEGATE,

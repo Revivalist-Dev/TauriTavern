@@ -1,0 +1,15 @@
+{
+    "display_name": "DeepLore Copilot for TauriTavern",
+    "description": "DeepLore Copilot integrated with the TauriTavern Vault Explorer and shared Lore Defaults.",
+    "loading_order": 60,
+    "requires": [],
+    "optional": [
+        "tauritavern-deeplore"
+    ],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "QQ-Corporation & DeepLore Team",
+    "version": "2.9.0-deeplore",
+    "homePage": "https://github.com/Supker/ST-Copilot",
+    "auto_update": false
+}

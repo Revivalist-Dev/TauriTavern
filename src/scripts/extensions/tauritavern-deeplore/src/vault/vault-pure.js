@@ -1,0 +1,291 @@
+/**
+ * DeepLore — Pure Vault Functions
+ * Extracted from vault.js for testability (no SillyTavern imports).
+ */
+
+import { setEntityNameSet, setEntityShortNameRegexes } from '../state.js';
+
+/**
+ * Compute entity name Set and pre-compiled short-name regexes from vault entries.
+ * Used by both finalizeIndex (after full rebuild) and hydrateFromCache (instant startup).
+ * @param {Array} entries - VaultEntry array
+ */
+export function computeEntityDerivedState(entries) {
+    const names = new Set();
+    for (const entry of entries) {
+        if (entry.title.length >= 1) names.add(entry.title.toLowerCase());
+        for (const key of entry.keys) {
+            if (key.length >= 2) names.add(key.toLowerCase());
+        }
+    }
+    setEntityNameSet(names);
+
+    // Word-boundary regexes for ALL entity names — prevents substring false
+    // positives like "an" in "want" or "Arch" in "monarch".
+    const nameRegexes = new Map();
+    for (const name of names) {
+        const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        nameRegexes.set(name, new RegExp(`\\b${escaped}\\b`, 'i'));
+    }
+    setEntityShortNameRegexes(nameRegexes);
+}
+
+/**
+ * Detect entry titles that appear in more than one vault.
+ * Returns { title, vaults[] } per conflict — used pre-dedup to warn the user.
+ * @param {Array} entries - VaultEntry array
+ * @returns {Array<{title: string, vaults: string[]}>}
+ */
+export function detectCrossVaultDuplicates(entries) {
+    const titleVaults = new Map();
+    for (const entry of entries) {
+        const key = entry.title.toLowerCase();
+        const vault = entry.vaultSource || '(unknown)';
+        if (!titleVaults.has(key)) {
+            titleVaults.set(key, new Map()); // vault → display title
+        }
+        titleVaults.get(key).set(vault, entry.title);
+    }
+    const duplicates = [];
+    for (const [, vaultMap] of titleVaults) {
+        if (vaultMap.size > 1) {
+            const first = vaultMap.values().next().value;
+            duplicates.push({ title: first, vaults: [...vaultMap.keys()] });
+        }
+    }
+    return duplicates;
+}
+
+/**
+ * V-C1 pure classifier — encodes how reuse-sync SHOULD treat a single vault's
+ * fetch result for the three partial-fetch failure modes below.
+ *
+ * L-4 NOTE: this is NOT the runtime single source of truth. `buildIndexWithReuse()`
+ * inlines the equivalent branches itself (its per-vault loop checks `!data.files`,
+ * `data.partial`, and `isPartialFetchFailure(...)` directly) and does NOT call this
+ * helper. The function exists as a test-pinned reference contract (gotchas.md #48,
+ * `test/vault.test.mjs` section J) that mirrors that inline logic; reviewers use it
+ * to catch drift. The genuinely shared runtime source is `PARTIAL_FETCH_FAILURE_THRESHOLD`,
+ * consumed by both this helper and vault.js's `isPartialFetchFailure`.
+ *
+ * Three failure modes the reuse-sync path used to ignore:
+ *   1. `data.partial === true` — directory listing truncated by transient REST
+ *      glitch. Files missing from data.files MUST NOT be treated as deletions.
+ *      Action: carry-forward this vault's prior entries; flag skipCacheSave.
+ *   2. `isPartialFetchFailure(failed, total)` — many per-file fetches failed.
+ *      Action: process the partial data but flag skipCacheSave so IDB doesn't
+ *      get a truncated view.
+ *   3. `!data.files || !Array.isArray(data.files)` — invalid response.
+ *      Action: carry-forward; flag skipCacheSave.
+ *
+ * `partial` and `invalid` produce identical caller behavior (full carry-forward);
+ * they're distinguished only for diagnostics / toast text.
+ *
+ * @param {object} data - Fetch result from fetchAllMdFiles: {files?, partial?, failed?, total?}
+ * @param {object} [thresholds] - Override threshold for tests; defaults to module constant.
+ * @returns {{action: 'invalid'|'partial'|'partial_failure'|'ok', carryForward: boolean, skipCacheSave: boolean}}
+ */
+export const PARTIAL_FETCH_FAILURE_THRESHOLD = { absolute: 5, rate: 0.1 };
+export function classifyReuseFetch(data, thresholds = PARTIAL_FETCH_FAILURE_THRESHOLD) {
+    if (!data || !Array.isArray(data.files)) {
+        return { action: 'invalid', carryForward: true, skipCacheSave: true };
+    }
+    if (data.partial === true) {
+        return { action: 'partial', carryForward: true, skipCacheSave: true };
+    }
+    const failed = data.failed || 0;
+    const total = data.total || 0;
+    const rate = total > 0 ? failed / total : 0;
+    if (failed > 0 && (failed >= thresholds.absolute || rate >= thresholds.rate)) {
+        // Process the partial data (carryForward:false), but flag the cache skip.
+        return { action: 'partial_failure', carryForward: false, skipCacheSave: true };
+    }
+    return { action: 'ok', carryForward: false, skipCacheSave: false };
+}
+
+/**
+ * V-C2 pure classifier — given a dedup existence-check outcome, decide whether
+ * to accept the candidate path. Replaces the previous "assume free on network
+ * glitch" behavior which silently overwrote real files when an existence check
+ * failed mid-flight.
+ *
+ * Inputs:
+ *   - `fetchResult` is the resolved vaultFetch return ({status, data}) OR null
+ *     when the call threw.
+ *   - `err` is the caught error (or null on a clean resolve). AbortError and
+ *     any other thrown error both produce `accept:false`.
+ *
+ * Outputs:
+ *   - `{accept: true, taken: false}` → file does not exist (or non-200), candidate
+ *     is safe to use.
+ *   - `{accept: false, taken: true}` → file exists, try next suffix.
+ *   - `{accept: false, taken: false}` → check inconclusive (abort or network
+ *     error); caller MUST NOT use the candidate or it risks silent overwrite.
+ *
+ * @param {{status: number}|null} fetchResult
+ * @param {Error|null} err
+ * @returns {{accept: boolean, taken: boolean}}
+ */
+export function classifyDedupProbe(fetchResult, err) {
+    if (err) {
+        // V-C2: AbortError AND non-Abort errors both return inconclusive. Previous
+        // code returned the candidate on non-Abort exceptions ("assume free"),
+        // causing silent overwrites of existing files when the network glitched.
+        return { accept: false, taken: false };
+    }
+    if (fetchResult && fetchResult.status === 200) {
+        return { accept: false, taken: true };
+    }
+    return { accept: true, taken: false };
+}
+
+/**
+ * P3-5 — Cross-vault-duplicate warning text for the configured conflict-resolution
+ * mode. Single source of truth so the fresh-build warning (buildIndex) and the
+ * reuse-sync warning (buildIndexWithReuse) describe the SAME behavior. The reuse
+ * path previously hardcoded "Keeping the first vault's copy." regardless of mode,
+ * lying to users running 'all' / 'last' / 'merge'.
+ * @param {string} mode - 'all' | 'first' | 'last' | 'merge' (or anything else)
+ * @returns {string}
+ */
+export function conflictModeMessage(mode) {
+    return ({
+        all: 'Keeping all copies (resolution mode: all). Rename one copy if you want a single canonical entry.',
+        first: 'Keeping the first vault\'s copy. Rename one copy to avoid the conflict.',
+        last: 'Keeping the last vault\'s copy. Rename one copy to avoid the conflict.',
+        merge: 'Merging fields and content from all copies. Rename one copy if you don\'t want them merged.',
+    }[mode]) || 'Resolving via configured conflict mode.';
+}
+
+/**
+ * Multi-vault conflict resolution dedup pass (BUG-007).
+ * When entries with the same title exist in different vaults, this resolves them:
+ *   'all'   — Keep every copy (no dedup). Entries from each vault appear independently.
+ *   'first' — Keep the first vault's copy, discard later duplicates.
+ *   'last'  — Keep the last vault's copy, replacing earlier ones.
+ *   'merge' — Combine into a single entry:
+ *             Arrays (keys, tags, links, etc.) are unioned (no duplicates).
+ *             Content is concatenated with a separator.
+ *             Summary and scalar fields prefer the first non-empty value.
+ *             Token estimate is recalculated from merged content.
+ *
+ * @param {Array} entries - VaultEntry array (mutated: may be replaced)
+ * @param {string} mode - Conflict resolution mode ('all'|'first'|'last'|'merge')
+ * @returns {Array} Deduplicated entries
+ */
+// Settings whitelist enforces the enum on save, but imports / hand-edited config
+// can land an invalid value. Without this guard the invalid mode falls through
+// every branch and silently behaves like 'first'. Unknown → 'all' (preserve).
+const VALID_DEDUPE_MODES = new Set(['all', 'first', 'last', 'merge']);
+
+/**
+ * #22 merge worker — fold one representative entry per vault into a single
+ * merged entry. `reps` is ordered by vault first-appearance; reps[0] is the base.
+ */
+function mergeVaultRepresentatives(reps) {
+    // BUG-378: clone first entry and PRESERVE its `_contentHash`. The previous
+    // in-place mutation clobbered the hash with one of the merged content,
+    // which never matched any real on-disk file — so reuse-sync flagged the
+    // entry as modified every poll, triggering infinite re-parse/re-tokenize.
+    const firstEntry = reps[0];
+    const existing = { ...firstEntry };
+    if (firstEntry.customFields) existing.customFields = { ...firstEntry.customFields };
+    for (let i = 1; i < reps.length; i++) {
+        const entry = reps[i];
+        // H18: union all relevant array fields, not just keys.
+        // P2-8: cascadeLinks + refineKeys were dropped on merge — a merged
+        // entry lost the non-first members' explicit cascade pulls and
+        // secondary refine-gate keys, silently changing match/gating behavior.
+        for (const field of ['keys', 'tags', 'links', 'resolvedLinks', 'requires', 'excludes', 'cascadeLinks', 'refineKeys']) {
+            if (Array.isArray(entry[field]) && entry[field].length > 0) {
+                existing[field] = [...new Set([...(existing[field] || []), ...entry[field]])];
+            }
+        }
+        if (entry.content && entry.content.trim()) {
+            existing.content = (existing.content || '') + '\n\n---\n\n' + entry.content;
+            // Sum tokenizer-accurate member estimates (computed before dedup at the
+            // vault.js tokenize pass) instead of char/4, which diverged from the tokenizer
+            // units used for every non-merged entry and skewed budget math for merged entries.
+            existing.tokenEstimate = (existing.tokenEstimate || 0) + (entry.tokenEstimate || 0);
+            // BUG-378: do NOT recompute `_contentHash` — must equal the hash of the
+            // ORIGINAL first entry's file content for reuse-sync to skip re-parse.
+        }
+        // H-05: OR-merge boolean flags — true if ANY copy is true.
+        for (const flag of ['constant', 'seed', 'bootstrap', 'guide']) {
+            if (entry[flag]) existing[flag] = true;
+        }
+        if (!existing.summary && entry.summary) existing.summary = entry.summary;
+        // customFields: union arrays, first-non-empty for scalars.
+        if (entry.customFields) {
+            if (!existing.customFields) existing.customFields = {};
+            for (const [k, val] of Object.entries(entry.customFields)) {
+                if (Array.isArray(val) && val.length > 0) {
+                    existing.customFields[k] = [...new Set([...(existing.customFields[k] || []), ...val])];
+                } else if (existing.customFields[k] == null && val != null) {
+                    existing.customFields[k] = val;
+                }
+            }
+        }
+    }
+    return existing;
+}
+
+export function deduplicateMultiVault(entries, mode) {
+    if (!mode || !VALID_DEDUPE_MODES.has(mode) || mode === 'all') return entries;
+
+    // #22: conflict resolution applies ACROSS vaults only. The old implementation
+    // keyed on bare title.toLowerCase(), so two same-titled entries in the SAME
+    // vault were silently collapsed under first/last/merge — but same-vault
+    // duplicates are not a cross-vault conflict (they're legal under 'all', see
+    // CLAUDE.md L11) and the setting is documented as *multi-vault* resolution.
+    // Contract: the unit of conflict is the vault-level copy. Resolution operates
+    // on ONE representative per vault (that vault's first same-titled entry);
+    // same-vault same-title duplicates pass through untouched in every mode.
+    //
+    // Pass 1 — group by lowercased title, tracking vault first-appearance order.
+    const groups = new Map(); // titleLower → { vaultOrder, byVault, lastVault }
+    for (const entry of entries) {
+        const key = entry.title.toLowerCase();
+        const vault = entry.vaultSource || '';
+        let g = groups.get(key);
+        if (!g) { g = { vaultOrder: [], byVault: new Map(), lastVault: vault }; groups.set(key, g); }
+        if (!g.byVault.has(vault)) { g.vaultOrder.push(vault); g.byVault.set(vault, []); }
+        g.byVault.get(vault).push(entry);
+        g.lastVault = vault; // vault of the group's last entry ('last' mode winner)
+    }
+
+    // Pass 2 — walk entries in original order and emit per the mode decision.
+    // Both merge output AND the 'last' winner land at the position of the
+    // group's FIRST entry, matching the old (titleMap insertion-order) output
+    // ordering — 'last' emitting at the winner's own slot would reorder
+    // vaultIndex vs pre-#22 builds and shift priority tie-breaks / Browse order.
+    const out = [];
+    const mergeEmitted = new Set(); // titleLower — merge output already emitted
+    const lastEmitted = new Set();  // titleLower — 'last' winner already emitted
+    for (const entry of entries) {
+        const key = entry.title.toLowerCase();
+        const g = groups.get(key);
+        // Single-vault group (unique titles AND same-vault duplicates): untouched.
+        if (g.vaultOrder.length <= 1) { out.push(entry); continue; }
+        const vault = entry.vaultSource || '';
+        if (mode === 'first') {
+            if (vault === g.vaultOrder[0]) out.push(entry);
+            continue;
+        }
+        if (mode === 'last') {
+            // Emit ALL of the winning (last) vault's copies at the group-first
+            // slot, preserving their original relative order.
+            if (lastEmitted.has(key)) continue;
+            lastEmitted.add(key);
+            for (const e of g.byVault.get(g.lastVault)) out.push(e);
+            continue;
+        }
+        // merge: each vault's FIRST entry is that vault's representative and is
+        // consumed by the merge; any later same-vault duplicate passes through.
+        if (entry !== g.byVault.get(vault)[0]) { out.push(entry); continue; }
+        if (mergeEmitted.has(key)) continue;
+        mergeEmitted.add(key);
+        out.push(mergeVaultRepresentatives(g.vaultOrder.map(v => g.byVault.get(v)[0])));
+    }
+    return out;
+}

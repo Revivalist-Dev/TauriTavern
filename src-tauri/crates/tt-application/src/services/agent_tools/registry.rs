@@ -12,7 +12,7 @@ use super::workspace::{
     workspace_list_files_descriptor, workspace_read_file_descriptor,
     workspace_search_files_descriptor, workspace_shell_descriptor, workspace_write_file_descriptor,
 };
-use super::world_info::worldinfo_read_activated_descriptor;
+use super::world_info::{lore_activated_descriptor, worldinfo_read_activated_descriptor};
 use crate::errors::ApplicationError;
 use crate::services::agent_workspace_scope::{
     format_model_visible_workspace_roots, format_model_workspace_roots,
@@ -35,6 +35,7 @@ impl BuiltinAgentToolRegistry {
             chat_search_descriptor(),
             chat_read_messages_descriptor(),
             worldinfo_read_activated_descriptor(),
+            lore_activated_descriptor(),
             dice_roll_descriptor(),
             workspace_list_files_descriptor(),
             workspace_search_files_descriptor(),

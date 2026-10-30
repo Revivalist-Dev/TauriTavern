@@ -70,7 +70,7 @@ function installVaultMock() {
             }
             return { name: path, path, kind: 'file', size: 0, hidden: false, extension: null };
         },
-        readText: async () => '# Preview\n\nMock content.',
+        readText: async () => '---\nkeys: [harbor, tide]\nsummary: Mock lore note.\n---\n# Preview\n\nMock content.',
         readBytes: async () => png,
         thumbnail: async () => png,
         createEntry: async (mountId, parent, name, directory) => {
@@ -162,6 +162,9 @@ test('opening the dock shrinks and recenters the chat without moving the rail', 
     const chatBefore = await rect(page, '#sheld');
     const topBefore = await rect(page, '#top-bar');
     await openExplorer();
+    const focus = await page.evaluate(() => window.__TAURITAVERN__?.api?.workspace?.getFocus?.());
+    assert.equal(focus?.folder, 'lore');
+    await page.waitForTimeout(250);
     const dock = await rect(page, '#tt-file-explorer');
     const chat = await rect(page, '#sheld');
     const top = await rect(page, '#top-bar');
@@ -169,7 +172,9 @@ test('opening the dock shrinks and recenters the chat without moving the rail', 
     assert.ok(chat.right <= dock.x + 1, `chat ${chat.right} overlaps dock ${dock.x}`);
     assert.ok(top.right <= dock.x + 1, `top bar ${top.right} overlaps dock ${dock.x}`);
     assert.ok(chat.width <= chatBefore.width + 1, 'chat did not shrink or stay inside');
-    assert.ok(Math.abs(chat.x - (dock.x - chat.width) / 2) <= 2, 'chat is not centered in the remaining width');
+    const left = await rect(page, '#tt-copilot-dock');
+    const leftEdge = left?.right ?? 0;
+    assert.ok(Math.abs(chat.x - (leftEdge + (dock.x - leftEdge - chat.width) / 2)) <= 2, 'chat is not centered in the remaining width');
     assert.equal((await rect(page, '#top-settings-holder')).x, railBefore.x);
     assert.equal((await rect(page, '#top-settings-holder')).width, railBefore.width);
     assert.ok(top.width <= topBefore.width + 1);
@@ -252,6 +257,106 @@ test('new file, rename and delete go through the backend and refresh the tree', 
     await page.click('.tt-fe-context-menu button:has-text("Delete")');
     await page.waitForTimeout(250);
     assert.doesNotMatch(await page.locator('#tt-file-explorer').innerText(), /renamed\.md/);
+});
+
+test('context menu uses the common themed menu button styling', async () => {
+    await openExplorer();
+    await ensureLoreExpanded();
+    await page.click('[data-key="mnt-lore|session-notes.md"]', { button: 'right' });
+    const item = page.locator('.tt-fe-context-menu .menu_button').first();
+    await item.waitFor();
+    assert.match(await item.getAttribute('class'), /\bmenu_button\b/);
+    const styles = await item.evaluate((element) => {
+        const computed = getComputedStyle(element);
+        return {
+            background: computed.backgroundColor,
+            color: computed.color,
+            bodyColor: getComputedStyle(document.body).color,
+        };
+    });
+    assert.notEqual(styles.background, 'rgb(255, 255, 255)');
+    assert.notEqual(styles.background, 'rgb(239, 239, 239)');
+    assert.equal(styles.color, styles.bodyColor);
+    const danger = page.locator('.tt-fe-context-menu .tt-fe-danger').first();
+    assert.equal(await danger.count(), 1);
+    const dangerColor = await danger.evaluate((element) => getComputedStyle(element).color);
+    assert.notEqual(dangerColor, styles.color);
+    await page.keyboard.press('Escape');
+});
+
+test('file rows show token and size metadata and a keyword hover card', async () => {
+    await openExplorer();
+    await ensureLoreExpanded();
+    const row = page.locator('[data-key="mnt-lore|session-notes.md"]');
+    await row.waitFor();
+    await page.waitForFunction(() => document.querySelector('[data-key="mnt-lore|session-notes.md"] .tt-fe-node-meta')?.textContent?.includes('tokens |'));
+    assert.match(await row.locator('.tt-fe-node-meta').textContent(), /tokens \| \d/);
+    await row.hover();
+    await page.waitForSelector('.tt-fe-hover');
+    assert.match(await page.locator('.tt-fe-hover-keywords').textContent(), /harbor, tide/);
+    await page.mouse.move(0, 0);
+});
+
+test('narrative experiments overlay removals and overrides in the vault', async () => {
+    const result = await page.evaluate(async () => {
+        const api = window.__TT_VAULT_API__;
+        const originalList = api.list;
+        const originalRead = api.readText;
+        api.list = async (mountId, path) => {
+            if (path === 'Narrative-Experiments') {
+                return [{ name: 'arranged', path: 'Narrative-Experiments/arranged', kind: 'directory' }];
+            }
+            if (path === 'Narrative-Experiments/arranged') {
+                return [{ name: 'experiment.json', path: 'Narrative-Experiments/arranged/experiment.json', kind: 'file' }];
+            }
+            return originalList(mountId, path);
+        };
+        api.readText = async (mountId, path) => {
+            if (path.endsWith('experiment.json')) {
+                return JSON.stringify({
+                    title: 'Arranged Dowry',
+                    removals: ['Characters/Old.md'],
+                    overrides: ['overrides/Characters/New.md'],
+                });
+            }
+            if (path.endsWith('overrides/Characters/New.md')) {
+                return '---\nkeys: [dowry, leaf]\n---\nThe new arrangement.';
+            }
+            return originalRead(mountId, path);
+        };
+        const experiments = window.__TT_EXPERIMENTS__;
+        const manifests = await experiments.discover();
+        await experiments.activate(manifests[0]?.id);
+        const transformed = experiments.transformEntries('mnt-lore', 'Characters', [
+            { name: 'Old.md', path: 'Characters/Old.md', kind: 'file', size: 10 },
+            { name: 'Kept.md', path: 'Characters/Kept.md', kind: 'file', size: 10 },
+        ]);
+        const read = experiments.readText('mnt-lore', 'Characters/New.md');
+        const lore = experiments.transformLoreEntries([
+            { title: 'Old', path: 'Characters/Old.md', content: 'old' },
+            { title: 'Kept', path: 'Characters/Kept.md', content: 'kept' },
+        ]);
+        experiments.deactivate();
+        return { manifests, transformed, read, lore };
+    });
+    assert.equal(result.manifests.length, 1);
+    assert.deepEqual(result.transformed.map((entry) => entry.name), ['Kept.md', 'New.md']);
+    assert.equal(result.transformed.find((entry) => entry.name === 'New.md').readPath, 'Narrative-Experiments/arranged/overrides/Characters/New.md');
+    assert.match(result.read, /new arrangement/i);
+    assert.deepEqual(result.lore.map((entry) => entry.title), ['Kept', 'New']);
+    assert.equal(result.lore.find((entry) => entry.title === 'New').override, true);
+});
+
+test('double-clicking a file opens it in a center tab', async () => {
+    await openExplorer();
+    await ensureLoreExpanded();
+    await page.dblclick('[data-key="mnt-lore|session-notes.md"]');
+    await page.waitForSelector('.tt-center-tab', { timeout: 5000 });
+    const labels = await page.locator('.tt-center-tab-label').allTextContents();
+    assert.ok(labels.includes('TauriTavern'));
+    assert.ok(labels.includes('session-notes.md'));
+    assert.equal(await page.locator('#tt-center-file').isVisible(), true);
+    await page.locator('.tt-center-tab').filter({ hasText: 'Tavern' }).click();
 });
 
 test('internal drag and drop moves an entry into a folder', async () => {

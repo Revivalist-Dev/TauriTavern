@@ -1,10 +1,10 @@
 import {
     IMAGE_EXTENSIONS,
     el,
-    formatSize,
     iconFor,
     keyOf,
 } from './helpers.js';
+import { getEntryMetadata, showHoverCard, hideHoverCard, formatBytes } from './metadata.js';
 
 export function createRenderer(host) {
     const { state } = host;
@@ -140,7 +140,19 @@ export function createRenderer(host) {
             const extra = entry.kind === 'directory' ? ' tt-fe-folder' : IMAGE_EXTENSIONS.has(entry.extension) ? ' tt-fe-image' : '';
             row.append(el('i', `tt-fe-node-icon ${iconFor(entry)}${extra}`));
             row.append(el('span', 'tt-fe-node-name', entry.name));
-            if (entry.kind !== 'directory') row.append(el('span', 'tt-fe-node-meta', formatSize(entry.size)));
+            if (entry.kind !== 'directory') {
+                const estimatedTokens = Math.max(1, Math.ceil(Number(entry.size ?? 0) / 4));
+                const stats = el('span', 'tt-fe-node-meta', `~${estimatedTokens.toLocaleString()} tokens | ${formatBytes(entry.size)}`);
+                row.append(stats);
+                row.addEventListener('mouseenter', () => {
+                    void getEntryMetadata(host, entry).then((metadata) => {
+                        if (!row.isConnected || !row.matches(':hover') || !metadata) return;
+                        stats.textContent = `~${metadata.tokens.toLocaleString()} tokens | ${formatBytes(metadata.size)}`;
+                        showHoverCard(row, metadata, entry);
+                    });
+                });
+                row.addEventListener('mouseleave', hideHoverCard);
+            }
             if (state.selected.has(key)) row.classList.add('tt-fe-selected');
             row.addEventListener('click', (event) => {
                 host.select(vault.id, entry, event.ctrlKey || event.metaKey);
@@ -153,7 +165,7 @@ export function createRenderer(host) {
                     state.currentPath = entry.path;
                     host.toggleExpanded(vault.id, entry.path);
                 } else {
-                    host.openPreview(vault.id, entry);
+                    host.openFileInTab(vault.id, entry);
                 }
             });
             row.addEventListener('contextmenu', (event) => {
@@ -221,6 +233,19 @@ export function createRenderer(host) {
             } else thumb.append(el('i', iconFor(entry)));
             card.append(thumb);
             card.append(el('div', 'tt-fe-card-name', entry.name));
+            if (entry.kind !== 'directory') {
+                const estimatedTokens = Math.max(1, Math.ceil(Number(entry.size ?? 0) / 4));
+                const stats = el('div', 'tt-fe-card-meta', `~${estimatedTokens.toLocaleString()} tokens | ${formatBytes(entry.size)}`);
+                card.append(stats);
+                card.addEventListener('mouseenter', () => {
+                    void getEntryMetadata(host, entry).then((metadata) => {
+                        if (!card.isConnected || !card.matches(':hover') || !metadata) return;
+                        stats.textContent = `~${metadata.tokens.toLocaleString()} tokens | ${formatBytes(metadata.size)}`;
+                        showHoverCard(card, metadata, entry);
+                    });
+                });
+                card.addEventListener('mouseleave', hideHoverCard);
+            }
             card.addEventListener('click', (event) => {
                 host.select(vault.id, entry, event.ctrlKey || event.metaKey);
                 state.currentMountId = vault.id;
@@ -228,7 +253,7 @@ export function createRenderer(host) {
             });
             card.addEventListener('dblclick', () => {
                 if (entry.kind === 'directory') host.openFolder(vault, entry);
-                else host.openPreview(vault.id, entry);
+                else host.openFileInTab(vault.id, entry);
             });
             card.addEventListener('contextmenu', (event) => {
                 event.preventDefault();

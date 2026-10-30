@@ -26,7 +26,13 @@ pub(super) fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Erro
     // Load them before the first webview so the file explorer can open early.
     let local_vault =
         tt_adapter_local_vault::LocalVault::load(runtime_paths.data_root.join("local-vault.json"));
-    app.manage(Arc::new(local_vault));
+    let local_vault = Arc::new(local_vault);
+    let lore_directory = Arc::new(tt_adapter_local_vault::LoreDirectory::new(
+        local_vault.clone(),
+        runtime_paths.data_root.clone(),
+    ));
+    app.manage(local_vault);
+    app.manage(lore_directory);
 
     // 2. Publish lightweight host services that do not depend on user settings.
     // AppState construction later reuses the same HTTP pool via managed state.

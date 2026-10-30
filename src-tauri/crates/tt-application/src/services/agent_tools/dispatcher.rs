@@ -173,7 +173,7 @@ impl AgentToolDispatcher {
                 )
                 .await?
             }
-            world_info::WORLDINFO_READ_ACTIVATED => {
+            world_info::WORLDINFO_READ_ACTIVATED | world_info::LORE_ACTIVATED => {
                 // WorldInfo activation is a hidden run input fact, not a model-visible
                 // workspace file; invocation workspace policy must not gate this read.
                 let prompt_snapshot = Self::read_run_prompt_snapshot(raw_files.as_ref()).await?;
