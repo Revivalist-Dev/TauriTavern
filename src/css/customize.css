@@ -158,6 +158,12 @@
     white-space: nowrap;
 }
 
+.tt-customize-item-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 4px;
+}
+
 .tt-customize-badge {
     flex: 0 0 auto;
     padding: 2px 5px;

@@ -429,7 +429,7 @@ function renderHooks(container, api, state, rerender) {
 async function renderMcp(container, api, state) {
     const panel = el('div', 'tt-customize-mcp');
     panel.append(el('h3', '', 'MCP servers'));
-    panel.append(el('p', 'tt-customize-muted', 'MCP presets from the vault and servers registered with the native MCP service.'));
+    panel.append(el('p', 'tt-customize-muted', 'Manage the native MCP servers shared by the native agent, Copilot, and DeepLore.'));
     for (const item of (state.snapshot?.items ?? []).filter((candidate) => candidate.kind === 'mcp')) {
         const row = el('div', 'tt-customize-item');
         const main = el('button', 'tt-customize-item-main');
@@ -438,18 +438,78 @@ async function renderMcp(container, api, state) {
         row.append(main, el('span', 'tt-customize-badge', itemBadge(item)));
         panel.append(row);
     }
-    const servers = await window.__TAURITAVERN__?.api?.mcp?.servers?.list?.().catch(() => []) ?? [];
+
+    const mcpApi = window.__TAURITAVERN__?.api?.mcp;
+    let servers = [];
+    try {
+        const result = await mcpApi?.servers?.list?.();
+        servers = result?.servers ?? [];
+    } catch (error) {
+        panel.append(el('p', 'tt-customize-error', `Could not load MCP servers: ${error?.message ?? error}`));
+    }
     panel.append(el('h4', '', 'Registered servers'));
     if (!servers.length) panel.append(el('p', 'tt-customize-empty', 'No MCP servers are registered.'));
     for (const server of servers) {
         const row = el('div', 'tt-customize-item');
         const main = el('div', 'tt-customize-item-main');
-        main.append(el('strong', '', server.name ?? server.id ?? 'MCP server'));
-        main.append(el('span', '', server.transport ?? server.command ?? server.url ?? ''));
-        const stateLabel = server.state ?? server.status ?? (server.enabled === false ? 'disabled' : 'enabled');
-        row.append(main, el('span', 'tt-customize-badge', stateLabel));
+        main.append(el('strong', '', server.displayName ?? server.id ?? 'MCP server'));
+        main.append(el('span', '', server.endpoint ?? server.url ?? ''));
+        const tools = Object.keys(server.toolPermissions ?? {});
+        main.append(el('span', '', tools.length ? `Tools: ${tools.join(', ')}` : 'No tools discovered'));
+        const actions = el('div', 'tt-customize-item-actions');
+        const discover = el('button', 'tt-customize-toggle', 'Discover');
+        discover.type = 'button';
+        discover.onclick = async () => {
+            try {
+                await mcpApi.servers.discover(server.id);
+                window.toastr?.success?.('MCP tools refreshed.');
+                state.tab = 'mcp';
+                await new Promise((resolve) => setTimeout(resolve, 250));
+                await renderMcp(container, api, state);
+            } catch (error) {
+                window.toastr?.error?.(String(error?.message ?? error));
+            }
+        };
+        const remove = el('button', 'tt-customize-toggle', 'Remove');
+        remove.type = 'button';
+        remove.onclick = async () => {
+            if (!window.confirm(`Remove ${server.displayName ?? server.id}?`)) return;
+            try {
+                await mcpApi.servers.remove(server.id);
+                await renderMcp(container, api, state);
+            } catch (error) {
+                window.toastr?.error?.(String(error?.message ?? error));
+            }
+        };
+        actions.append(discover, remove);
+        row.append(main, el('span', 'tt-customize-badge', `${server.state ?? 'unknown'} · ${tools.length} tools`), actions);
         panel.append(row);
     }
+
+    const form = el('div', 'tt-customize-editor');
+    form.append(el('h4', '', 'Add MCP server'));
+    const name = document.createElement('input');
+    name.placeholder = 'Display name';
+    const endpoint = document.createElement('input');
+    endpoint.placeholder = 'https://example.com/mcp';
+    const add = el('button', 'tt-customize-btn primary', 'Add server');
+    add.type = 'button';
+    add.onclick = async () => {
+        if (!name.value.trim() || !endpoint.value.trim()) return;
+        try {
+            await mcpApi.servers.create({
+                displayName: name.value.trim(),
+                endpoint: endpoint.value.trim(),
+                headers: {},
+                protocolVersion: 'auto',
+            });
+            await renderMcp(container, api, state);
+        } catch (error) {
+            window.toastr?.error?.(String(error?.message ?? error));
+        }
+    };
+    form.append(name, endpoint, add);
+    panel.append(form);
     container.append(panel);
 }
 

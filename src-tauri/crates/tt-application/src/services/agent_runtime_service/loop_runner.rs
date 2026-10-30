@@ -147,6 +147,21 @@ impl AgentRuntimeService {
                         }
                     };
                     let response = exchange.response;
+                    if let Some(customize) = self.customize_service.get() {
+                        let _ = customize
+                            .run_hook(tt_domain::models::customize::HookRunRequest {
+                                event: "afterAgentResponse".to_string(),
+                                surface: "native_agent".to_string(),
+                                payload: json!({
+                                    "prompt": response.text,
+                                    "conversationId": run_id,
+                                    "generationId": invocation_id,
+                                }),
+                                vault_root: None,
+                                test: false,
+                            })
+                            .await;
+                    }
                     let model_response_path = self
                         .store_model_response(run_id, invocation_id, round, &response)
                         .await?;
@@ -233,6 +248,21 @@ impl AgentRuntimeService {
                         );
                     }
                     if replied {
+                        if let Some(customize) = self.customize_service.get() {
+                            let _ = customize
+                                .run_hook(tt_domain::models::customize::HookRunRequest {
+                                    event: "stop".to_string(),
+                                    surface: "native_agent".to_string(),
+                                    payload: json!({
+                                        "prompt": response.text,
+                                        "stopHookActive": false,
+                                        "conversationId": run_id,
+                                    }),
+                                    vault_root: None,
+                                    test: false,
+                                })
+                                .await;
+                        }
                         return Ok(AgentLoopExit::Replied);
                     } else if !has_tools {
                         progress.drift_attempts += 1;
@@ -336,6 +366,26 @@ impl AgentRuntimeService {
                             matches!(&outcome.effect, AgentToolEffect::HandoffAccepted { .. });
                         let mut events = Vec::new();
                         let result = outcome.result;
+                        if let Some(customize) = self.customize_service.get() {
+                            let event = if result.is_error {
+                                "postToolUseFailure"
+                            } else {
+                                "postToolUse"
+                            };
+                            let _ = customize
+                                .run_hook(tt_domain::models::customize::HookRunRequest {
+                                    event: event.to_string(),
+                                    surface: "native_agent".to_string(),
+                                    payload: json!({
+                                        "toolName": call.tool_id.as_str(),
+                                        "toolInput": serde_json::to_value(&call.arguments).unwrap_or(Value::Null),
+                                        "toolResponse": serde_json::to_value(&result).unwrap_or(Value::Null),
+                                    }),
+                                    vault_root: None,
+                                    test: false,
+                                })
+                                .await;
+                        }
                         // All file tools use one publication policy. Failed direct writes may
                         // have changed an earlier candidate, so they cancel this round's publish.
                         let candidate = match &outcome.effect {
