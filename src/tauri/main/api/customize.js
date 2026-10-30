@@ -23,6 +23,7 @@ function createCustomizeApi({ safeInvoke }) {
             logs: async () => safeInvoke('customize_hook_logs'),
             knownEvents: async () => safeInvoke('customize_known_events'),
         },
+        setPluginEnabled: async (pluginId, enabled) => safeInvoke('customize_set_plugin_enabled', { pluginId, enabled }),
     };
 }
 

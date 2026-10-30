@@ -15779,8 +15779,9 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
       return { text: text.trim(), reasoning, isMaxTokens };
   }
 
-  async function runGenerate(session, userText, addUserMsg = true, processedAtts = null) {
+  async function runGenerate(session, userText, addUserMsg = true, processedAtts = null, stopDepth = 0) {
       if (state$1.generating) return;
+      let followupMessage = null;
       userText = await expandCustomizeCommand(userText, 'copilot');
       const preHook = await runCustomizeHook('beforeSubmitPrompt', { prompt: String(userText ?? '') });
       if (preHook && preHook.allowed === false) {
@@ -16097,6 +16098,8 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
 
           playCompletionSound();
           await runCustomizeHook('afterAgentResponse', { prompt: fullText });
+          const stopHook = await runCustomizeHook('stop', { prompt: fullText, stopHookActive: false });
+          if (stopHook?.followupMessage && stopDepth < 3) followupMessage = stopHook.followupMessage;
           _dbgAdd('GEN_DONE', { chars: fullText?.length || 0, hasReasoning: !!fullReasoning, tokensOut });
 
       } catch (err) {
@@ -16119,6 +16122,11 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
       } finally {
           state$1.generating = false;
           setGeneratingState(false);
+          if (followupMessage) {
+              window.setTimeout(() => {
+                  void runGenerate(session, followupMessage, true, null, stopDepth + 1);
+              }, 80);
+          }
       }
   }
 

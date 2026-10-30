@@ -416,6 +416,7 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         super::customize_commands::customize_trust_hooks,
         super::customize_commands::customize_run_hook,
         super::customize_commands::customize_hook_logs,
+        super::customize_commands::customize_set_plugin_enabled,
         super::customize_commands::customize_known_events,
         // Chat completion commands
         super::chat_completion_commands::get_chat_completions_status,

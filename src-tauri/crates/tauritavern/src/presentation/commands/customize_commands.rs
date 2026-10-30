@@ -146,6 +146,21 @@ pub async fn customize_run_hook(
 }
 
 #[tauri::command]
+pub async fn customize_set_plugin_enabled(
+    plugin_id: String,
+    enabled: bool,
+    app_state: State<'_, Arc<AppState>>,
+) -> Result<(), CommandError> {
+    log_command("customize_set_plugin_enabled");
+    app_state
+        .services
+        .customize_service
+        .set_plugin_enabled(&plugin_id, enabled)
+        .await
+        .map_err(customize_error("Failed to update plugin"))
+}
+
+#[tauri::command]
 pub async fn customize_hook_logs(
     app_state: State<'_, Arc<AppState>>,
 ) -> Result<Vec<HookLogEntry>, CommandError> {

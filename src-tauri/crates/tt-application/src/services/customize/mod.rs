@@ -2,7 +2,7 @@ mod hooks;
 mod parsing;
 
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -24,6 +24,8 @@ struct NativeStore {
     hook_config: Option<HookConfig>,
     #[serde(default)]
     trusted_hooks: BTreeMap<String, String>,
+    #[serde(default)]
+    disabled_plugins: BTreeSet<String>,
     #[serde(default)]
     hook_logs: Vec<HookLogEntry>,
 }
@@ -75,12 +77,14 @@ impl CustomizeService {
         if !cached.items.is_empty()
             || cached.hook_config.is_some()
             || !cached.trusted_hooks.is_empty()
+            || !cached.disabled_plugins.is_empty()
             || !cached.hook_logs.is_empty()
         {
             return Ok(NativeStore {
                 items: cached.items.clone(),
                 hook_config: cached.hook_config.clone(),
                 trusted_hooks: cached.trusted_hooks.clone(),
+                disabled_plugins: cached.disabled_plugins.clone(),
                 hook_logs: cached.hook_logs.clone(),
             });
         }
@@ -90,6 +94,7 @@ impl CustomizeService {
             items: store.items.clone(),
             hook_config: store.hook_config.clone(),
             trusted_hooks: store.trusted_hooks.clone(),
+            disabled_plugins: store.disabled_plugins.clone(),
             hook_logs: store.hook_logs.clone(),
         };
         Ok(store)
@@ -123,7 +128,14 @@ impl CustomizeService {
         let (plugin_items, plugin_warnings) = self.scan_plugins().await;
         items.extend(plugin_items);
         warnings.extend(plugin_warnings);
-        let items = merge_items(items);
+        let mut items = merge_items(items);
+        for item in &mut items {
+            if let Some(plugin_id) = item.plugin_id.as_ref() {
+                if store.disabled_plugins.contains(plugin_id) {
+                    item.enabled = false;
+                }
+            }
+        }
         let hook_trusted = self.is_trusted(&hook_config, vault_relative_hooks.as_deref(), &store);
         Ok(CustomizeSnapshot {
             items,
@@ -720,6 +732,18 @@ impl CustomizeService {
         self.save_store(&store).await?;
         *self.store.write().await = store;
         Ok(hooks::merge_results(&request.event, results))
+    }
+
+    pub async fn set_plugin_enabled(&self, plugin_id: &str, enabled: bool) -> Result<(), String> {
+        let mut store = self.store().await?;
+        if enabled {
+            store.disabled_plugins.remove(plugin_id);
+        } else {
+            store.disabled_plugins.insert(plugin_id.to_string());
+        }
+        self.save_store(&store).await?;
+        *self.store.write().await = store;
+        Ok(())
     }
 
     pub async fn hook_logs(&self) -> Result<Vec<HookLogEntry>, String> {

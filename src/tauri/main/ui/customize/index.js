@@ -177,7 +177,7 @@ function renderShell(container, api, state, rerender) {
     const body = el('div', 'tt-customize-body');
     if (state.tab === 'hooks') renderHooks(body, api, state, rerender);
     else if (state.tab === 'mcp') void renderMcp(body, api, state);
-    else if (state.tab === 'plugins') renderPlugins(body, state);
+    else if (state.tab === 'plugins') renderPlugins(body, api, state);
     else renderItems(body, api, state, rerender);
 
     const warnings = el('div', 'tt-customize-warnings');
@@ -513,15 +513,36 @@ async function renderMcp(container, api, state) {
     container.append(panel);
 }
 
-function renderPlugins(container, state) {
+function renderPlugins(container, api, state) {
     const panel = el('div', 'tt-customize-plugins');
     panel.append(el('h3', '', 'Plugin contributions'));
     panel.append(el('p', 'tt-customize-muted', 'Extensions can contribute rules, skills, agents, commands, hooks, and MCP presets through their manifest. Contributions are read-only and require trust before hooks run.'));
+    const actions = el('div', 'tt-customize-actions');
+    const manage = el('button', 'tt-customize-btn', 'Manage extensions');
+    manage.type = 'button';
+    manage.onclick = () => {
+        const trigger = document.querySelector('#extensions_details');
+        if (trigger instanceof HTMLElement) trigger.click();
+        else window.toastr?.info?.('Open Extensions from the main menu to install plugins.');
+    };
+    actions.append(manage);
+    panel.append(actions);
     const plugins = (state.snapshot?.items ?? []).filter((item) => item.kind === 'plugin');
     if (!plugins.length) panel.append(el('p', 'tt-customize-empty', 'No plugin contributions were found.'));
     for (const item of plugins) {
         const row = el('div', 'tt-customize-item');
-        row.append(el('strong', '', item.name), el('span', 'tt-customize-badge', itemBadge(item)));
+        const main = el('div', 'tt-customize-item-main');
+        main.append(el('strong', '', item.name), el('span', '', item.description || item.path || ''));
+        const toggle = el('button', 'tt-customize-toggle', item.enabled === false ? 'Enable' : 'Disable');
+        toggle.type = 'button';
+        toggle.onclick = async () => {
+            const pluginId = item.pluginId;
+            if (!pluginId) return;
+            await api.setPluginEnabled(pluginId, item.enabled === false);
+            await refresh(api, state);
+            state.render?.();
+        };
+        row.append(main, el('span', 'tt-customize-badge', itemBadge(item)), toggle);
         panel.append(row);
     }
     container.append(panel);
