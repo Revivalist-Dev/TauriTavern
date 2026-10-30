@@ -9111,8 +9111,18 @@ ${scopeHtml}
           const skills = (context?.skills ?? []).map((item) => `### Skill: ${item.name}\n${item.description || ''}`);
           const agents = (context?.agents ?? []).map((item) => `### Subagent: ${item.name}\n${item.description || ''}`);
           const commands = (context?.commands ?? []).map((item) => `### Command: /${item.name}\n${item.description || ''}`);
-          if (!rules.length && !skills.length && !agents.length && !commands.length) return '';
-          return `<tauritavern_customize>\n${[...rules, ...skills, ...agents, ...commands].join('\n\n')}\n</tauritavern_customize>`;
+          let mcpServers = [];
+          try {
+              const listed = await window.__TAURITAVERN__?.api?.mcp?.servers?.list?.();
+              mcpServers = (listed?.servers ?? []).map((server) => {
+                  const tools = Object.keys(server.toolPermissions ?? {});
+                  return `### MCP server: ${server.displayName ?? server.id}\n${server.endpoint ?? ''}\nTools: ${tools.join(', ') || 'none discovered'}`;
+              });
+          } catch {
+              mcpServers = [];
+          }
+          if (!rules.length && !skills.length && !agents.length && !commands.length && !mcpServers.length) return '';
+          return `<tauritavern_customize>\n${[...rules, ...skills, ...agents, ...commands, ...mcpServers].join('\n\n')}\n</tauritavern_customize>`;
       } catch {
           return '';
       }

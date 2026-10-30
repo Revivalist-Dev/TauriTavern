@@ -79,8 +79,8 @@ The **MCP** tab lists `.cursor/mcp.json` presets and registered native MCP serve
 - **Remove** unregisters the server.
 - Discovered tool names are shown in the server row.
 
-MCP execution is available to the native agent. Copilot-side MCP tool dispatch is still being
-completed.
+MCP execution is available to the native agent. Copilot receives the MCP server and discovered-tool
+catalog in its customization context; direct Copilot-side tool dispatch is still being completed.
 
 ## Plugins
 
