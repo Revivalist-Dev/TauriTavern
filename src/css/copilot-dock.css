@@ -15,7 +15,7 @@
     background: var(--SmartThemeBlurTintColor, #1b1b20);
     color: var(--SmartThemeBodyColor, #e8e8ef);
     border-right: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 12%));
-    box-shadow: 8px 0 28px var(--black30a, rgb(0 0 0 / 25%));
+    box-shadow: 2px 0 12px rgb(0 0 0 / 8%);
     font-family: inherit;
 }
 

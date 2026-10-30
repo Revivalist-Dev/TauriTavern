@@ -20,7 +20,7 @@
     background: var(--SmartThemeBlurTintColor, #202226);
     color: var(--SmartThemeBodyColor, #e8e8e8);
     border-left: 1px solid var(--SmartThemeBorderColor, #444);
-    box-shadow: -8px 0 24px var(--black30a, rgb(0 0 0 / 24%));
+    box-shadow: -2px 0 12px rgb(0 0 0 / 8%);
     font-size: 13px;
     overflow: hidden;
 }
@@ -504,7 +504,7 @@ body.tt-fe-open #right-nav-panel {
     border-radius: 6px 0 0 6px;
     color: var(--SmartThemeBodyColor, #ddd);
     background: var(--SmartThemeBlurTintColor, #202226);
-    box-shadow: -4px 0 12px rgb(0 0 0 / 20%);
+    box-shadow: -1px 0 3px rgb(0 0 0 / 8%);
     cursor: pointer;
 }
 
@@ -531,7 +531,7 @@ body.tt-fe-open #tt-file-explorer-toggle {
     #tt-file-explorer {
         width: min(var(--tt-fe-width), 86vw);
         max-width: 86vw;
-        box-shadow: -12px 0 40px rgb(0 0 0 / 55%);
+        box-shadow: -2px 0 12px rgb(0 0 0 / 10%);
     }
 
     #tt-file-explorer::before {
