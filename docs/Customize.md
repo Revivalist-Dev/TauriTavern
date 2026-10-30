@@ -34,8 +34,12 @@ supplied text. Roleplay registers the same commands with SillyTavern's slash-com
 
 ### Subagents
 
-Subagent definitions are listed in the system prompt and the Customize panel. Named runtime execution
-is still being completed; current delegation uses the native agent profile picker.
+Subagent definitions are listed in the system prompt as `name (agentId: custom-...)`.
+
+The native agent can delegate to a custom definition by passing that ID to its delegation tool. The
+child run inherits the caller's model and tool policy, and the definition's prompt is prepended to the
+task. Named Copilot subagent execution is still being completed; current Copilot behavior is limited to
+showing the definitions in its Customize context.
 
 ## Hooks
 

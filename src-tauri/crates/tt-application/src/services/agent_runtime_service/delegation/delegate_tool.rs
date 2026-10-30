@@ -11,6 +11,7 @@ use crate::services::agent_runtime_service::AgentRuntimeService;
 use crate::services::agent_tools::{AgentToolDispatchOutcome, AgentToolEffect};
 use tt_domain::models::agent::profile::{AgentProfileId, ResolvedAgentProfile};
 use tt_domain::models::agent::{AgentRunEventLevel, AgentTaskStatus, AgentToolResult};
+use tt_domain::models::customize::{CustomizationItem, CustomizationSurface};
 use tt_domain::models::tool::ToolInvocation;
 
 const MAX_AGENT_DELEGATION_TASK_FIELD_CHARS: usize = 8_000;
@@ -75,6 +76,7 @@ impl AgentRuntimeService {
                     .await;
             }
         };
+        let mut task = args.task;
         let target = match self
             .profile_service
             .resolve_profile(AgentProfileResolveInput {
@@ -85,16 +87,20 @@ impl AgentRuntimeService {
         {
             Ok(target) => target,
             Err(ApplicationError::NotFound(_)) => {
-                return self
-                    .agent_target_error(
-                        call,
-                        profile,
-                        AgentOperation::Delegate,
-                        "agent.target_profile_not_found",
-                        &format!("Agent `{}` is unavailable.", target_id.as_str()),
-                        started,
-                    )
-                    .await;
+                let Some(agent) = self.resolve_custom_agent(target_id.as_str()).await else {
+                    return self
+                        .agent_target_error(
+                            call,
+                            profile,
+                            AgentOperation::Delegate,
+                            "agent.target_profile_not_found",
+                            &format!("Agent `{}` is unavailable.", target_id.as_str()),
+                            started,
+                        )
+                        .await;
+                };
+                task = prepend_custom_agent_prompt(task, &agent.name, &agent.body);
+                profile.clone()
             }
             Err(error) => return Err(error),
         };
@@ -128,7 +134,7 @@ impl AgentRuntimeService {
                 invocation_id,
                 target.id.as_str(),
                 call.call_id.as_str(),
-                args.task,
+                task,
             )
             .await?;
         self.event(
@@ -203,6 +209,51 @@ impl AgentRuntimeService {
         }
         Ok(Ok(()))
     }
+
+    async fn resolve_custom_agent(&self, requested: &str) -> Option<CustomizationItem> {
+        let customize = self.customize_service.get()?;
+        let context = customize
+            .context(CustomizationSurface::NativeAgent, None)
+            .await
+            .ok()?;
+        let requested = requested.trim().to_ascii_lowercase();
+        context.agents.into_iter().find(|agent| {
+            let slug = agent
+                .name
+                .to_ascii_lowercase()
+                .chars()
+                .map(|ch| if ch.is_ascii_alphanumeric() { ch } else { '-' })
+                .collect::<String>()
+                .trim_matches('-')
+                .to_string();
+            agent.id.eq_ignore_ascii_case(&requested)
+                || slug == requested
+                || format!("custom-{slug}") == requested
+                || agent
+                    .metadata
+                    .get("agentId")
+                    .is_some_and(|id| id.eq_ignore_ascii_case(&requested))
+        })
+    }
+}
+
+fn prepend_custom_agent_prompt(mut task: Value, name: &str, body: &str) -> Value {
+    let Some(object) = task.as_object_mut() else {
+        return task;
+    };
+    let objective = object
+        .get("objective")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string();
+    let instruction = body.chars().take(4_000).collect::<String>();
+    object.insert(
+        "objective".to_string(),
+        Value::String(format!(
+            "You are the `{name}` subagent. Follow this role definition:\n\n{instruction}\n\n## Task\n{objective}"
+        )),
+    );
+    task
 }
 
 fn validate_delegate_task_packet(task: &Value) -> Result<(), String> {

@@ -47,11 +47,24 @@ impl AgentRuntimeService {
                     .into_iter()
                     .map(|rule| format!("### {}\n{}", rule.name, rule.body))
                     .collect::<Vec<_>>();
-                fragments.extend(
-                    context.agents.into_iter().map(|agent| {
-                        format!("### Subagent: {}\n{}", agent.name, agent.description)
-                    }),
-                );
+                fragments.extend(context.agents.into_iter().map(|agent| {
+                    let agent_id = agent.metadata.get("agentId").cloned().unwrap_or_else(|| {
+                        format!(
+                            "custom-{}",
+                            agent
+                                .name
+                                .to_ascii_lowercase()
+                                .chars()
+                                .map(|ch| if ch.is_ascii_alphanumeric() { ch } else { '-' })
+                                .collect::<String>()
+                                .trim_matches('-')
+                        )
+                    });
+                    format!(
+                        "### Subagent: {} (agentId: {})\n{}",
+                        agent.name, agent_id, agent.description
+                    )
+                }));
                 fragments.extend(context.commands.into_iter().map(|command| {
                     format!("### Command /{}\n{}", command.name, command.description)
                 }));

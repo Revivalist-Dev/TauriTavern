@@ -851,6 +851,13 @@ fn file_item(
         Some("false" | "no" | "0")
     );
     let relative = relative_path(root, path);
+    let mut metadata = BTreeMap::new();
+    if kind == CustomizationKind::Agent {
+        metadata.insert(
+            "agentId".to_string(),
+            format!("custom-{}", parsing::slugify(&name)),
+        );
+    }
     CustomizationItem {
         id: format!("vault:{}:{relative}", kind_name(kind)),
         kind,
@@ -867,7 +874,7 @@ fn file_item(
         globs,
         plugin_id: None,
         read_only: false,
-        metadata: BTreeMap::new(),
+        metadata,
     }
 }
 
