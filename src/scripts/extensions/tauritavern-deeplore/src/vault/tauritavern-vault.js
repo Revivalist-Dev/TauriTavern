@@ -61,6 +61,13 @@ export async function nativeVaultFetch({ path, method = 'GET', body = null }) {
 
     try {
         if (method === 'GET' && isDirectory) {
+            const hook = await window.__TAURITAVERN_HOOKS__?.dispatch?.('deeplore', 'beforeReadFile', {
+                filePath: clean,
+                workspaceRoots: [mountId],
+            });
+            if (hook && hook.allowed === false) {
+                return response(403, { error: hook.results?.[0]?.userMessage || 'Blocked by a Customize hook.' });
+            }
             const entries = await vault.list(mountId, clean);
             const transformed = window.__TT_EXPERIMENTS__?.transformEntries?.(mountId, clean, entries) ?? entries;
             const files = [];
@@ -73,6 +80,13 @@ export async function nativeVaultFetch({ path, method = 'GET', body = null }) {
         }
 
         if (method === 'GET') {
+            const hook = await window.__TAURITAVERN_HOOKS__?.dispatch?.('deeplore', 'beforeReadFile', {
+                filePath: clean,
+                workspaceRoots: [mountId],
+            });
+            if (hook && hook.allowed === false) {
+                return response(403, { error: hook.results?.[0]?.userMessage || 'Blocked by a Customize hook.' });
+            }
             if (window.__TT_EXPERIMENTS__?.isRemoved?.(mountId, clean)) {
                 return response(404, { error: 'Not found' });
             }

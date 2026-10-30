@@ -46,6 +46,36 @@ impl AgentRuntimeService {
         cancel: &mut super::AgentCancelReceiver,
         auto_commit_candidate: Option<WorkspacePath>,
     ) -> Result<AgentToolDispatchOutcome, ToolCallFailure> {
+        if let Some(customize) = self.customize_service.get() {
+            let request = tt_domain::models::customize::HookRunRequest {
+                event: "preToolUse".to_string(),
+                surface: "native_agent".to_string(),
+                payload: json!({
+                    "toolName": tool_invocation.tool_id.as_str(),
+                    "toolInput": serde_json::to_value(&tool_invocation.arguments).unwrap_or(Value::Null),
+                }),
+                vault_root: None,
+                test: false,
+            };
+            if let Ok(dispatch) = customize.run_hook(request).await {
+                if !dispatch.allowed {
+                    let message = dispatch
+                        .results
+                        .iter()
+                        .find_map(|result| {
+                            result
+                                .agent_message
+                                .clone()
+                                .or_else(|| result.user_message.clone())
+                        })
+                        .unwrap_or_else(|| "Blocked by a Customize preToolUse hook.".to_string());
+                    return Err(ToolCallFailure {
+                        error: ApplicationError::PermissionDenied(message),
+                        started: false,
+                    });
+                }
+            }
+        }
         let mut started_tool = false;
         let result = async {
             let run_id = prepared.invocation.run_id.as_str();

@@ -30,10 +30,44 @@ impl AgentRuntimeService {
             .load_session(&dto.session_id)
             .await?;
         let user_message = session_user_message(&dto.input)?;
-        let profile = self
+        let mut profile = self
             .profile_service
             .resolve_session_profile(dto.profile, self.tool_catalog())
             .await?;
+        if let Some(customize) = self.customize_service.get() {
+            if let Ok(context) = customize
+                .context(
+                    tt_domain::models::customize::CustomizationSurface::NativeAgent,
+                    None,
+                )
+                .await
+            {
+                let mut fragments = context
+                    .rules
+                    .into_iter()
+                    .map(|rule| format!("### {}\n{}", rule.name, rule.body))
+                    .collect::<Vec<_>>();
+                fragments.extend(
+                    context.agents.into_iter().map(|agent| {
+                        format!("### Subagent: {}\n{}", agent.name, agent.description)
+                    }),
+                );
+                fragments.extend(context.commands.into_iter().map(|command| {
+                    format!("### Command /{}\n{}", command.name, command.description)
+                }));
+                if !fragments.is_empty() {
+                    let existing = profile
+                        .instructions
+                        .agent_system_prompt
+                        .take()
+                        .unwrap_or_default();
+                    profile.instructions.agent_system_prompt = Some(format!(
+                        "{existing}\n\n<tauritavern_customize>\n{}\n</tauritavern_customize>",
+                        fragments.join("\n\n")
+                    ));
+                }
+            }
+        }
         let history = self.read_session_history(&dto.session_id).await?;
         let last_seq = history.last().map_or(0, |entry| entry.seq);
         let mut messages = history

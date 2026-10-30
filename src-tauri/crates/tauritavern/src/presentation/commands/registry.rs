@@ -405,6 +405,18 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         super::skill_commands::delete_skill,
         super::skill_commands::move_skill,
         super::skill_commands::retarget_skill_scope,
+        // Customize commands
+        super::customize_commands::customize_snapshot,
+        super::customize_commands::customize_context,
+        super::customize_commands::customize_save,
+        super::customize_commands::customize_delete,
+        super::customize_commands::customize_set_enabled,
+        super::customize_commands::customize_hook_config,
+        super::customize_commands::customize_save_hook_config,
+        super::customize_commands::customize_trust_hooks,
+        super::customize_commands::customize_run_hook,
+        super::customize_commands::customize_hook_logs,
+        super::customize_commands::customize_known_events,
         // Chat completion commands
         super::chat_completion_commands::get_chat_completions_status,
         super::chat_completion_commands::generate_chat_completion,

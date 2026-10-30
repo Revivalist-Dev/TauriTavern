@@ -1,0 +1,280 @@
+.tt-customize {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+    min-height: 0;
+    color: var(--SmartThemeBodyColor, #eaeaea);
+    font-size: 12px;
+}
+
+.tt-customize-header,
+.tt-customize-toolbar,
+.tt-customize-editor-actions,
+.tt-customize-actions,
+.tt-customize-hook-test {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tt-customize-header {
+    justify-content: space-between;
+    padding: 2px 2px 6px;
+}
+
+.tt-customize-title {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.tt-customize-title strong {
+    font-size: 14px;
+}
+
+.tt-customize-title span,
+.tt-customize-muted,
+.tt-customize-empty,
+.tt-customize-badge,
+.tt-customize-item-main span,
+.tt-customize-hook-log small {
+    overflow: hidden;
+    color: var(--SmartThemeEmColor, #9aa0a6);
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tt-customize-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 12%));
+}
+
+.tt-customize-tab {
+    padding: 5px 8px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--SmartThemeEmColor, #9aa0a6);
+    font: inherit;
+    cursor: pointer;
+}
+
+.tt-customize-tab.active {
+    border-bottom-color: var(--SmartThemeQuoteColor, #6cb6ea);
+    color: var(--SmartThemeBodyColor, #eaeaea);
+}
+
+.tt-customize-body {
+    min-height: 0;
+    overflow: auto;
+    padding: 2px;
+}
+
+.tt-customize-list,
+.tt-customize-hooks,
+.tt-customize-mcp,
+.tt-customize-plugins {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tt-customize-toolbar {
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.tt-customize-toolbar h3,
+.tt-customize-hooks h4,
+.tt-customize-editor h4 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.tt-customize-btn {
+    padding: 4px 8px;
+    border: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 18%));
+    border-radius: 5px;
+    background: var(--white20a, rgb(255 255 255 / 8%));
+    color: var(--SmartThemeBodyColor, #eee);
+    font: inherit;
+    cursor: pointer;
+}
+
+.tt-customize-btn:hover {
+    background: var(--white30a, rgb(255 255 255 / 14%));
+}
+
+.tt-customize-btn.primary {
+    border-color: var(--SmartThemeQuoteColor, #6cb6ea);
+    background: color-mix(in srgb, var(--SmartThemeQuoteColor, #6cb6ea) 22%, transparent);
+}
+
+.tt-customize-btn.danger {
+    border-color: var(--SmartThemeWarningColor, #e6a23c);
+    color: var(--SmartThemeWarningColor, #e6a23c);
+}
+
+.tt-customize-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.tt-customize-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 7px;
+    border: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 10%));
+    border-radius: 5px;
+    background: var(--black10a, rgb(0 0 0 / 10%));
+}
+
+.tt-customize-item-main {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.tt-customize-item-main strong {
+    overflow: hidden;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tt-customize-badge {
+    flex: 0 0 auto;
+    padding: 2px 5px;
+    border: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 14%));
+    border-radius: 999px;
+}
+
+.tt-customize-toggle {
+    flex: 0 0 auto;
+    padding: 2px 5px;
+    border: 0;
+    background: transparent;
+    color: var(--SmartThemeQuoteColor, #6cb6ea);
+    font: inherit;
+    font-size: 10px;
+    cursor: pointer;
+}
+
+.tt-customize-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding: 8px;
+    border: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 16%));
+    border-radius: 6px;
+    background: var(--black20a, rgb(0 0 0 / 18%));
+}
+
+.tt-customize-field {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.tt-customize-field span {
+    color: var(--SmartThemeEmColor, #9aa0a6);
+    font-size: 10px;
+}
+
+.tt-customize-field input,
+.tt-customize-field textarea,
+.tt-customize-hook-editor {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 5px 7px;
+    border: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 16%));
+    border-radius: 5px;
+    background: var(--SmartThemeBlurTintColor, #1b1b20);
+    color: var(--SmartThemeBodyColor, #eee);
+    font: inherit;
+}
+
+.tt-customize-field textarea {
+    min-height: 100px;
+    resize: vertical;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 11px;
+}
+
+.tt-customize-check,
+.tt-customize-surfaces {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--SmartThemeEmColor, #b5b5b5);
+    font-size: 10px;
+}
+
+.tt-customize-surfaces {
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.tt-customize-hook-editor {
+    min-height: 240px;
+    resize: vertical;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 11px;
+}
+
+.tt-customize-hook-status {
+    padding: 6px 8px;
+    border-left: 2px solid var(--SmartThemeWarningColor, #e6a23c);
+    background: var(--black20a, rgb(0 0 0 / 16%));
+    color: var(--SmartThemeEmColor, #b5b5b5);
+}
+
+.tt-customize-hook-status.trusted {
+    border-left-color: var(--SmartThemeQuoteColor, #6cb6ea);
+}
+
+.tt-customize-hook-log {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 8px;
+    padding: 5px 7px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 8%));
+}
+
+.tt-customize-hook-log-event {
+    color: var(--SmartThemeQuoteColor, #6cb6ea);
+}
+
+.tt-customize-hook-log small {
+    grid-column: 1 / -1;
+}
+
+.tt-customize-warnings {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    max-height: 80px;
+    overflow: auto;
+}
+
+.tt-customize-warning,
+.tt-customize-error {
+    color: var(--SmartThemeWarningColor, #e6a23c);
+    font-size: 10px;
+}

@@ -22,6 +22,7 @@ use tt_application::services::chat_completion_service::ChatCompletionService;
 use tt_application::services::chat_history_coordinator::ChatHistoryCoordinator;
 use tt_application::services::chat_service::ChatService;
 use tt_application::services::content_service::ContentService;
+use tt_application::services::customize::CustomizeService;
 use tt_application::services::database_service::DatabaseService;
 use tt_application::services::extension_service::ExtensionService;
 use tt_application::services::extension_store_service::ExtensionStoreService;
@@ -242,6 +243,19 @@ pub(super) async fn build(
         data_change_reconciler.clone(),
         database_service.clone(),
     );
+    let customize_service = Arc::new(CustomizeService::new(
+        data_directory.root().join("_tauritavern").join("customize"),
+        vec![
+            data_directory.root().join("extensions"),
+            data_directory.root().join("data/default-user/extensions"),
+            std::env::current_dir()
+                .unwrap_or_default()
+                .join("src/scripts/extensions"),
+        ],
+    ));
+    agent_services
+        .agent_runtime_service
+        .set_customize_service(customize_service.clone());
     let sync_services = sync::build(
         environment,
         data_directory,
@@ -261,6 +275,7 @@ pub(super) async fn build(
         user_directory_service,
         secret_service,
         skill_service,
+        customize_service,
         sprite_service,
         content_service,
         asset_service,

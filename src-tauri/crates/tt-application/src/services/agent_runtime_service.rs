@@ -12,6 +12,7 @@ use crate::services::agent_profile_service::{
     AgentProfileResolveInput, AgentProfileService, materialize_agent_system_prompt,
 };
 use crate::services::agent_tools::{AgentToolDispatcher, BuiltinAgentToolRegistry};
+use crate::services::customize::CustomizeService;
 use crate::services::llm_connection_service::LlmConnectionService;
 use crate::services::mcp_service::McpService;
 use crate::services::prompt_assembly_service::PromptAssemblyService;
@@ -146,6 +147,7 @@ pub struct AgentRuntimeService {
     group_chat_repository: Arc<dyn GroupChatRepository>,
     model_gateway: Arc<dyn AgentModelGateway>,
     profile_service: Arc<AgentProfileService>,
+    customize_service: std::sync::OnceLock<Arc<CustomizeService>>,
     llm_connection_service: Arc<LlmConnectionService>,
     prompt_assembly_service: Arc<PromptAssemblyService>,
     skill_service: Arc<SkillService>,
@@ -203,6 +205,7 @@ impl AgentRuntimeService {
             group_chat_repository,
             model_gateway,
             profile_service,
+            customize_service: std::sync::OnceLock::new(),
             llm_connection_service,
             prompt_assembly_service,
             skill_service,
@@ -222,6 +225,10 @@ impl AgentRuntimeService {
 
     pub fn run_lifecycle_lock(&self) -> Arc<tokio::sync::Mutex<()>> {
         Arc::clone(&self.run_lifecycle_lock)
+    }
+
+    pub fn set_customize_service(&self, service: Arc<CustomizeService>) {
+        let _ = self.customize_service.set(service);
     }
 
     pub fn tool_catalog(&self) -> &ToolCatalog {

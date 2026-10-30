@@ -9071,6 +9071,63 @@ ${scopeHtml}
     updateMemoryDot: updateMemoryDot
   });
 
+  // Native Customize bridge for the Copilot extension.
+
+  function getCustomizeApi() {
+      return window.__TAURITAVERN__?.api?.customize ?? window.__TAURITAVERN__?.customize ?? null;
+  }
+
+  function getCustomizeVaultRoot() {
+      try {
+          const state = window.__ttFileExplorer?.state;
+          const mounts = state?.mounts ?? [];
+          const active = mounts.find((mount) => mount.id === state?.currentMountId) ?? mounts[0];
+          return active?.path ?? active?.root ?? null;
+      } catch {
+          return null;
+      }
+  }
+
+  async function expandCustomizeCommand(text, surface = 'copilot') {
+      const match = String(text ?? '').match(/^\/([a-zA-Z0-9_-]+)(?:\s+([\s\S]*))?$/);
+      if (!match) return text;
+      const api = getCustomizeApi();
+      try {
+          const context = await api.context(surface, getCustomizeVaultRoot());
+          const command = (context?.commands ?? []).find((item) => item.name === match[1]);
+          if (!command) return text;
+          return String(command.body || '').replaceAll('$ARGUMENTS', match[2] ?? '');
+      } catch {
+          return text;
+      }
+  }
+
+  async function buildCustomizeContextBlock(surface = 'copilot') {
+      const api = getCustomizeApi();
+      if (!api?.context) return '';
+      try {
+          const context = await api.context(surface, getCustomizeVaultRoot());
+          const rules = (context?.rules ?? []).map((item) => `### ${item.name}\n${item.body}`);
+          const skills = (context?.skills ?? []).map((item) => `### Skill: ${item.name}\n${item.description || ''}`);
+          const agents = (context?.agents ?? []).map((item) => `### Subagent: ${item.name}\n${item.description || ''}`);
+          const commands = (context?.commands ?? []).map((item) => `### Command: /${item.name}\n${item.description || ''}`);
+          if (!rules.length && !skills.length && !agents.length && !commands.length) return '';
+          return `<tauritavern_customize>\n${[...rules, ...skills, ...agents, ...commands].join('\n\n')}\n</tauritavern_customize>`;
+      } catch {
+          return '';
+      }
+  }
+
+  async function runCustomizeHook(event, payload = {}) {
+      const hooks = window.__TAURITAVERN_HOOKS__;
+      if (!hooks?.dispatch) return null;
+      try {
+          return await hooks.dispatch('copilot', event, payload);
+      } catch {
+          return null;
+      }
+  }
+
   function getEnabledTools() {
       const s = getSettings();
       if (!s.toolsEnabled) return [];
@@ -9125,7 +9182,23 @@ ${scopeHtml}
       }
   }
 
-  async function executeTool(toolName, toolInput) {    const native = await executeNativeTool(toolName, toolInput);
+  async function executeTool(toolName, toolInput) {
+      const pre = await runCustomizeHook('preToolUse', { toolName, toolInput });
+      if (pre && pre.allowed === false) {
+          return { error: pre.results?.[0]?.agentMessage || pre.results?.[0]?.userMessage || 'Blocked by a Customize hook.' };
+      }
+      const effectiveInput = pre?.updatedInput ?? toolInput;
+      try {
+          const result = await executeToolInner(toolName, effectiveInput);
+          await runCustomizeHook('postToolUse', { toolName, toolInput: effectiveInput, toolResponse: result });
+          return result;
+      } catch (error) {
+          await runCustomizeHook('postToolUseFailure', { toolName, toolInput: effectiveInput, error: String(error) });
+          throw error;
+      }
+  }
+
+  async function executeToolInner(toolName, toolInput) {    const native = await executeNativeTool(toolName, toolInput);
       if (native !== undefined) return native;
       const ctx = SillyTavern.getContext();
       switch (toolName) {
@@ -15058,6 +15131,9 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
           parts.push(`\n\n<modules>\n${modules.join('\n\n')}${reminder}\n</modules>`);
       }
 
+      const customizeBlock = await buildCustomizeContextBlock('copilot');
+      if (customizeBlock) parts.push(customizeBlock);
+
       return parts.join('\n');
   }
 
@@ -15705,6 +15781,13 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
 
   async function runGenerate(session, userText, addUserMsg = true, processedAtts = null) {
       if (state$1.generating) return;
+      userText = await expandCustomizeCommand(userText, 'copilot');
+      const preHook = await runCustomizeHook('beforeSubmitPrompt', { prompt: String(userText ?? '') });
+      if (preHook && preHook.allowed === false) {
+          window.toastr?.warning?.(preHook.results?.[0]?.userMessage || 'Blocked by a Customize hook.');
+          return;
+      }
+      if (preHook?.updatedInput?.prompt) userText = preHook.updatedInput.prompt;
       state$1.generating = true;
       state$1.activeToolCalls = [];
       const settings = getEffectiveSettings();
@@ -16013,6 +16096,7 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
           if (tokensOut > 0) recordStat(SM.tokOut, tokensOut);
 
           playCompletionSound();
+          await runCustomizeHook('afterAgentResponse', { prompt: fullText });
           _dbgAdd('GEN_DONE', { chars: fullText?.length || 0, hasReasoning: !!fullReasoning, tokensOut });
 
       } catch (err) {
@@ -17725,6 +17809,11 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
           document.getElementById('scp-menu-panel')?.classList.remove('open');
           document.getElementById('scp-menu-trigger')?.classList.remove('active');
           openCharacterManager();
+      });
+      document.getElementById('scp-menu-customize-item')?.addEventListener('click', () => {
+          document.getElementById('scp-menu-panel')?.classList.remove('open');
+          document.getElementById('scp-menu-trigger')?.classList.remove('active');
+          window.dispatchEvent(new CustomEvent('tt:open-customize'));
       });
 
       document.getElementById('scp-search-btn')?.addEventListener('click', () => { state$1.searchOpen ? closeSearch() : openSearch(); });

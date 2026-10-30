@@ -20,7 +20,7 @@
     "check:rust:fmt": "cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check",
     "check:rust:clippy": "cargo clippy --manifest-path src-tauri/Cargo.toml --workspace --all-targets --no-default-features --features tauritavern/perf -- -D warnings",
     "test": "pnpm run test:browser && pnpm run test:perf && pnpm run test:perf:backend && pnpm run test:layout && pnpm run test:contracts && pnpm run test:ui && pnpm run test:rust",
-    "test:layout": "node --test --test-concurrency=1 tests/layout/framework.test.mjs tests/layout/extension-settings.test.mjs tests/layout/file-explorer.test.mjs tests/layout/lore-directory.test.mjs tests/layout/copilot-dock.test.mjs tests/layout/center-tabs.test.mjs tests/layout/copilot-lore-manager.test.mjs tests/layout/lore-defaults.test.mjs tests/layout/deeplore-system.test.mjs tests/layout/extension-templates.test.mjs",
+    "test:layout": "node --test --test-concurrency=1 tests/layout/framework.test.mjs tests/layout/extension-settings.test.mjs tests/layout/file-explorer.test.mjs tests/layout/lore-directory.test.mjs tests/layout/copilot-dock.test.mjs tests/layout/center-tabs.test.mjs tests/layout/copilot-lore-manager.test.mjs tests/layout/lore-defaults.test.mjs tests/layout/deeplore-system.test.mjs tests/layout/extension-templates.test.mjs tests/layout/customize.test.mjs",
     "test:layout:installed": "node --test --test-concurrency=1 tests/layout/installed.test.mjs",
     "test:browser": "pnpm run web:build && node --experimental-vm-modules --test --test-timeout=60000 --test-force-exit \"tests/browser/*.test.mjs\"",
     "test:perf": "pnpm run web:build && node tests/perf/run.mjs",
