@@ -433,7 +433,7 @@ export async function openFrontend({ allocations = false } = {}) {
         await page.goto(`http://127.0.0.1:${server.address().port}/`);
         // The fixture's character opens its chat, review-chat, once startup has finished.
         await page.waitForFunction(() => globalThis.__TAURITAVERN_STARTUP_STAGE__ === 'full'
-            && globalThis.SillyTavern?.getContext().chatId === 'review-chat', null, { polling: 100 });
+            && globalThis.SillyTavern?.getContext().chatId === 'review-chat', null, { polling: 100, timeout: 120_000 });
         // The engine hit-tests a known pointer whenever layout changes, and some platforms start with one, so
         // the pointer starts at a fixed point.
         await page.mouse.move(1, 1);
