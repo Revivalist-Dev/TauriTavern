@@ -82,7 +82,7 @@ pub(super) fn build_payload(
         ChatCompletionSource::OpenRouter => openrouter::build(payload),
         ChatCompletionSource::Zai => zai::build(payload),
         ChatCompletionSource::MiniMax => Ok(minimax::build(payload)),
-        ChatCompletionSource::Custom => custom::build(payload),
+        ChatCompletionSource::Custom | ChatCompletionSource::ZedonByok => custom::build(payload),
         ChatCompletionSource::Claude => Ok(claude::build(payload)?),
         ChatCompletionSource::AwsBedrock => Ok(aws_bedrock::build(payload)?),
         ChatCompletionSource::Makersuite => Ok(makersuite::build(payload)?),

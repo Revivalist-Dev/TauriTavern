@@ -601,6 +601,13 @@ fn validate_custom_api_format(
     Ok(())
 }
 
+fn uses_custom_endpoint(source: ChatCompletionSource) -> bool {
+    matches!(
+        source,
+        ChatCompletionSource::Custom | ChatCompletionSource::ZedonByok
+    )
+}
+
 fn validate_endpoint(
     connection: &LlmConnectionDefinition,
     source: ChatCompletionSource,
@@ -611,15 +618,15 @@ fn validate_endpoint(
                 "llm_connection.base_url_empty: endpoint.baseUrl cannot be empty".to_string(),
             ));
         }
-        if source != ChatCompletionSource::Custom {
+        if !uses_custom_endpoint(source) {
             return Err(ApplicationError::ValidationError(
-                "llm_connection.base_url_non_custom: endpoint.baseUrl is only valid for chatCompletionSource=custom"
+                "llm_connection.base_url_non_custom: endpoint.baseUrl is only valid for custom-compatible sources"
                     .to_string(),
             ));
         }
-    } else if source == ChatCompletionSource::Custom {
+    } else if uses_custom_endpoint(source) {
         return Err(ApplicationError::ValidationError(
-            "llm_connection.custom_base_url_required: custom connections require endpoint.baseUrl"
+            "llm_connection.custom_base_url_required: custom-compatible connections require endpoint.baseUrl"
                 .to_string(),
         ));
     }
@@ -831,7 +838,7 @@ fn expected_secret_key(
         ChatCompletionSource::OpenAi => Ok(SecretKeys::OPENAI),
         ChatCompletionSource::OpenCode => Ok(SecretKeys::OPENCODE),
         ChatCompletionSource::OpenRouter => Ok(SecretKeys::OPENROUTER),
-        ChatCompletionSource::Custom => Ok(SecretKeys::CUSTOM),
+        ChatCompletionSource::Custom | ChatCompletionSource::ZedonByok => Ok(SecretKeys::CUSTOM),
         ChatCompletionSource::Claude => Ok(SecretKeys::CLAUDE),
         ChatCompletionSource::Makersuite => Ok(SecretKeys::MAKERSUITE),
         ChatCompletionSource::DeepSeek => Ok(SecretKeys::DEEPSEEK),

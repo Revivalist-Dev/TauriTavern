@@ -356,7 +356,7 @@ function _startPmRegistrationLatch() {
 }
 
 /** Default extraction prompt for AI Notepad extract-mode. */
-const DEFAULT_AI_NOTEPAD_EXTRACT_PROMPT = `You are a session note-taker for a roleplay. Given the AI's latest response and (optionally) its previous session notes, extract anything worth remembering for future context.
+const DEFAULT_AI_NOTEPAD_EXTRACT_PROMPT = `You are a session note-taker for a creative writing session. Given the AI's latest response and (optionally) its previous session notes, extract anything worth remembering for future context.
 
 Extract: character decisions, relationship shifts, emotional states, revealed information, plot developments, world state changes, unresolved threads, promises made, lies told, or anything else a writer would want to track.
 

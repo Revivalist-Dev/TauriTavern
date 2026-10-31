@@ -3027,6 +3027,7 @@ Using a draft model is preferred. Speculative ngram is not as effective." id="sp
                             <optgroup>
                                 <option value="openai">OpenAI</option>
                                 <option value="custom" data-i18n="Custom (OpenAI-compatible)">Custom (OpenAI-compatible)</option>
+                                <option value="zedon_byok" data-i18n="Zedon BYOK (Local)">Zedon BYOK (Local)</option>
                                 <option value="custom_openai_responses" data-i18n="Custom (OpenAI Responses)">Custom (OpenAI Responses)</option>
                                 <option value="custom_claude_messages" data-i18n="Custom (Claude Messages)">Custom (Claude Messages)</option>
                                 <option value="custom_gemini_generate_content" data-i18n="Custom (Gemini generateContent)">Custom (Gemini generateContent)</option>
@@ -4105,10 +4106,31 @@ Using a draft model is preferred. Speculative ngram is not as effective." id="sp
                                 </select>
                             </div>
                         </form>
-                        <form id="custom_form" data-source="custom">
+                        <form id="custom_form" data-source="custom,zedon_byok">
                             <h4><span data-i18n="Custom Endpoint (Base URL)" id="custom_api_url_text_label">Custom Endpoint (Base URL)</span></h4>
                             <div class="flex-container">
                                 <input id="custom_api_url_text" class="text_pole wide100p" value="" autocomplete="off" data-i18n="[placeholder]Example: http://localhost:1234/v1" placeholder="Example: http://localhost:1234/v1" aria-labelledby="custom_api_url_text_label">
+                            </div>
+                            <div id="zedon_byok_tools" data-source="zedon_byok">
+                                <div class="flex-container alignItemsCenter">
+                                    <button id="zedon_byok_discover" type="button" class="menu_button">
+                                        <i class="fa-solid fa-magnifying-glass"></i>
+                                        <span data-i18n="Discover Zedon BYOK">Discover Zedon BYOK</span>
+                                    </button>
+                                    <span id="zedon_byok_status" class="smallText"></span>
+                                </div>
+                                <label for="zedon_byok_model_select" class="marginTop10">
+                                    <span data-i18n="Zedon BYOK model catalog">Zedon BYOK model catalog</span>
+                                </label>
+                                <select id="zedon_byok_model_select" class="text_pole wide100p">
+                                    <option value="" data-i18n="-- Discover Zedon BYOK models --">-- Discover Zedon BYOK models --</option>
+                                </select>
+                                <div class="smallText marginTop5" data-i18n="Zedon BYOK creative warning">Models in the Creative (TauriTavern) group already contain a TauriTavern preset. Use them with a neutral local preset to avoid applying the same creative instructions twice.</div>
+                                <label for="zedon_byok_assistant_prefill" class="marginTop10">
+                                    <span data-i18n="Assistant Prefill">Assistant Prefill</span>
+                                </label>
+                                <textarea id="zedon_byok_assistant_prefill" class="text_pole wide100p" rows="2" placeholder="Start the assistant response with this text"></textarea>
+                                <div class="smallText marginTop5" data-i18n="Assistant prefill is sent as a trailing assistant message. It works on OpenAI-compatible models that support continued assistant turns.">Assistant prefill is sent as a trailing assistant message. It works on OpenAI-compatible models that support continued assistant turns.</div>
                             </div>
                             <div>
                                 <small>

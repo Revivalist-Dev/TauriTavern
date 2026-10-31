@@ -4,17 +4,20 @@ use std::{
 };
 
 use tokio::sync::Mutex;
+use tokio_util::sync::CancellationToken;
 
 use crate::{
-    dto::mcp_dto::{ListMcpServersResultDto, McpServerDto, McpStorageIssueDto},
+    dto::mcp_dto::{ListMcpServersResultDto, McpCallOutcomeDto, McpServerDto, McpStorageIssueDto},
     errors::ApplicationError,
 };
 use tt_domain::models::mcp::{
     McpEndpoint, McpProtocolVersionPreference, McpRegistrationId, McpServerRegistration,
-    McpServerState, McpToolPermission,
+    McpServerState, McpToolPermission, validate_native_tool_name,
 };
 use tt_domain::models::tool::ToolDescriptionOverride;
-use tt_ports::{mcp::McpGateway, repositories::mcp_server_repository::McpServerRepository};
+use tt_domain::models::tool::ToolId;
+use tt_ports::mcp::McpGateway;
+use tt_ports::repositories::mcp_server_repository::McpServerRepository;
 
 mod call;
 mod catalog;
@@ -48,6 +51,21 @@ impl McpService {
             catalog_snapshots: RwLock::new(HashMap::new()),
             calls: CallRegistry::default(),
         }
+    }
+
+    pub async fn invoke_tool(
+        &self,
+        registration_id: &str,
+        native_name: &str,
+        arguments: serde_json::Value,
+    ) -> Result<McpCallOutcomeDto, ApplicationError> {
+        let registration = McpRegistrationId::parse(registration_id)?;
+        validate_native_tool_name(native_name)?;
+        let tool_id = ToolId::new(&registration.provider_id(), native_name)?;
+        let outcome = self
+            .call_permitted_tool(&tool_id, arguments, CancellationToken::new())
+            .await?;
+        Ok(call::map_call_outcome(outcome))
     }
 
     pub async fn list_servers(&self) -> Result<ListMcpServersResultDto, ApplicationError> {

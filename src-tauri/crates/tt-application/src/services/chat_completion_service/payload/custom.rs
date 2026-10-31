@@ -25,7 +25,23 @@ pub(super) fn build(payload: Map<String, Value>) -> Result<(String, Value), Appl
         CustomApiFormat::ClaudeMessages => return claude::build_passthrough(payload),
     }
 
-    openai::build(payload)
+    let assistant_prefill = payload
+        .get("assistant_prefill")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|prefill| !prefill.is_empty())
+        .map(str::to_string);
+
+    let (endpoint, mut body) = openai::build(payload)?;
+    if let Some(prefill) = assistant_prefill {
+        if let Some(messages) = body.get_mut("messages").and_then(Value::as_array_mut) {
+            messages.push(serde_json::json!({
+                "role": "assistant",
+                "content": prefill,
+            }));
+        }
+    }
+    Ok((endpoint, body))
 }
 
 #[cfg(test)]
@@ -310,5 +326,20 @@ mod tests {
             .expect("upstream body should be object");
         assert!(body.get("max_tokens").is_some());
         assert_eq!(body.get("temperature").and_then(Value::as_f64), Some(0.1));
+    }
+
+    #[test]
+    fn custom_openai_appends_assistant_prefill() {
+        let payload = json!({
+            "chat_completion_source": "zedon_byok",
+            "custom_api_format": "openai_compat",
+            "model": "model-alias",
+            "messages": [{"role": "user", "content": "hi"}],
+            "assistant_prefill": "Sure,"
+        });
+        let (_, upstream) = build(payload.as_object().unwrap().clone()).unwrap();
+        let messages = upstream["messages"].as_array().unwrap();
+        assert_eq!(messages.last().unwrap()["role"], "assistant");
+        assert_eq!(messages.last().unwrap()["content"], "Sure,");
     }
 }

@@ -203,6 +203,7 @@ export const chat_completion_sources = {
     VERTEXAI: 'vertexai',
     MISTRALAI: 'mistralai',
     CUSTOM: 'custom',
+    ZEDON_BYOK: 'zedon_byok',
     COHERE: 'cohere',
     PERPLEXITY: 'perplexity',
     GROQ: 'groq',
@@ -239,6 +240,7 @@ const chatCompletionModelControls = {
     [chat_completion_sources.VERTEXAI]: { selector: '#model_vertexai_select', settingKey: 'vertexai_model', label: 'Vertex AI', supportsCustomModels: true },
     [chat_completion_sources.MISTRALAI]: { selector: '#model_mistralai_select', settingKey: 'mistralai_model', label: 'Mistral AI', supportsCustomModels: true },
     [chat_completion_sources.CUSTOM]: { selector: '#custom_model_id', settingKey: 'custom_model', label: 'Custom', supportsCustomModels: false },
+    [chat_completion_sources.ZEDON_BYOK]: { selector: '#custom_model_id', settingKey: 'custom_model', label: 'Zedon BYOK', supportsCustomModels: false },
     [chat_completion_sources.COHERE]: { selector: '#model_cohere_select', settingKey: 'cohere_model', label: 'Cohere', supportsCustomModels: true },
     [chat_completion_sources.PERPLEXITY]: { selector: '#model_perplexity_select', settingKey: 'perplexity_model', label: 'Perplexity', supportsCustomModels: true },
     [chat_completion_sources.GROQ]: { selector: '#model_groq_select', settingKey: 'groq_model', label: 'Groq', supportsCustomModels: true },
@@ -367,6 +369,7 @@ export const tool_reasoning_modes = {
 const interleaved_reasoning_providers = [
     chat_completion_sources.OPENROUTER,
     chat_completion_sources.CUSTOM,
+    chat_completion_sources.ZEDON_BYOK,
 ];
 
 export const ZAI_ENDPOINT = {
@@ -2763,6 +2766,7 @@ export function getChatCompletionModel(settings = null) {
         case chat_completion_sources.MISTRALAI:
             return settings.mistralai_model;
         case chat_completion_sources.CUSTOM:
+        case chat_completion_sources.ZEDON_BYOK:
             return settings.custom_model;
         case chat_completion_sources.COHERE:
             return settings.cohere_model;
@@ -3388,7 +3392,7 @@ function saveModelList(data) {
         setModelSelectValue(chat_completion_sources.OPENCODE, oai_settings.opencode_model);
     }
 
-    if (oai_settings.chat_completion_source == chat_completion_sources.CUSTOM) {
+    if (oai_settings.chat_completion_source == chat_completion_sources.CUSTOM || oai_settings.chat_completion_source == chat_completion_sources.ZEDON_BYOK) {
         $('.model_custom_select').empty();
         $('.model_custom_select').append('<option value="">None</option>');
         model_list.forEach((model) => {
@@ -4131,7 +4135,7 @@ function getReasoningEffort(settings = null, model = null) {
         return settings.reasoning_effort;
     }
 
-    if ([chat_completion_sources.CUSTOM, chat_completion_sources.OPENCODE].includes(settings.chat_completion_source)) {
+    if ([chat_completion_sources.CUSTOM, chat_completion_sources.ZEDON_BYOK, chat_completion_sources.OPENCODE].includes(settings.chat_completion_source)) {
         return settings.reasoning_effort === reasoning_effort_types.auto
             ? undefined
             : settings.reasoning_effort;
@@ -4270,6 +4274,7 @@ export async function createGenerationParameters(settings, model, type, messages
         chat_completion_sources.OPENROUTER,
         chat_completion_sources.MISTRALAI,
         chat_completion_sources.CUSTOM,
+        chat_completion_sources.ZEDON_BYOK,
         chat_completion_sources.COHERE,
         chat_completion_sources.GROQ,
         chat_completion_sources.ELECTRONHUB,
@@ -4301,6 +4306,7 @@ export async function createGenerationParameters(settings, model, type, messages
         chat_completion_sources.OPENROUTER,
         chat_completion_sources.AZURE_OPENAI,
         chat_completion_sources.CUSTOM,
+        chat_completion_sources.ZEDON_BYOK,
         chat_completion_sources.DEEPSEEK,
         chat_completion_sources.XAI,
         chat_completion_sources.AIMLAPI,
@@ -4315,6 +4321,7 @@ export async function createGenerationParameters(settings, model, type, messages
         chat_completion_sources.ELECTRONHUB,
         chat_completion_sources.CHUTES,
         chat_completion_sources.CUSTOM,
+        chat_completion_sources.ZEDON_BYOK,
     ];
 
     const isO1 = gptSources.includes(settings.chat_completion_source) && ['o1-2024-12-17', 'o1'].includes(model);
@@ -4469,14 +4476,16 @@ export async function createGenerationParameters(settings, model, type, messages
 
     applyAdditionalParametersToRequest(generate_data, settings, { macroContext });
 
-    if (settings.chat_completion_source === chat_completion_sources.CUSTOM) {
+    if (settings.chat_completion_source === chat_completion_sources.CUSTOM || settings.chat_completion_source === chat_completion_sources.ZEDON_BYOK) {
         generate_data.custom_url = settings.custom_url;
-        generate_data.custom_api_format = settings.custom_api_format;
+        generate_data.custom_api_format = settings.chat_completion_source === chat_completion_sources.ZEDON_BYOK
+            ? custom_api_formats.OPENAI_COMPAT
+            : settings.custom_api_format;
         generate_data.custom_claude_prompt_caching =
-            settings.custom_api_format === custom_api_formats.CLAUDE_MESSAGES
+            generate_data.custom_api_format === custom_api_formats.CLAUDE_MESSAGES
             && Boolean(settings.custom_claude_prompt_caching);
         generate_data.custom_openai_responses_websocket =
-            settings.custom_api_format === custom_api_formats.OPENAI_RESPONSES
+            generate_data.custom_api_format === custom_api_formats.OPENAI_RESPONSES
             && Boolean(settings.custom_openai_responses_websocket);
     }
 
@@ -4913,7 +4922,7 @@ export function getStreamingReply(data, state, { chatCompletionSource = null, mo
             }
         });
         return data.choices?.[0]?.delta?.content ?? data.choices?.[0]?.message?.content ?? data.choices?.[0]?.text ?? '';
-    } else if ([chat_completion_sources.OPENAI, chat_completion_sources.OPENCODE, chat_completion_sources.CUSTOM, chat_completion_sources.POLLINATIONS, chat_completion_sources.AIMLAPI, chat_completion_sources.MOONSHOT, chat_completion_sources.COMETAPI, chat_completion_sources.ELECTRONHUB, chat_completion_sources.NANOGPT, chat_completion_sources.ZAI, chat_completion_sources.SILICONFLOW, chat_completion_sources.CHUTES, chat_completion_sources.WORKERS_AI].includes(chat_completion_source)) {
+    } else if ([chat_completion_sources.OPENAI, chat_completion_sources.OPENCODE, chat_completion_sources.CUSTOM, chat_completion_sources.ZEDON_BYOK, chat_completion_sources.POLLINATIONS, chat_completion_sources.AIMLAPI, chat_completion_sources.MOONSHOT, chat_completion_sources.COMETAPI, chat_completion_sources.ELECTRONHUB, chat_completion_sources.NANOGPT, chat_completion_sources.ZAI, chat_completion_sources.SILICONFLOW, chat_completion_sources.CHUTES, chat_completion_sources.WORKERS_AI].includes(chat_completion_source)) {
         if (show_thoughts) {
             state.reasoning +=
                 data.choices?.filter(x => x?.delta?.reasoning_content)?.[0]?.delta?.reasoning_content ??
@@ -4954,6 +4963,7 @@ function parseChatCompletionLogprobs(data) {
         case chat_completion_sources.DEEPSEEK:
         case chat_completion_sources.XAI:
         case chat_completion_sources.CUSTOM:
+        case chat_completion_sources.ZEDON_BYOK:
         case chat_completion_sources.CHUTES:
             if (!data.choices?.length) {
                 return null;
@@ -6061,6 +6071,56 @@ function syncChatCompletionSourceSelector() {
     $('#chat_completion_source').find(`option[value="${CSS.escape(value)}"]`).prop('selected', true);
 }
 
+async function discoverZedonByokCatalog({ fillEndpoint = false } = {}) {
+    const api = window.__TAURITAVERN__?.api?.zedonByok;
+    if (!api) {
+        toastr.error('Zedon BYOK integration is unavailable.');
+        return;
+    }
+    const status = $('#zedon_byok_status');
+    const select = $('#zedon_byok_model_select');
+    let key = String($('#api_key_custom').val() ?? '').trim();
+    if (key.includes('•')) key = '';
+    if (!key) {
+        status.text('Using the saved Zedon BYOK key…');
+    }
+    status.text('Connecting…');
+    try {
+        const service = await api.service();
+        if (fillEndpoint && service?.baseUrl && !String($('#custom_api_url_text').val()).trim()) {
+            $('#custom_api_url_text').val(service.baseUrl).trigger('input');
+        }
+        const baseUrl = String($('#custom_api_url_text').val() ?? '').trim() || service?.baseUrl || null;
+        if (!service?.running && !baseUrl) {
+            status.text(service?.error || 'Zedon BYOK is not running.');
+            return;
+        }
+        const catalog = await api.models(key, baseUrl);
+        const models = Array.isArray(catalog?.models) ? catalog.models : [];
+        const current = String($('#custom_model_id').val() ?? '').trim();
+        select.empty().append($('<option>', { value: '', text: '-- Select a Zedon BYOK model --' }));
+        const upstream = models.filter(model => model.category !== 'tauritavern');
+        const creative = models.filter(model => model.category === 'tauritavern');
+        const addGroup = (label, entries) => {
+            if (!entries.length) return;
+            const group = $('<optgroup>', { label });
+            for (const model of entries) {
+                const suffix = model.group ? ` — ${model.group}` : '';
+                group.append($('<option>', { value: model.id, text: `${model.id}${suffix}` }));
+            }
+            select.append(group);
+        };
+        addGroup('Upstream models', upstream);
+        addGroup('Creative (TauriTavern preset)', creative);
+        if (current && models.some(model => model.id === current)) select.val(current);
+        const detail = `${models.length} models, ${creative.length} creative`;
+        status.text(`Connected: ${detail}.`);
+        if (!models.length) status.text('Connected, but the catalog is empty.');
+    } catch (error) {
+        status.text(String(error?.message ?? error));
+    }
+}
+
 function updateCustomEndpointPreview() {
     const { suffix, url } = getCustomEndpointPreview({
         ...oai_settings,
@@ -6095,6 +6155,10 @@ function applyChatCompletionSourceSelection(selection) {
             return;
         case chat_completion_sources.CUSTOM:
             oai_settings.chat_completion_source = chat_completion_sources.CUSTOM;
+            oai_settings.custom_api_format = custom_api_formats.OPENAI_COMPAT;
+            return;
+        case chat_completion_sources.ZEDON_BYOK:
+            oai_settings.chat_completion_source = chat_completion_sources.ZEDON_BYOK;
             oai_settings.custom_api_format = custom_api_formats.OPENAI_COMPAT;
             return;
         default:
@@ -6275,7 +6339,7 @@ async function getStatusOpen() {
         return resultCheckStatus();
     }
 
-    if (oai_settings.chat_completion_source === chat_completion_sources.CUSTOM && !isValidUrl(oai_settings.custom_url)) {
+    if ((oai_settings.chat_completion_source === chat_completion_sources.CUSTOM || oai_settings.chat_completion_source === chat_completion_sources.ZEDON_BYOK) && !isValidUrl(oai_settings.custom_url)) {
         console.debug('Invalid endpoint URL of Custom OpenAI API:', oai_settings.custom_url);
         setOnlineStatus(t`Invalid endpoint URL. Requests may fail.`);
         return resultCheckStatus();
@@ -6315,9 +6379,9 @@ async function getStatusOpen() {
 
     applyAdditionalParametersToRequest(data, oai_settings, { includeBody: false });
 
-    if (oai_settings.chat_completion_source === chat_completion_sources.CUSTOM) {
+    if (oai_settings.chat_completion_source === chat_completion_sources.CUSTOM || oai_settings.chat_completion_source === chat_completion_sources.ZEDON_BYOK) {
         $('.model_custom_select').empty();
-        data.custom_api_format = oai_settings.custom_api_format;
+        data.custom_api_format = oai_settings.chat_completion_source === chat_completion_sources.ZEDON_BYOK ? custom_api_formats.OPENAI_COMPAT : oai_settings.custom_api_format;
         data.custom_url = oai_settings.custom_url;
     }
 
@@ -6356,7 +6420,9 @@ async function getStatusOpen() {
         data.workers_ai_account_id = oai_settings.workers_ai_account_id;
     }
 
-    const canBypass = (oai_settings.chat_completion_source === chat_completion_sources.OPENAI && oai_settings.bypass_status_check) || oai_settings.chat_completion_source === chat_completion_sources.CUSTOM;
+    const canBypass = (oai_settings.chat_completion_source === chat_completion_sources.OPENAI && oai_settings.bypass_status_check)
+        || oai_settings.chat_completion_source === chat_completion_sources.CUSTOM
+        || oai_settings.chat_completion_source === chat_completion_sources.ZEDON_BYOK;
     if (canBypass) {
         setOnlineStatus(t`Status check bypassed`);
     }
@@ -7732,7 +7798,7 @@ async function onModelChange() {
         $('#temp_openai').attr('max', oai_max_temp).val(oai_settings.temp_openai).trigger('input');
     }
 
-    if ([chat_completion_sources.CUSTOM, chat_completion_sources.OPENCODE].includes(oai_settings.chat_completion_source)) {
+    if ([chat_completion_sources.CUSTOM, chat_completion_sources.ZEDON_BYOK, chat_completion_sources.OPENCODE].includes(oai_settings.chat_completion_source)) {
         $('#openai_max_context').attr('max', unlocked_max);
         oai_settings.openai_max_context = Math.min(Number($('#openai_max_context').attr('max')), oai_settings.openai_max_context);
         $('#openai_max_context').val(oai_settings.openai_max_context).trigger('input');
@@ -8013,6 +8079,7 @@ async function onConnectButtonClick(e) {
             [chat_completion_sources.AI21]: { key: SECRET_KEYS.AI21, selector: '#api_key_ai21', proxy: false },
             [chat_completion_sources.MISTRALAI]: { key: SECRET_KEYS.MISTRALAI, selector: '#api_key_mistralai', proxy: true },
             [chat_completion_sources.CUSTOM]: { key: SECRET_KEYS.CUSTOM, selector: '#api_key_custom', proxy: false, keyless: true },
+            [chat_completion_sources.ZEDON_BYOK]: { key: SECRET_KEYS.CUSTOM, selector: '#api_key_custom', proxy: false, keyless: false },
             [chat_completion_sources.COHERE]: { key: SECRET_KEYS.COHERE, selector: '#api_key_cohere', proxy: false },
             [chat_completion_sources.PERPLEXITY]: { key: SECRET_KEYS.PERPLEXITY, selector: '#api_key_perplexity', proxy: false },
             [chat_completion_sources.GROQ]: { key: SECRET_KEYS.GROQ, selector: '#api_key_groq', proxy: false },
@@ -8140,7 +8207,7 @@ function toggleChatCompletionForms() {
     else if (oai_settings.chat_completion_source == chat_completion_sources.NANOGPT) {
         $('#model_nanogpt_select').trigger('change');
     }
-    else if (oai_settings.chat_completion_source == chat_completion_sources.CUSTOM) {
+    else if (oai_settings.chat_completion_source == chat_completion_sources.CUSTOM || oai_settings.chat_completion_source == chat_completion_sources.ZEDON_BYOK) {
         $('#model_custom_select').trigger('change');
     }
     else if (oai_settings.chat_completion_source == chat_completion_sources.DEEPSEEK) {
@@ -8347,6 +8414,7 @@ export function isImageInliningSupported(settings = oai_settings) {
         case chat_completion_sources.OPENROUTER:
             return (Array.isArray(model_list) && model_list.find(m => m.id === settings.openrouter_model)?.architecture?.input_modalities?.includes('image'));
         case chat_completion_sources.CUSTOM:
+        case chat_completion_sources.ZEDON_BYOK:
             return true;
         case chat_completion_sources.MISTRALAI:
             return (Array.isArray(model_list) && model_list.find(m => m.id === settings.mistralai_model)?.capabilities?.vision);
@@ -8420,6 +8488,7 @@ export function isVideoInliningSupported(settings = oai_settings) {
         case chat_completion_sources.ZAI:
             return videoSupportedModels.some(model => settings.zai_model.includes(model));
         case chat_completion_sources.CUSTOM:
+        case chat_completion_sources.ZEDON_BYOK:
             return true;
         default:
             return false;
@@ -8463,6 +8532,7 @@ export function isAudioInliningSupported(settings = oai_settings) {
         case chat_completion_sources.OPENROUTER:
             return (Array.isArray(model_list) && model_list.find(m => m.id === settings.openrouter_model)?.architecture?.input_modalities?.includes('audio'));
         case chat_completion_sources.CUSTOM:
+        case chat_completion_sources.ZEDON_BYOK:
             return true;
         default:
             return false;
@@ -8516,6 +8586,7 @@ function usesDeepSeekReasoningContent(settings, model = getChatCompletionModel(s
     }
     const isCompat = (source === chat_completion_sources.CUSTOM
         && (settings.custom_api_format ?? custom_api_formats.OPENAI_COMPAT) === custom_api_formats.OPENAI_COMPAT)
+        || source === chat_completion_sources.ZEDON_BYOK
         || (source === chat_completion_sources.OPENCODE
             && (settings.opencode_api_format ?? OPENCODE_API_FORMAT.OPENAI_COMPAT) === OPENCODE_API_FORMAT.OPENAI_COMPAT);
     if (!isCompat) {
@@ -9092,8 +9163,16 @@ export function initOpenAI() {
 
     $('#claude_assistant_prefill').on('input', function () {
         oai_settings.assistant_prefill = String($(this).val());
+        $('#zedon_byok_assistant_prefill').val(oai_settings.assistant_prefill);
         saveSettingsDebounced();
     });
+
+    $('#zedon_byok_assistant_prefill')
+        .val(oai_settings.assistant_prefill ?? '')
+        .on('input', function () {
+            oai_settings.assistant_prefill = String($(this).val());
+            saveSettingsDebounced();
+        });
 
     $('#claude_assistant_impersonation').on('input', function () {
         oai_settings.assistant_impersonation = String($(this).val());
@@ -9218,6 +9297,22 @@ export function initOpenAI() {
         oai_settings.custom_model = String($(this).val());
         updateCustomEndpointPreview();
         saveSettingsDebounced();
+    });
+
+    $('#zedon_byok_discover').on('click', async function () {
+        await discoverZedonByokCatalog({ fillEndpoint: true });
+    });
+
+    $('#zedon_byok_model_select').on('change', function () {
+        const model = String($(this).val());
+        if (!model) return;
+        $('#custom_model_id').val(model).trigger('input');
+    });
+
+    $('#chat_completion_source').on('change', function () {
+        if (String($(this).val()) === chat_completion_sources.ZEDON_BYOK && !String($('#custom_api_url_text').val()).trim()) {
+            void discoverZedonByokCatalog({ fillEndpoint: true });
+        }
     });
 
     $('#custom_prompt_post_processing').on('change', function () {

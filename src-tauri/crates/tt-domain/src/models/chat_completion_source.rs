@@ -2,6 +2,7 @@
 pub enum ChatCompletionSource {
     OpenAi,
     OpenCode,
+    ZedonByok,
     OpenRouter,
     Custom,
     Claude,
@@ -26,6 +27,7 @@ impl ChatCompletionSource {
     pub const ALL: &'static [Self] = &[
         Self::OpenAi,
         Self::OpenCode,
+        Self::ZedonByok,
         Self::OpenRouter,
         Self::Custom,
         Self::Claude,
@@ -50,6 +52,7 @@ impl ChatCompletionSource {
         match raw.trim().to_lowercase().as_str() {
             "" | "openai" => Some(Self::OpenAi),
             "opencode" => Some(Self::OpenCode),
+            "zedon_byok" | "zedon-byok" | "zedon byok" | "byok" => Some(Self::ZedonByok),
             "openrouter" | "open-router" => Some(Self::OpenRouter),
             "custom" => Some(Self::Custom),
             "claude" => Some(Self::Claude),
@@ -78,6 +81,7 @@ impl ChatCompletionSource {
         match self {
             Self::OpenAi => "openai",
             Self::OpenCode => "opencode",
+            Self::ZedonByok => "zedon_byok",
             Self::OpenRouter => "openrouter",
             Self::Custom => "custom",
             Self::Claude => "claude",
@@ -103,6 +107,7 @@ impl ChatCompletionSource {
         match self {
             Self::OpenAi => "openai_model",
             Self::OpenCode => "opencode_model",
+            Self::ZedonByok => "zedon_byok_model",
             Self::OpenRouter => "openrouter_model",
             Self::Custom => "custom_model",
             Self::Claude => "claude_model",
@@ -128,6 +133,7 @@ impl ChatCompletionSource {
         match self {
             Self::OpenAi => "OpenAI",
             Self::OpenCode => "OpenCode",
+            Self::ZedonByok => "Zedon BYOK",
             Self::OpenRouter => "OpenRouter",
             Self::Custom => "Custom OpenAI",
             Self::Claude => "Claude",
@@ -147,5 +153,26 @@ impl ChatCompletionSource {
             Self::Xai => "xAI",
             Self::Pollinations => "Pollinations",
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ChatCompletionSource;
+
+    #[test]
+    fn zedon_byok_round_trips_and_aliases() {
+        for value in ["zedon_byok", "zedon-byok", "zedon byok", "byok"] {
+            assert_eq!(
+                ChatCompletionSource::parse(value),
+                Some(ChatCompletionSource::ZedonByok)
+            );
+        }
+        assert_eq!(ChatCompletionSource::ZedonByok.key(), "zedon_byok");
+        assert_eq!(
+            ChatCompletionSource::ZedonByok.prompt_model_setting_key(),
+            "zedon_byok_model"
+        );
+        assert_eq!(ChatCompletionSource::ZedonByok.display_name(), "Zedon BYOK");
     }
 }

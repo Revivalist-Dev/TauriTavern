@@ -25,7 +25,7 @@ impl Default for CustomizationScope {
 pub enum CustomizationSurface {
     NativeAgent,
     Copilot,
-    Roleplay,
+    CharacterChat,
     Deeplore,
 }
 

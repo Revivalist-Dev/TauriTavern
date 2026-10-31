@@ -651,6 +651,7 @@ impl ChatCompletionRepository for HttpChatCompletionRepository {
         match source {
             ChatCompletionSource::OpenAi
             | ChatCompletionSource::OpenCode
+            | ChatCompletionSource::ZedonByok
             | ChatCompletionSource::OpenRouter
             | ChatCompletionSource::Custom
             | ChatCompletionSource::DeepSeek
@@ -734,6 +735,7 @@ impl ChatCompletionRepository for HttpChatCompletionRepository {
                 ChatCompletionSource::OpenAi
                 | ChatCompletionSource::OpenRouter
                 | ChatCompletionSource::Custom
+                | ChatCompletionSource::ZedonByok
                 | ChatCompletionSource::DeepSeek
                 | ChatCompletionSource::Groq
                 | ChatCompletionSource::Moonshot
@@ -837,6 +839,7 @@ impl ChatCompletionRepository for HttpChatCompletionRepository {
                 ChatCompletionSource::OpenAi
                 | ChatCompletionSource::OpenRouter
                 | ChatCompletionSource::Custom
+                | ChatCompletionSource::ZedonByok
                 | ChatCompletionSource::DeepSeek
                 | ChatCompletionSource::Groq
                 | ChatCompletionSource::Moonshot
@@ -976,6 +979,7 @@ impl ChatCompletionRepository for HttpChatCompletionRepository {
                 ChatCompletionSource::OpenAi
                 | ChatCompletionSource::OpenRouter
                 | ChatCompletionSource::Custom
+                | ChatCompletionSource::ZedonByok
                 | ChatCompletionSource::DeepSeek
                 | ChatCompletionSource::Groq
                 | ChatCompletionSource::Moonshot

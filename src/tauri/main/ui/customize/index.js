@@ -85,7 +85,7 @@ function formatDate(value) {
 }
 
 function defaultSurfaces(kind) {
-    if (kind === 'command') return ['native_agent', 'copilot', 'roleplay'];
+    if (kind === 'command') return ['native_agent', 'copilot', 'character_chat'];
     if (kind === 'mcp') return ['native_agent', 'copilot', 'deeplore'];
     if (kind === 'hook' || kind === 'plugin') return ['native_agent'];
     return ['native_agent', 'copilot'];
@@ -284,7 +284,7 @@ function renderEditor(api, state, rerender) {
     form.append(always);
 
     const surfaces = el('div', 'tt-customize-surfaces');
-    for (const [id, label] of [['native_agent', 'Native agent'], ['copilot', 'Copilot'], ['roleplay', 'Roleplay'], ['deeplore', 'DeepLore']]) {
+    for (const [id, label] of [['native_agent', 'Native agent'], ['copilot', 'Copilot'], ['character_chat', 'Character Chat'], ['deeplore', 'DeepLore']]) {
         const wrapper = el('label', 'tt-customize-check');
         const box = document.createElement('input');
         box.type = 'checkbox';
@@ -426,6 +426,58 @@ function renderHooks(container, api, state, rerender) {
     container.append(panel);
 }
 
+function buildMcpTestPanel(server, mcpApi) {
+    const panel = el('div', 'tt-customize-editor');
+    panel.append(el('h4', '', `Test ${server.displayName ?? server.id ?? 'MCP server'}`));
+    const tools = Object.keys(server.toolPermissions ?? {});
+    if (!tools.length) {
+        panel.append(el('p', 'tt-customize-muted', 'Discover tools before making a test call.'));
+        return panel;
+    }
+    const toolField = el('label', 'tt-customize-field');
+    toolField.append(el('span', '', 'Tool'));
+    const tool = document.createElement('select');
+    for (const name of tools) {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        tool.append(option);
+    }
+    toolField.append(tool);
+    const argsField = el('label', 'tt-customize-field');
+    argsField.append(el('span', '', 'Arguments (JSON)'));
+    const args = document.createElement('textarea');
+    args.value = '{}';
+    args.rows = 4;
+    argsField.append(args);
+    const result = el('pre', 'tt-customize-result');
+    result.hidden = true;
+    const run = el('button', 'tt-customize-btn primary', 'Run test call');
+    run.type = 'button';
+    run.onclick = async () => {
+        let parsed;
+        try {
+            parsed = JSON.parse(args.value || '{}');
+        } catch (error) {
+            window.toastr?.error?.(`Invalid JSON: ${error?.message ?? error}`);
+            return;
+        }
+        run.disabled = true;
+        result.hidden = false;
+        result.textContent = 'Running…';
+        try {
+            const response = await mcpApi.tools.invoke(server.id, tool.value, parsed);
+            result.textContent = JSON.stringify(response, null, 2);
+        } catch (error) {
+            result.textContent = String(error?.message ?? error);
+        } finally {
+            run.disabled = false;
+        }
+    };
+    panel.append(toolField, argsField, run, result);
+    return panel;
+}
+
 async function renderMcp(container, api, state) {
     const panel = el('div', 'tt-customize-mcp');
     panel.append(el('h3', '', 'MCP servers'));
@@ -481,9 +533,17 @@ async function renderMcp(container, api, state) {
                 window.toastr?.error?.(String(error?.message ?? error));
             }
         };
-        actions.append(discover, remove);
+        const test = el('button', 'tt-customize-toggle', 'Test call');
+        test.type = 'button';
+        const testPanel = buildMcpTestPanel(server, mcpApi);
+        testPanel.hidden = true;
+        test.onclick = () => {
+            testPanel.hidden = !testPanel.hidden;
+            test.textContent = testPanel.hidden ? 'Test call' : 'Close test';
+        };
+        actions.append(discover, test, remove);
         row.append(main, el('span', 'tt-customize-badge', `${server.state ?? 'unknown'} · ${tools.length} tools`), actions);
-        panel.append(row);
+        panel.append(row, testPanel);
     }
 
     const form = el('div', 'tt-customize-editor');

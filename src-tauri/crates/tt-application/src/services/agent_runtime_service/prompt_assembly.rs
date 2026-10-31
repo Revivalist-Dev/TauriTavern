@@ -29,7 +29,7 @@ impl AgentRuntimeService {
         self.session_repository
             .load_session(&dto.session_id)
             .await?;
-        let user_message = session_user_message(&dto.input)?;
+        let mut user_message = session_user_message(&dto.input)?;
         let mut profile = self
             .profile_service
             .resolve_session_profile(dto.profile, self.tool_catalog())
@@ -42,6 +42,10 @@ impl AgentRuntimeService {
                 )
                 .await
             {
+                let commands = context.commands.clone();
+                if let Some(user_message) = user_message.as_mut() {
+                    expand_native_command(user_message, &commands);
+                }
                 let mut fragments = context
                     .rules
                     .into_iter()
@@ -405,4 +409,33 @@ fn prompt_assembly_run_mismatch_error(assembly_id: &str) -> ApplicationError {
     ApplicationError::ValidationError(format!(
         "agent.prompt_assembly_run_mismatch: assembly `{assembly_id}` belongs to another run"
     ))
+}
+
+fn expand_native_command(
+    message: &mut tt_domain::models::agent::AgentModelMessage,
+    commands: &[tt_domain::models::customize::CustomizationItem],
+) {
+    let Some(tt_domain::models::agent::AgentModelContentPart::Text { text }) =
+        message.parts.last_mut()
+    else {
+        return;
+    };
+    let trimmed = text.trim_start();
+    let Some(command_text) = trimmed.strip_prefix('/') else {
+        return;
+    };
+    let (name, arguments) = command_text
+        .split_once(char::is_whitespace)
+        .map(|(name, args)| (name, args.trim_start()))
+        .unwrap_or((command_text, ""));
+    let Some(command) = commands
+        .iter()
+        .find(|command| command.name.eq_ignore_ascii_case(name))
+    else {
+        return;
+    };
+    *text = command
+        .body
+        .replace("$ARGUMENTS", arguments)
+        .replace("$SELECTED_TEXT", "");
 }

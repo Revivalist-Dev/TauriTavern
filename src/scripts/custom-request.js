@@ -592,6 +592,22 @@ export class ChatCompletionService {
             settings[settingToUpdate[1]] = value;
         }
 
+        // A caller-supplied provider (a Connection Profile) wins. Otherwise presets may only
+        // contribute generation settings; the active provider always comes from the live API panel.
+        if (!overridePayload.chat_completion_source) {
+            const activeSource = oai_settings.chat_completion_source;
+            if (activeSource) {
+                overridePayload.chat_completion_source = activeSource;
+                if (activeSource === 'custom' || activeSource === 'zedon_byok') {
+                    overridePayload.custom_url = overridePayload.custom_url || oai_settings.custom_url;
+                    overridePayload.model = oai_settings.custom_model || overridePayload.model;
+                    overridePayload.custom_api_format = activeSource === 'zedon_byok'
+                        ? 'openai_compat'
+                        : (oai_settings.custom_api_format || overridePayload.custom_api_format);
+                }
+            }
+        }
+
         // Ensure api-url is properly applied for all sources that accept it
         ['custom_url', 'vertexai_region', 'zai_endpoint', 'siliconflow_endpoint', 'minimax_endpoint', 'moonshot_endpoint', 'pollinations_endpoint'].forEach(field => {
             // The order is: connection profile => CC preset => CC settings

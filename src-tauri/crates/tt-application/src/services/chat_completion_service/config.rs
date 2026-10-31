@@ -48,7 +48,7 @@ const POLLINATIONS_API_BASE_ANONYMOUS: &str = "https://text.pollinations.ai/v1";
 const POLLINATIONS_STATUS_API_BASE: &str = "https://gen.pollinations.ai/text";
 const OPENROUTER_REFERER: &str = "https://tauritavern.github.io";
 const OPENROUTER_TITLE: &str = "TauriTavern";
-const OPENROUTER_CATEGORIES: &str = "roleplay,general-chat";
+const OPENROUTER_CATEGORIES: &str = "general-chat";
 
 const ZAI_ENDPOINT_CODING: &str = "coding";
 const MINIMAX_ENDPOINT_CN: &str = "cn";
@@ -215,7 +215,7 @@ async fn resolve_api_config(
     let user_endpoint = resolve_user_configured_endpoint(source, reverse_proxy, custom_url)?;
 
     match source {
-        ChatCompletionSource::Custom => {
+        ChatCompletionSource::Custom | ChatCompletionSource::ZedonByok => {
             let base_url = user_endpoint.expect("custom sources require a configured endpoint");
             let extra_headers = source_extra_headers(source);
             let uses_reverse_proxy = custom_url.is_empty() && !reverse_proxy.is_empty();
@@ -340,9 +340,17 @@ pub(super) fn resolve_user_configured_endpoint(
     let reverse_proxy = reverse_proxy.trim();
     let custom_url = custom_url.trim();
     let endpoint = match source {
-        ChatCompletionSource::Custom if !custom_url.is_empty() => custom_url,
-        ChatCompletionSource::Custom if !reverse_proxy.is_empty() => reverse_proxy,
-        ChatCompletionSource::Custom => {
+        ChatCompletionSource::Custom | ChatCompletionSource::ZedonByok
+            if !custom_url.is_empty() =>
+        {
+            custom_url
+        }
+        ChatCompletionSource::Custom | ChatCompletionSource::ZedonByok
+            if !reverse_proxy.is_empty() =>
+        {
+            reverse_proxy
+        }
+        ChatCompletionSource::Custom | ChatCompletionSource::ZedonByok => {
             return Err(ApplicationError::ValidationError(
                 "Custom endpoint is missing. Please configure custom_url.".to_string(),
             ));
@@ -505,7 +513,9 @@ fn default_base_url(
             }
             ApiConfigPurpose::Generate => POLLINATIONS_API_BASE.to_string(),
         },
-        ChatCompletionSource::Custom => OPENAI_API_BASE.to_string(),
+        ChatCompletionSource::Custom | ChatCompletionSource::ZedonByok => {
+            OPENAI_API_BASE.to_string()
+        }
     };
 
     Ok(base_url)
@@ -538,7 +548,7 @@ fn source_secret_key(
             (!is_pollinations_anonymous(hints.pollinations_endpoint))
                 .then_some(SecretKeys::POLLINATIONS)
         }
-        ChatCompletionSource::Custom => Some(SecretKeys::CUSTOM),
+        ChatCompletionSource::Custom | ChatCompletionSource::ZedonByok => Some(SecretKeys::CUSTOM),
     }
 }
 

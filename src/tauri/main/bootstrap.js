@@ -33,6 +33,7 @@ import { installDbApi } from './api/db.js';
 import { installLayoutApi } from './api/layout.js';
 import { installLlmConnectionsApi } from './api/llm-connection.js';
 import { installMcpApi } from './api/mcp.js';
+import { installZedonByokApi } from './api/zedon-byok.js';
 import { installSkillApi } from './api/skill.js';
 import { installCustomizeApi } from './api/customize.js';
 import { installWorldInfoApi } from './api/world-info.js';
@@ -267,7 +268,7 @@ export function bootstrapTauriMain() {
     );
     installWorkspaceApi(createWorkspaceApi({ safeInvoke: context.safeInvoke }));
     const restoreAgentAssemblyBridges = installAgentApi(context);
-    installLlmConnectionsApi(context); installMcpApi(context); installSkillApi(context); installCustomizeApi(context); installDevApi(context); installExtensionStoreApi(context); installDbApi(context); installWorldInfoApi();
+    installLlmConnectionsApi(context); installMcpApi(context); installZedonByokApi(context); installSkillApi(context); installCustomizeApi(context); installDevApi(context); installExtensionStoreApi(context); installDbApi(context); installWorldInfoApi();
     installMainApiOptionParking();
     installWorldInfoGlobalSelectorSelect2Enforcer();
     if (perfEnabled) {

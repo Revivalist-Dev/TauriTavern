@@ -223,6 +223,21 @@
     font-size: 11px;
 }
 
+.tt-customize-result {
+    max-height: 220px;
+    margin: 0;
+    padding: 7px;
+    overflow: auto;
+    border: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 16%));
+    border-radius: 5px;
+    background: var(--black30a, rgb(0 0 0 / 28%));
+    color: var(--SmartThemeBodyColor, #eee);
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 10px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
 .tt-customize-check,
 .tt-customize-surfaces {
     display: flex;

@@ -17,6 +17,7 @@ const api = window.__TAURITAVERN__.api;
 | [api.db](Database.md) | Local vector, text index, graph and TQL database |
 | [api.agent](Agent.md) | Run control, history, file details and profile management |
 | [api.llmConnections](LlmConnections.md) | Model connections used by agents |
+| [api.zedonByok](ZedonByok.md) | Local Zedon BYOK service discovery and model catalog |
 | [api.skill](Skill.md) | skill import, editing, scope and export |
 | [api.mcp](MCP.md) | MCP servers, tool discovery, permissions and test calls |
 

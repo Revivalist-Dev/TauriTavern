@@ -62,3 +62,4 @@ pub mod vault_commands;
 pub mod vector_commands;
 pub mod window_layout_commands;
 pub mod world_info_commands;
+pub mod zedon_byok_commands;

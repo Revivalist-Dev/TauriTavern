@@ -47,6 +47,7 @@ impl AgentRuntimeService {
         cancel: &mut AgentCancelReceiver,
     ) -> Result<AgentLoopExit, ApplicationError> {
         let InvocationFrame { prepared, progress } = frame;
+        let mut stop_rounds = 0usize;
         let run_id = prepared.invocation.run_id.as_str();
         let invocation_id = prepared.invocation.id.as_str();
         let exit_policy = prepared.invocation.exit_policy;
@@ -248,8 +249,9 @@ impl AgentRuntimeService {
                         );
                     }
                     if replied {
+                        let mut followup = None;
                         if let Some(customize) = self.customize_service.get() {
-                            let _ = customize
+                            if let Ok(result) = customize
                                 .run_hook(tt_domain::models::customize::HookRunRequest {
                                     event: "stop".to_string(),
                                     surface: "native_agent".to_string(),
@@ -261,7 +263,19 @@ impl AgentRuntimeService {
                                     vault_root: None,
                                     test: false,
                                 })
-                                .await;
+                                .await
+                            {
+                                followup = result.followup_message;
+                            }
+                        }
+                        if let Some(followup) = followup.filter(|_| stop_rounds < 3) {
+                            stop_rounds += 1;
+                            prepared.request.messages.push(AgentModelMessage {
+                                role: AgentModelRole::User,
+                                parts: vec![AgentModelContentPart::Text { text: followup }],
+                                provider_metadata: Value::Null,
+                            });
+                            continue;
                         }
                         return Ok(AgentLoopExit::Replied);
                     } else if !has_tools {

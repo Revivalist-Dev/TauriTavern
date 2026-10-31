@@ -203,6 +203,8 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         super::llm_connection_commands::load_llm_connection,
         super::llm_connection_commands::save_llm_connection,
         super::llm_connection_commands::delete_llm_connection,
+        super::zedon_byok_commands::get_zedon_byok_service,
+        super::zedon_byok_commands::list_zedon_byok_models,
         // MCP commands
         super::mcp_commands::list_mcp_servers,
         super::mcp_commands::create_mcp_server,
@@ -215,6 +217,7 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         super::mcp_commands::set_mcp_tool_description_override,
         super::mcp_commands::start_mcp_test_call,
         super::mcp_commands::test_mcp_tool_call,
+        super::mcp_commands::mcp_invoke_tool,
         super::mcp_commands::cancel_mcp_test_call,
         super::mcp_commands::list_legacy_mcp_tools,
         super::mcp_commands::start_legacy_mcp_tool_call,

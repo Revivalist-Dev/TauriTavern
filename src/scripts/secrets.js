@@ -219,6 +219,9 @@ export function resolveSecretKey() {
     }
 
     if (mainApi === 'openai') {
+        if (chatCompletionSource === chat_completion_sources.ZEDON_BYOK) {
+            return SECRET_KEYS.CUSTOM;
+        }
         if (chatCompletionSource === chat_completion_sources.VERTEXAI) {
             switch (chatCompletionSettings.vertexai_auth_mode) {
                 case 'express':

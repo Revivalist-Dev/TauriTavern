@@ -202,6 +202,22 @@ pub async fn cancel_mcp_test_call(
 }
 
 #[tauri::command]
+pub async fn mcp_invoke_tool(
+    registration_id: String,
+    native_name: String,
+    arguments: serde_json::Value,
+    app_state: State<'_, Arc<AppState>>,
+) -> Result<McpCallOutcomeDto, CommandError> {
+    log_command("mcp_invoke_tool");
+    app_state
+        .services
+        .mcp_service
+        .invoke_tool(&registration_id, &native_name, arguments)
+        .await
+        .map_err(map_command_error("Failed to invoke MCP tool"))
+}
+
+#[tauri::command]
 pub async fn list_legacy_mcp_tools(
     app_state: State<'_, Arc<AppState>>,
 ) -> Result<ListLegacyMcpToolsResultDto, CommandError> {

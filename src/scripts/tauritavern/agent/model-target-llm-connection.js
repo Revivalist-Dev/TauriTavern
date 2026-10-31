@@ -55,6 +55,8 @@ const SOURCE_ALIASES = Object.freeze({
     glm: 'zai',
     'mini-max': 'minimax',
     'mini max': 'minimax',
+    'zedon byok': 'zedon_byok',
+    'zedon-byok': 'zedon_byok',
 });
 
 /** @type {Readonly<Record<string, string>>} */
@@ -153,7 +155,7 @@ export function buildLlmConnectionFromModelTarget(target) {
         sourceSpecific: {},
     };
     const apiUrl = String(target['api-url'] || '').trim();
-    if (apiUrl && source === 'custom') {
+    if (apiUrl && (source === 'custom' || source === 'zedon_byok')) {
         endpoint.baseUrl = apiUrl;
     } else if (apiUrl && SOURCE_SPECIFIC_API_URL_KEYS[source]) {
         endpoint.sourceSpecific[SOURCE_SPECIFIC_API_URL_KEYS[source]] = apiUrl;

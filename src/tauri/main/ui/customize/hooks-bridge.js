@@ -60,16 +60,16 @@ export function installHooksBridge() {
         context: getCustomizeContext,
         getVaultRoot: resolveVaultRootFromContext,
     };
-    installRoleplayBridge();
-    void registerRoleplayCommands();
+    installCharacterChatBridge();
+    void registerCharacterChatCommands();
 }
 
-async function registerRoleplayCommands() {
+async function registerCharacterChatCommands() {
     const context = window.SillyTavern?.getContext?.();
     const parser = context?.SlashCommandParser ?? window.SlashCommandParser;
     const commandType = context?.SlashCommand ?? window.SlashCommand;
     if (!parser?.addCommandObject || !commandType?.fromProps) return;
-    const customize = await getCustomizeContext('roleplay');
+    const customize = await getCustomizeContext('character_chat');
     for (const item of customize?.commands ?? []) {
         const name = String(item.name || '').replace(/\s+/g, '-').toLowerCase();
         if (!name) continue;
@@ -88,7 +88,7 @@ async function registerRoleplayCommands() {
     }
 }
 
-function installRoleplayBridge() {
+function installCharacterChatBridge() {
     const context = window.SillyTavern?.getContext?.();
     const events = context?.eventSource;
     const types = context?.eventTypes ?? context?.event_types ?? window.event_types;
@@ -96,7 +96,7 @@ function installRoleplayBridge() {
 
     const emit = (event, payload) => {
         if (!event) return;
-        void dispatchHook('roleplay', event, payload).then((result) => {
+        void dispatchHook('character_chat', event, payload).then((result) => {
             if (result && result.allowed === false) {
                 window.toastr?.warning?.(result.results?.[0]?.userMessage || `A Customize hook blocked ${event}.`);
             }

@@ -798,7 +798,7 @@ fn default_surfaces(kind: CustomizationKind) -> Vec<CustomizationSurface> {
         CustomizationKind::Command => vec![
             CustomizationSurface::NativeAgent,
             CustomizationSurface::Copilot,
-            CustomizationSurface::Roleplay,
+            CustomizationSurface::CharacterChat,
         ],
         CustomizationKind::Mcp => vec![
             CustomizationSurface::NativeAgent,
@@ -835,7 +835,7 @@ fn file_item(
         .filter_map(|surface| match surface.as_str() {
             "native_agent" => Some(CustomizationSurface::NativeAgent),
             "copilot" => Some(CustomizationSurface::Copilot),
-            "roleplay" => Some(CustomizationSurface::Roleplay),
+            "character_chat" => Some(CustomizationSurface::CharacterChat),
             "deeplore" => Some(CustomizationSurface::Deeplore),
             _ => None,
         })
@@ -884,7 +884,7 @@ fn format_body(request: &CustomizeSaveRequest, surfaces: &[CustomizationSurface]
         .map(|surface| match surface {
             CustomizationSurface::NativeAgent => "native_agent",
             CustomizationSurface::Copilot => "copilot",
-            CustomizationSurface::Roleplay => "roleplay",
+            CustomizationSurface::CharacterChat => "character_chat",
             CustomizationSurface::Deeplore => "deeplore",
         })
         .collect::<Vec<_>>()

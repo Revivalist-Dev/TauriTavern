@@ -32,10 +32,10 @@ When the user asks you a question or requests assistance, adhere to the followin
 3. Formatting: Use markdown (bullet points, bold text, etc.) to make your insights readable and engaging.
 </operational_guidelines>
 
-Your ultimate goal is to enhance the user's roleplay experience by providing deep OOC insights, tracking lore, and answering questions based on your specific persona configuration.`;
+Your ultimate goal is to enhance the user's creative writing experience by providing deep OOC insights, tracking lore, and answering questions based on your specific persona configuration.`;
 
   const DEFAULT_LB_MANAGE_PROMPT = `<context>
-A Lorebook (or World Info) is a dynamic memory system used in roleplay to store and seamlessly retrieve facts about the world, characters, locations, items, and lore. When specific keywords (\`triggers\`) are mentioned in the chat, the system secretly injects the corresponding \`content\` into the AI's prompt.
+A Lorebook (or World Info) is a dynamic memory system used in creative writing to store and seamlessly retrieve facts about the world, characters, locations, items, and lore. When specific keywords (\`triggers\`) are mentioned in the chat, the system secretly injects the corresponding \`content\` into the AI's prompt.
 </context>
 
 <system_mechanics>
@@ -120,7 +120,7 @@ To maximize semantic density and prevent AI hallucinations, you MUST adhere to t
 </character_architecture>
 
 <group_chat_protocol>
-This roleplay may involve a single character (solo chat) or several (group chat). Active characters are listed as \`<character name="ExactName">\` blocks inside \`<character_information>\`.
+This story may involve a single character (solo chat) or several (group chat). Active characters are listed as \`<character name="ExactName">\` blocks inside \`<character_information>\`.
 
 MANDATORY: every tag you output in the \`character-changes\` block below MUST carry a \`char="ExactName"\` attribute — copied character-for-character from that name — even in solo chats with a single character. Never omit it. Never invent a name absent from context. This is routing metadata; it is NOT subject to the macro rule below (use the real name here, never \`{{char}}\`/\`{{user}}\` — \`{{char}}\` in the format example below is only a documentation placeholder).
 
@@ -165,7 +165,7 @@ Generated \`chat-changes\` blocks are automatically executed and purged from the
 </system_mechanics>
 
 <operational_rules>
-1. Target: Use \`msg_index\`, \`msg_range\`, or \`msg_indices\` from \`<roleplay_context>\`.
+1. Target: Use \`msg_index\`, \`msg_range\`, or \`msg_indices\` from \`<scene_context>\`.
 2. Operations:
    - \`add\` / \`delete\`: Insert at \`msg_index\`.
    - \`prepend\` / \`append\`: Insert exactly at the extreme start/end of a message.
@@ -182,7 +182,7 @@ Generated \`chat-changes\` blocks are automatically executed and purged from the
 <output_formatting>
 {{chat_edit_format}}
 
-Active chat message indices are shown in the \`<roleplay_context>\` block as: \`<msg index="N" role="user|assistant">\`
+Active chat message indices are shown in the \`<scene_context>\` block as: \`<msg index="N" role="user|assistant">\`
 Currently visible messages: {{active_chat_ids}}
 </output_formatting>`;
 
@@ -266,7 +266,7 @@ Actions: \`add\`, \`update\`, \`delete\`.
 Routing Scopes (Choose based on instruction longevity/reach):
 - \`global\`: Persists EVERYWHERE. Use for core, permanent Human traits (e.g., IRL profession, absolute formatting rules, universal hard limits).
 - \`character\`: Persists ONLY for current {{char}}. Use for technical OOC instructions tailored to this specific bot (e.g., "Human requires verbose prose for this bot", "Human wants to avoid romance with this bot").
-- \`chat\`: Persists ONLY in this specific roleplay thread. Use for current storyline structural goals (e.g., "Human wants to shift genre to horror here", "Focus on pacing in this scene").
+- \`chat\`: Persists ONLY in this specific story thread. Use for current storyline structural goals (e.g., "Human wants to shift genre to horror here", "Focus on pacing in this scene").
 - \`session\`: Persists ONLY in this current Copilot brainstorm. Use for immediate, temporary directives (e.g., "Human is testing a prompt", "Keep next answers very short").
 </memory_logic>
 
@@ -880,6 +880,39 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
                       from_end: { type: 'boolean', description: 'If true, count from end of chat (default true)' },
                       role: { type: 'string', enum: ['all', 'user', 'assistant'], description: 'Filter by role (default all)' },
                   },
+              },
+          },
+          {
+              id: 'mcp_call',
+              name: 'mcp_call',
+              label: 'Call MCP Tool',
+              icon: 'fa-plug',
+              description: 'Call a tool on a registered MCP server. Use the MCP catalog in the Customize context to choose a server and tool.',
+              settingKey: 'toolsEnabled_mcp_call',
+              schema: {
+                  type: 'object',
+                  properties: {
+                      server: { type: 'string', description: 'MCP server display name or ID' },
+                      tool: { type: 'string', description: 'MCP tool name' },
+                      arguments: { type: 'object', description: 'Arguments for the MCP tool' },
+                  },
+                  required: ['server', 'tool'],
+              },
+          },
+          {
+              id: 'run_custom_agent',
+              name: 'run_custom_agent',
+              label: 'Run Custom Subagent',
+              icon: 'fa-user-gear',
+              description: 'Run a named custom subagent once with a bounded task and return its result. The child cannot call further subagents or tools.',
+              settingKey: 'toolsEnabled_run_custom_agent',
+              schema: {
+                  type: 'object',
+                  properties: {
+                      agentId: { type: 'string', description: 'Custom subagent ID from the Customize subagent list' },
+                      task: { type: 'string', description: 'Task for the subagent (max 8000 characters)' },
+                  },
+                  required: ['agentId', 'task'],
               },
           },
       ];
@@ -1546,7 +1579,7 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
           quickPrompts: [
               { id: 'qp_d1', label: 'Analyze', icon: '🔍', text: 'Analyze the current scene and character motivations in detail.' },
               { id: 'qp_d2', label: 'Ideas', icon: '💡', text: 'Give me 3 creative plot twist ideas for the current scene.' },
-              { id: 'qp_d3', label: 'Summary', icon: '📋', text: 'Summarize everything that has happened in the roleplay so far.' },
+              { id: 'qp_d3', label: 'Summary', icon: '📋', text: 'Summarize everything that has happened in the story so far.' },
               { id: 'qp_d4', label: 'Feelings', icon: '💭', text: 'What is {{char}} likely feeling right now and why?' },
               { id: 'qp_d5', label: 'Next?', icon: '🎯', text: 'What are the most interesting directions the story could go next?' },
           ],
@@ -9109,7 +9142,10 @@ ${scopeHtml}
           const context = await api.context(surface, getCustomizeVaultRoot());
           const rules = (context?.rules ?? []).map((item) => `### ${item.name}\n${item.body}`);
           const skills = (context?.skills ?? []).map((item) => `### Skill: ${item.name}\n${item.description || ''}`);
-          const agents = (context?.agents ?? []).map((item) => `### Subagent: ${item.name}\n${item.description || ''}`);
+          const agents = (context?.agents ?? []).map((item) => {
+              const agentId = item.metadata?.agentId ?? item.id ?? item.name;
+              return `### Subagent: ${item.name} [id: ${agentId}]\n${item.description || ''}`;
+          });
           const commands = (context?.commands ?? []).map((item) => `### Command: /${item.name}\n${item.description || ''}`);
           let mcpServers = [];
           try {
@@ -9125,6 +9161,22 @@ ${scopeHtml}
           return `<tauritavern_customize>\n${[...rules, ...skills, ...agents, ...commands, ...mcpServers].join('\n\n')}\n</tauritavern_customize>`;
       } catch {
           return '';
+      }
+  }
+
+  async function listCustomizeAgents(surface = 'copilot') {
+      const api = getCustomizeApi();
+      if (!api?.context) return [];
+      try {
+          const context = await api.context(surface, getCustomizeVaultRoot());
+          return (context?.agents ?? []).map((item) => ({
+              agentId: item.metadata?.agentId ?? item.id ?? item.name,
+              name: item.name,
+              description: item.description ?? '',
+              body: item.body ?? '',
+          }));
+      } catch {
+          return [];
       }
   }
 
@@ -9208,7 +9260,68 @@ ${scopeHtml}
       }
   }
 
-  async function executeToolInner(toolName, toolInput) {    const native = await executeNativeTool(toolName, toolInput);
+  async function executeMcpCall(input) {
+      const api = window.__TAURITAVERN__?.api?.mcp;
+      if (!api?.servers?.list || !api?.tools?.invoke) {
+          return { error: 'Native MCP tool dispatch is unavailable.' };
+      }
+      const listed = await api.servers.list();
+      const server = (listed?.servers ?? []).find((candidate) =>
+          candidate.id === input.server || candidate.displayName === input.server);
+      if (!server) return { error: `MCP server not found: ${input.server}` };
+      const permission = server.toolPermissions?.[input.tool];
+      if (permission === 'deny' || permission === 'off') {
+          return { error: `MCP tool ${input.tool} is denied by policy.` };
+      }
+      return api.tools.invoke(server.id, input.tool, input.arguments ?? {});
+  }
+
+  async function executeCustomAgent(input) {
+      const agentId = String(input?.agentId ?? '').trim();
+      const task = String(input?.task ?? '').trim();
+      if (!agentId) return { error: 'agentId is required.' };
+      if (!task) return { error: 'task is required.' };
+      if (task.length > 8000) return { error: 'The subagent task exceeds the 8000 character limit.' };
+
+      const agents = await listCustomizeAgents();
+      const agent = agents.find((candidate) =>
+          candidate.agentId === agentId || candidate.name === agentId);
+      if (!agent) return { error: `Custom subagent not found: ${agentId}` };
+      if (!agent.body) return { error: `Custom subagent ${agent.name} has no definition body.` };
+
+      const { callGenerate } = await Promise.resolve().then(function () { return api; });
+      const settings = { ...getSettings(), toolsEnabled: false, contextDepth: 0, maxTokens: 2048 };
+      const pending = [
+          `You are the custom subagent "${agent.name}". Follow this role definition exactly:`,
+          agent.body,
+          'Complete the task and return only the result. Do not delegate to another subagent.',
+          `Task:\n${task}`,
+      ].join('\n\n');
+
+      let timeout;
+      try {
+          const result = await Promise.race([
+              callGenerate({ messages: [] }, settings, pending, () => {}),
+              new Promise((_, reject) => {
+                  timeout = setTimeout(() => reject(new Error('Subagent timed out after 60 seconds.')), 60000);
+              }),
+          ]);
+          return {
+              agentId: agent.agentId,
+              agentName: agent.name,
+              result: String(result?.text ?? '').slice(0, 12000),
+          };
+      } catch (error) {
+          return { error: String(error?.message ?? error).slice(0, 1000) };
+      } finally {
+          clearTimeout(timeout);
+      }
+  }
+
+  async function executeToolInner(toolName, toolInput) {
+      if (toolName === 'mcp_call') return executeMcpCall(toolInput);
+      if (toolName === 'run_custom_agent') return executeCustomAgent(toolInput);
+      const native = await executeNativeTool(toolName, toolInput);
       if (native !== undefined) return native;
       const ctx = SillyTavern.getContext();
       switch (toolName) {
@@ -12836,7 +12949,7 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
                     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7" /><ellipse cx="12" cy="12" rx="11" ry="3" transform="rotate(-25 12 12)" /><circle cx="21.5" cy="7.5" r="1.5" fill="currentColor" stroke="none" /></svg>
                 </div>
                 <div class="scp-empty-title">New Session</div>
-                <div class="scp-empty-sub">Ask anything about your roleplay — continuity checks, character analysis, writing feedback, worldbuilding, and more.</div>
+                <div class="scp-empty-sub">Ask anything about your creative writing — continuity checks, character analysis, writing feedback, worldbuilding, and more.</div>
             </div>`;
           updateMsgCount(session);
           return;
@@ -15252,9 +15365,9 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
               const ctxAttr = hasPicked ? `picked_messages="${visibleSlice.length}"` : `last_messages="${visibleSlice.length}"`;
               messages.push({
                   role: 'user',
-                  content: `<roleplay_context ${ctxAttr}>\n${summaryText}${block}\n\n</roleplay_context>`,
+                  content: `<scene_context ${ctxAttr}>\n${summaryText}${block}\n\n</scene_context>`,
               });
-              messages.push({ role: 'assistant', content: 'Understood. I have reviewed the current roleplay context. How can I help?' });
+              messages.push({ role: 'assistant', content: 'Understood. I have reviewed the current scene context. How can I help?' });
           }
       }
       const limit = Math.max(1, parseInt(settings.localHistoryLimit) || 50);
@@ -15649,13 +15762,18 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
                   includePreset: true
               });
           } else {
-              const mainApi = window.main_api || ctx.main_api;
+              const mainApi = window.main_api?.val?.()
+                  || document.getElementById('main_api')?.value
+                  || ctx.mainApi
+                  || ctx.main_api
+                  || 'unknown';
               if (mainApi === 'openai' && ctx.ChatCompletionService) {
                   const selectedPreset = resolveProviderPreset(settings, ctx);
                   asyncGeneratorFn = await ctx.ChatCompletionService.processRequest({
                       messages: messages,
                       max_tokens: maxTokens,
-                      stream: useStream
+                      stream: useStream,
+                      ...mainProviderOverrides(ctx)
                   }, { presetName: selectedPreset }, false, abort.signal);
               } else if (mainApi === 'textgenerationwebui' && ctx.TextCompletionService) {
                   const textGenSettings = window.textgenerationwebui_settings || ctx.textgenerationwebui_settings || {};
@@ -15682,13 +15800,18 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
                           includePreset: true
                       });
                   } else {
-                      const mainApi = window.main_api || ctx.main_api;
+                      const mainApi = window.main_api?.val?.()
+                          || document.getElementById('main_api')?.value
+                          || ctx.mainApi
+                          || ctx.main_api
+                          || 'unknown';
                       if (mainApi === 'openai' && ctx.ChatCompletionService) {
                           const selectedPreset = resolveProviderPreset(settings, ctx);
                           asyncGeneratorFn = await ctx.ChatCompletionService.processRequest({
                               messages: messages,
                               max_tokens: maxTokens,
-                              stream: false
+                              stream: false,
+                              ...mainProviderOverrides(ctx)
                           }, { presetName: selectedPreset }, false, abort.signal);
                       } else if (mainApi === 'textgenerationwebui' && ctx.TextCompletionService) {
                           const textGenSettings = window.textgenerationwebui_settings || ctx.textgenerationwebui_settings || {};
@@ -17041,7 +17164,7 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
       }
 
       let html = '', last = 0;
-      const KNOWN = new Set(['system_prompt','character_information','characters','character','lorebook_context','st_system_prompt','persistent_memory','summary_context','lorebook_management','character_management','chat_messages_editing','roleplay_context','entity_definitions','persona_configuration','operational_guidelines','{{user}}_persona', 'tool_calls_system', 'memory_system']);
+      const KNOWN = new Set(['system_prompt','character_information','characters','character','lorebook_context','st_system_prompt','persistent_memory','summary_context','lorebook_management','character_management','chat_messages_editing','scene_context','entity_definitions','persona_configuration','operational_guidelines','{{user}}_persona', 'tool_calls_system', 'memory_system']);
       let currentDepth = 0;
       let emittedAnchors = new Set();
 

@@ -70,6 +70,11 @@ function createMcpApi({ safeInvoke }) {
                     }
                 }
             },
+            invoke: async (registrationId, nativeName, argumentsValue) => safeInvoke('mcp_invoke_tool', {
+                registrationId,
+                nativeName,
+                arguments: argumentsValue,
+            }),
         },
     };
 }

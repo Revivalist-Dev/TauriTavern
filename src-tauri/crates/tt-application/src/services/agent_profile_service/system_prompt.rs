@@ -112,7 +112,7 @@ pub fn materialize_agent_system_prompt(
     }
     if has_tool(tools, "dice.roll") {
         lines.push(format!(
-            "- Use {} only when an explicit random roll, chance check, or tabletop/roleplay check is needed. Do not invent roll results.",
+            "- Use {} only when an explicit random roll, chance check, or tabletop/narrative check is needed. Do not invent roll results.",
             model_alias(tools, "dice.roll")
         ));
     }

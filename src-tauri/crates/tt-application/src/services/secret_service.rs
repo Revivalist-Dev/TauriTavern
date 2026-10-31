@@ -100,6 +100,17 @@ impl SecretService {
         })
     }
 
+    /// Read the saved custom-endpoint API key for a native host service.
+    ///
+    /// This deliberately bypasses the key-exposure gate used by `find_secret`; the value is consumed
+    /// inside the native process and is never returned to the WebView.
+    pub async fn read_custom_api_key_for_host(&self) -> Result<Option<String>, ApplicationError> {
+        self.secret_repository
+            .read_secret("api_key_custom", None)
+            .await
+            .map_err(ApplicationError::from)
+    }
+
     /// Look up a specific secret
     pub async fn find_secret(
         &self,
