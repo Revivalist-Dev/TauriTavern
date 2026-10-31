@@ -4,7 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { crc32, deflateSync } from 'node:zlib';
 import { createWebHostFixture } from '../browser/web-host-fixture.mjs';
-import { defaultSettings, defaultTheme, systemExtensions } from '../helpers/frontend-content.mjs';
+import { defaultSettings, defaultTheme, webHostSystemExtensions } from '../helpers/frontend-content.mjs';
 
 /**
  * A long chat and a large lorebook; the first entry holds 100k characters. Ledger is a heavy card: an embedded
@@ -64,7 +64,7 @@ export function perfSettings() {
 
 /** The page's Web Host data: the fixture's arguments plus the dataset. */
 export function pageData() {
-    return { settings: perfSettings(), theme: defaultTheme, extensions: systemExtensions, ...dataset() };
+    return { settings: perfSettings(), theme: defaultTheme, extensions: webHostSystemExtensions, ...dataset() };
 }
 
 const jsonl = records => records.map(record => JSON.stringify(record)).join('\n');

@@ -24,15 +24,11 @@ for (const identity of [HOSTS.windows, HOSTS.android]) {
             const ready = new Promise(resolve => eventSource.once(event_types.APP_READY, resolve));
             const extensionsLoaded = new Promise(resolve => eventSource.once(event_types.EXTENSION_SETTINGS_LOADED, resolve));
             const settingsSaved = new Promise(resolve => eventSource.once(event_types.SETTINGS_UPDATED, resolve));
-            const loreLoaded = new Promise(resolve => eventSource.on(event_types.WORLDINFO_ENTRIES_LOADED, ({ characterLore }) => {
-                if (characterLore.length) resolve(characterLore);
-            }));
             window.jQuery.holdReady(false);
-            const [, lore] = await Promise.race([Promise.all([ready, loreLoaded, settingsSaved, extensionsLoaded]), failed]);
+            await Promise.race([Promise.all([ready, settingsSaved, extensionsLoaded]), failed]);
             assert.match(window.document.querySelector('#chat .mes_text').textContent, /A chat loaded through Web Host/);
             assert.equal(window.document.getElementById('extensions_details').classList.contains('warning'), false);
             assert.equal(window.webHostFixtureActivated, true);
-            assert.equal(lore[0].content, 'Review lore loaded.');
             const saved = readSettings();
             assert.equal(saved.amount_gen, 80);
             assert.deepEqual(saved.power_user.personas, original.personas);

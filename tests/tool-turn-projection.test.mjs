@@ -117,7 +117,7 @@ test('recursive first-class tool rounds retain model-turn order', () => {
 
 test('old tool turns can be stripped while pure Assistant history and the active chain remain', () => {
     const oldOwner = assistant([call('old-call')], { mes: 'Tool-bearing text is omitted' });
-    const pureAssistant = assistant(undefined, { mes: 'Pure roleplay remains' });
+    const pureAssistant = assistant(undefined, { mes: 'Pure creative writing remains' });
     const user = { is_user: true, is_system: false, mes: 'Continue' };
     const currentOwner = assistant([call('current-call')]);
     const projection = projectToolTurns([

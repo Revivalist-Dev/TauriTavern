@@ -3,11 +3,14 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import vm from 'node:vm';
 import { Window } from 'happy-dom';
-import { defaultSettings, defaultTheme, frontendRoot as root, systemExtensions } from '../helpers/frontend-content.mjs';
+import { defaultSettings, defaultTheme, frontendRoot as root, webHostSystemExtensions } from '../helpers/frontend-content.mjs';
 import { HOSTS } from '../helpers/host-identity.mjs';
 import { createWebHostFixture } from './web-host-fixture.mjs';
 
-const extensions = [...systemExtensions, { name: 'third-party/web-host-fixture', type: 'local' }];
+const extensions = [
+    ...webHostSystemExtensions,
+    { name: 'third-party/web-host-fixture', type: 'local' },
+];
 
 function resourcePath(pathname) {
     const prefix = '/scripts/extensions/third-party/';
