@@ -3,6 +3,18 @@
 The **Customize** panel is available from the TauriTavern settings rail and from the Copilot menu. It
 is backed by the native Rust process.
 
+## Creative Writing framing
+
+TauriTavern is a creative-writing client for character dialogue, interactive fiction, and text
+scenes. Agents, prompts, and documentation use **Creative Writing** as the domain name and
+**Character Chat** as the normal conversation surface.
+
+## Terminology update
+
+The surface selector now uses **Character Chat**. Customizations saved against the previous surface
+name must be opened and saved again; the old value is intentionally not accepted. Bundled third-party
+presets keep their original labels.
+
 ## Opening Customize
 
 - Open the settings rail and select **Customize**.
@@ -22,7 +34,7 @@ Resources can be stored in native app storage or in the active vault. Vault reso
 ```
 
 Use the scope and surface checkboxes to control where a resource applies: **Native agent**,
-**Copilot**, **Roleplay**, or **DeepLore**. Rules and skills are opt-in for standard roleplay.
+**Copilot**, **Character Chat**, or **DeepLore**. Rules and skills are opt-in for Character Chat.
 
 Vault resources override native resources with the same name. Plugin contributions are the lowest
 precedence layer.
@@ -30,7 +42,7 @@ precedence layer.
 ### Commands
 
 Copilot recognizes `/command arguments` and expands the command body, replacing `$ARGUMENTS` with the
-supplied text. Roleplay registers the same commands with SillyTavern's slash-command parser.
+supplied text. Character Chat registers the same commands with SillyTavern's slash-command parser.
 
 ### Subagents
 
@@ -38,8 +50,9 @@ Subagent definitions are listed in the system prompt as `name (agentId: custom-.
 
 The native agent can delegate to a custom definition by passing that ID to its delegation tool. The
 child run inherits the caller's model and tool policy, and the definition's prompt is prepended to the
-task. Named Copilot subagent execution is still being completed; current Copilot behavior is limited to
-showing the definitions in its Customize context.
+task. Copilot can run one with the `run_custom_agent` tool, which accepts `agentId` and `task`, caps
+the task at 8,000 characters, returns at most 12,000 characters, and times out after 60 seconds. The
+child is a single text turn with tools and further subagent delegation disabled.
 
 ## Hooks
 
@@ -71,8 +84,8 @@ Supported events are `sessionStart`, `sessionEnd`, `beforeSubmitPrompt`, `preToo
 `postToolUse`, `postToolUseFailure`, `afterAgentResponse`, `stop`, `subagentStart`, `subagentStop`,
 `beforeReadFile`, and `afterFileEdit`.
 
-When a `stop` hook returns `followupMessage`, Copilot starts a follow-up turn, up to three follow-ups
-per user request. Native and roleplay stop continuations are not yet automatic.
+When a `stop` hook returns `followupMessage`, the native agent and Copilot start a follow-up turn,
+up to three follow-ups per user request. Character Chat stop continuations are not yet automatic.
 
 ## MCP
 
@@ -83,8 +96,9 @@ The **MCP** tab lists `.cursor/mcp.json` presets and registered native MCP serve
 - **Remove** unregisters the server.
 - Discovered tool names are shown in the server row.
 
-MCP execution is available to the native agent. Copilot receives the MCP server and discovered-tool
-catalog in its customization context; direct Copilot-side tool dispatch is still being completed.
+Each server row has a **Test call** control. Pick one of its discovered tools, enter JSON arguments,
+and run it; the normalized native result appears below the form. Test calls use the same permission
+path as normal MCP execution, so denied tools are refused there too.
 
 ## Plugins
 
@@ -115,9 +129,9 @@ they are trusted.
 
 | Surface | Rules | Skills | Commands | Hooks |
 | :--- | :--- | :--- | :--- | :--- |
-| Native agent | yes | existing skill picker | prompt metadata | all lifecycle events |
+| Native agent | yes | existing skill picker | `/command` expansion | all lifecycle events |
 | Copilot | yes | yes | `/command` expansion | prompt, tool, response, stop |
-| Standard roleplay | opt-in | opt-in | slash parser | generation events |
+| Character Chat | opt-in | opt-in | slash parser | generation events |
 | DeepLore | opt-in context | opt-in | no | file-read hooks |
 
 ## Safety

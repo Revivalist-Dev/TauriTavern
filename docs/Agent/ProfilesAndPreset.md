@@ -96,7 +96,7 @@ The built-in `openai/Agent` preset serves agents that talk to the user directly:
 | Omits `temperature`, `frequency_penalty`, `presence_penalty`, `top_p`, `top_k`, `top_a`, `min_p`, and `repetition_penalty` | Uses the sampling defaults the provider offers for the model. |
 | `use_sysprompt: true` | Lets sources such as Claude, Gemini, and Bedrock send the system prompt by their own protocol. |
 | `media_inlining: true` | Lets the existing media inlining flow add media to requests according to model capability. |
-| Empty roleplay wrappers | An agent facing the user directly needs no chat, group chat, example, continuation, or impersonation wrapper. |
+| Empty scene wrappers | An agent facing the user directly needs no chat, group chat, example, continuation, or impersonation wrapper. |
 | Character and World Info markers kept | Follows SillyTavern's standard preset structure; with no matching material in a Session they stay empty and produce no message. |
 | `agentSystemPrompt` before the Main Prompt, `agentTask` before the history, `agentResults` at the end | Follows PromptManager's default insertion points, so no order needs rewriting after loading. |
 

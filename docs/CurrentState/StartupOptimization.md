@@ -272,3 +272,27 @@ Not guaranteed (extend the allowlist or contract as needed):
 - That any third-party script can reach the extension settings DOM it expects while the **extension
   drawer is closed** (Panel Runtime may park subtrees, and only the allowlisted containers are
   guaranteed today).
+
+---
+
+## 10. Performance gates
+
+`tests/perf/baseline.json` is the checked-in budget, not just a reference snapshot. `pnpm run test:perf`
+replays the measured flows and fails when startup DOM size, node count, scroll containers, listener
+count, host traffic, or JavaScript allocation exceeds the recorded value. Update it only after
+reviewing the delta:
+
+```powershell
+pnpm run test:perf -- --update
+pnpm run test:perf:backend
+```
+
+`tests/helpers/frontend-content.mjs` separates `systemExtensions` from
+`webHostSystemExtensions`. Native-only extensions are excluded from Web Host and perf fixtures so a
+Tauri-only import cannot masquerade as a startup regression. Keep that list current when an extension
+gains a native dependency.
+
+Heavy startup remains the main open performance risk: hidden panels and extension drawers are still
+mounted even when closed. Lazy-mounting or parking those subtrees should be measured against the
+baseline above before and after the change.
+

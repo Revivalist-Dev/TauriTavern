@@ -56,7 +56,15 @@ A profile uses `model.mode = "connectionRef"` and stores `connectionRef` and `mo
 
 Agent System materializes Connection Manager Model Targets as `model-target-<target.id>` connections and syncs them at startup, on target updates, on profile saves and on run start. Target configuration that cannot be represented reports an error and removes the corresponding old connection so that profile diagnostics can display it.
 
-Connection sync updates the provider, endpoint, secret and adapter options. `modelId` belongs to the profile, so after changing a target's model name you must reselect it in the profile before the new value is used. Deleting a target keeps the connection that has already been materialized.
+Connection sync updates the provider, endpoint, secret and adapter options. A source of
+`zedon_byok` is a custom OpenAI-compatible connection: `endpoint.baseUrl` points at the local BYOK
+`/byok/v1` endpoint, and the external key uses the custom API key secret. See
+[Zedon BYOK](ZedonByok.md) for setup and routing ownership.
+
+`modelId` belongs to the profile, so after changing a target's model name you must reselect it in
+the profile before the new value is used. Deleting a target keeps the connection that has already
+been materialized.
+
 
 An invocation that has already been prepared keeps using its model request; connection updates apply to later resolutions. Exporting a standalone model binding strips local references, which have to be configured again after import.
 
