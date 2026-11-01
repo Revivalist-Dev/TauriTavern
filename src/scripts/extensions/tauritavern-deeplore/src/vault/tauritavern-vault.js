@@ -15,7 +15,7 @@ if (typeof window !== 'undefined') {
 }
 
 function api() {
-    return window.__TAURITAVERN__?.api ?? null;
+    return typeof window === 'undefined' ? null : window.__TAURITAVERN__?.api ?? null;
 }
 
 export function isNativeVaultAvailable() {

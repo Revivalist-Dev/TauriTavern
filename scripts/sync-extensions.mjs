@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -22,6 +22,7 @@ const jobs = [
         target: path.join(extensionsRoot, 'tauritavern-deeplore'),
         build: false,
         files: ['index.js', 'style.css', 'manifest.json', 'settings.html', 'settings.js', 'drawer.html', 'settings-popup.html', 'setup-wizard.html', 'icon.svg'],
+        dirs: ['src'],
     },
 ];
 
@@ -36,6 +37,13 @@ for (const job of jobs) {
             throw new Error(`${job.name}: missing ${file}`);
         }
         copyFileSync(source, path.join(job.target, file));
+    }
+    for (const dir of job.dirs ?? []) {
+        const source = path.join(job.source, dir);
+        if (!existsSync(source)) {
+            throw new Error(`${job.name}: missing ${dir}`);
+        }
+        cpSync(source, path.join(job.target, dir), { recursive: true });
     }
     console.log(`synced ${job.name}`);
 }

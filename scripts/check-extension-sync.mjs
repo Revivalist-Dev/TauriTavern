@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -12,6 +12,7 @@ const pairs = [
         source: path.join(workspaceRoot, 'tauri-tavern-extensions', 'TauriTavern-DeepLore'),
         installed: path.join(projectRoot, 'src', 'scripts', 'extensions', 'tauritavern-deeplore'),
         files: ['index.js', 'style.css', 'manifest.json', 'settings.html', 'settings.js', 'drawer.html', 'settings-popup.html', 'setup-wizard.html', 'icon.svg'],
+        dirs: ['src'],
     },
     {
         label: 'TauriTavern-DeepLore-Copilot',
@@ -22,6 +23,21 @@ const pairs = [
 ];
 
 const digest = (buffer) => createHash('sha256').update(buffer).digest('hex');
+
+async function listFiles(root, prefix = '') {
+    const entries = await readdir(path.join(root, prefix), { withFileTypes: true });
+    const files = [];
+    for (const entry of entries) {
+        const relative = path.join(prefix, entry.name);
+        if (entry.isDirectory()) {
+            files.push(...await listFiles(root, relative));
+        } else if (entry.isFile()) {
+            files.push(relative);
+        }
+    }
+    return files;
+}
+
 const failures = [];
 for (const pair of pairs) {
     for (const file of pair.files) {
@@ -33,6 +49,18 @@ for (const pair of pairs) {
             failures.push(`${pair.label}/${file}: missing on ${source ? 'installed' : 'source'} side`);
         } else if (digest(source) !== digest(installed)) {
             failures.push(`${pair.label}/${file}: installed copy is stale`);
+        }
+    }
+    for (const dir of pair.dirs ?? []) {
+        const sourceFiles = await listFiles(path.join(pair.source, dir)).catch(() => []);
+        for (const relative of sourceFiles) {
+            const source = await readFile(path.join(pair.source, dir, relative)).catch(() => null);
+            const installed = await readFile(path.join(pair.installed, dir, relative)).catch(() => null);
+            if (!source || !installed) {
+                failures.push(`${pair.label}/${dir}/${relative}: missing on ${source ? 'installed' : 'source'} side`);
+            } else if (digest(source) !== digest(installed)) {
+                failures.push(`${pair.label}/${dir}/${relative}: installed copy is stale`);
+            }
         }
     }
 }

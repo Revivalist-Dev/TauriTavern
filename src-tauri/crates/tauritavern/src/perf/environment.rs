@@ -37,8 +37,18 @@ use tt_ports::sync_automation::SyncAutomationEventPublisher;
 /// `root` holds the data root at `root/data`; `repo` is the checkout whose bundled resources the app ships.
 pub(super) fn mock_app(root: &Path, repo: &Path) -> Result<App<MockRuntime>, String> {
     let resources = Arc::new(RepositoryResources::load(repo)?);
+    let data_root = root.join("data");
+    let local_vault = Arc::new(tt_adapter_local_vault::LocalVault::load(
+        data_root.join("local-vault.json"),
+    ));
+    let lore_directory = Arc::new(tt_adapter_local_vault::LoreDirectory::new(
+        local_vault.clone(),
+        data_root,
+    ));
     let app = mock_builder()
         .manage(Arc::new(BundledTemplateService::new(resources.clone())))
+        .manage(local_vault)
+        .manage(lore_directory)
         .invoke_handler(tauri::generate_handler![
             c::settings_commands::get_tauritavern_settings,
             c::bridge::get_client_version,
@@ -56,6 +66,13 @@ pub(super) fn mock_app(root: &Path, repo: &Path) -> Result<App<MockRuntime>, Str
             c::mcp_commands::create_mcp_server,
             c::character_commands::get_character_chats_by_id,
             c::character_commands::get_character,
+            c::character_commands::merge_character_card_data,
+            c::vault_commands::lore_get_state,
+            c::vault_commands::lore_scan,
+            c::vault_commands::lore_retrieve,
+            c::vault_commands::lore_list_entries,
+            c::vault_commands::lore_search,
+            c::vault_commands::lore_read,
             c::chat_commands::get_chat_payload_path,
             c::agent_commands::list_active_agent_runs,
             c::world_info_commands::get_world_info,

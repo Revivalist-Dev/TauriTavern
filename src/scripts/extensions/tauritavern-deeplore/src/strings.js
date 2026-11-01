@@ -2063,6 +2063,8 @@ export const strings = {
     "dle_status_button": "Status",
     "dle_status_choosing_lore": "Choosing lore…",
     "dle_status_connecting": "Connecting to the gateway…",
+    "dle_status_no_vault": "No vault connected — run Setup",
+    "dle_status_gateway_unavailable": "Gateway unavailable — open Setup",
     "dle_status_constant": "Constant",
     "dle_status_consulting_vault": "Consulting vault…",
     "dle_status_degraded": "Degraded",

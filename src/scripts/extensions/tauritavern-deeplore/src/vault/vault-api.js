@@ -751,39 +751,6 @@ export async function readNote(host, port, apiKey, filename, useHttps = false) {
 }
 
 /**
- * Delete a single vault note.
- *
- * Returns `{ ok, status, error? }`. `ok:false` with `status:404` means the note
- * was already gone. Never throws — transport errors come back as `status:0`.
- *
- * @param {string} host
- * @param {number} port
- * @param {string} apiKey
- * @param {string} filename - vault-relative path
- * @param {boolean} [useHttps=false]
- * @returns {Promise<{ok: boolean, status: number, error?: string}>}
- */
-export async function deleteNote(host, port, apiKey, filename, useHttps = false) {
-    try {
-        const normalizedPath = validateVaultPath(filename);
-        const result = await vaultFetch({
-            host,
-            port,
-            apiKey,
-            https: useHttps,
-            path: `/vault/${encodeVaultPath(normalizedPath)}`,
-            method: 'DELETE',
-        });
-        if (result.status === 200 || result.status === 204) {
-            return { ok: true, status: result.status };
-        }
-        return { ok: false, status: result.status, error: `HTTP ${result.status}` };
-    } catch (err) {
-        return { ok: false, status: 0, error: err.message };
-    }
-}
-
-/**
  * Create a vault directory. The gateway creates parent directories as needed,
  * so `book/waypoint` is valid even when `book` does not exist yet.
  *
@@ -816,22 +783,6 @@ export async function createFolder(host, port, apiKey, folder, useHttps = false)
     } catch (err) {
         return { ok: false, status: 0, error: err.message };
     }
-}
-
-/**
- * Delete a vault path that is either a file or an empty directory. Directory
- * deletion is what removes an emptied waypoint folder; the gateway answers
- * `409` when the directory still holds notes.
- *
- * @param {string} host
- * @param {number} port
- * @param {string} apiKey
- * @param {string} target - vault-relative file or empty directory path
- * @param {boolean} [useHttps=false]
- * @returns {Promise<{ok: boolean, status: number, error?: string}>}
- */
-export async function deletePath(host, port, apiKey, target, useHttps = false) {
-    return deleteNote(host, port, apiKey, target, useHttps);
 }
 
 /**

@@ -72,7 +72,7 @@ import { DEFAULT_FIELD_DEFINITIONS } from './src/fields.js';
 import { buildIndex, ensureIndexFresh, hydrateFromCache, buildIndexWithReuse } from './src/vault/vault.js';
 import { resetAiThrottle, callAI } from './src/ai/ai.js';
 import { runPipeline, matchTextForExternal } from './src/pipeline/pipeline.js';
-import { listVaultDirectories, listAllFiles, readNote, writeNote, deletePath, createFolder, joinVaultPath } from './src/vault/vault-api.js';
+import { listVaultDirectories, listAllFiles, readNote, writeNote, createFolder, joinVaultPath } from './src/vault/vault-api.js';
 import { setupSyncPolling } from './src/vault/sync.js';
 import { runScribe } from './src/ai/scribe.js';
 import { pushEvent, consoleBuffer, networkBuffer, errorBuffer, aiCallBuffer, aiPromptBuffer, eventBuffer, abortWith } from './src/diagnostics/interceptors.js';
@@ -2215,10 +2215,6 @@ globalThis.deepLoreEnhanced_vault = {
     async write(path, content, options = {}) {
         const vault = requireDeepLoreVault();
         return writeNote(vault.host, vault.port, vault.apiKey, path, content, vault.https, vault.subfolder ?? '', options.ifMatch ?? null);
-    },
-    async remove(path) {
-        const vault = requireDeepLoreVault();
-        return deletePath(vault.host, vault.port, vault.apiKey, joinVaultPath(vault.subfolder, path), vault.https);
     },
     async createFolder(path) {
         const vault = requireDeepLoreVault();

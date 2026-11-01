@@ -24,6 +24,8 @@ import { ds, MODE_LABELS, MODE_DESCRIPTIONS, announceToScreenReader, formatToken
 let _lastAnnouncedStatus = null;
 let _lastAnnouncedPhase = null;
 let _lastSkipToolsState = null;
+let _gatewayWaitTimer = null;
+let _gatewayUnavailable = false;
 
 // Wave I: the status glyph is a single persistent <goo-spinner> (created once in
 // renderStatusZone). Activity is signalled by its SPEED attribute (faster while the
@@ -131,13 +133,50 @@ export function renderStatusZone() {
     // first index build. The skeleton reserves the eventual number's footprint (so the
     // real value doesn't reflow the tile on first paint) and reads as "loading" rather
     // than the old dim "…" that looked like an error/unknown state. f091.
-    const isColdWaiting = !indexEverLoaded && vaultIndex.length === 0 && !indexing;
+    const isColdWaiting = !indexEverLoaded && vaultIndex.length === 0 && !indexing && hasEnabledVaults;
+    const isNoVault = !indexEverLoaded && vaultIndex.length === 0 && !indexing && !hasEnabledVaults;
+    if (indexEverLoaded) {
+        _gatewayUnavailable = false;
+        if (_gatewayWaitTimer) {
+            clearTimeout(_gatewayWaitTimer);
+            _gatewayWaitTimer = null;
+        }
+    }
+    if (isNoVault) {
+        _gatewayUnavailable = false;
+        if (_gatewayWaitTimer) {
+            clearTimeout(_gatewayWaitTimer);
+            _gatewayWaitTimer = null;
+        }
+    }
     if (isColdWaiting) {
-        $drawer.find('[data-stat="entries"]').html('<span class="dle-skeleton" aria-hidden="true"></span>');
-        const _connectingText = tr('dle_status_connecting', 'Connecting to the vault…');
+        const _connectingText = _gatewayUnavailable
+            ? tr('dle_status_gateway_unavailable', 'Gateway unavailable — open Setup')
+            : tr('dle_status_connecting', 'Connecting to the vault…');
+        if (_gatewayUnavailable) {
+            $drawer.find('[data-stat="entries"]').text('0');
+        } else {
+            $drawer.find('[data-stat="entries"]').html('<span class="dle-skeleton" aria-hidden="true"></span>');
+            if (!_gatewayWaitTimer) {
+                _gatewayWaitTimer = setTimeout(() => {
+                    _gatewayWaitTimer = null;
+                    if (indexEverLoaded) return;
+                    _gatewayUnavailable = true;
+                    const unavailableText = tr('dle_status_gateway_unavailable', 'Gateway unavailable — open Setup');
+                    $drawer.find('[data-stat="entries"]').text('0');
+                    $drawer.find('.dle-pipeline-label')
+                        .text(unavailableText)
+                        .attr('aria-label', `Status: ${unavailableText}`);
+                }, 10000);
+            }
+        }
         // Re-set aria-label alongside the text so SR announces "Connecting…", not the
         // idle phase label set above (DS-2).
         $drawer.find('.dle-pipeline-label').text(_connectingText).attr('aria-label', `Status: ${_connectingText}`);
+    } else if (isNoVault) {
+        const _noVaultText = tr('dle_status_no_vault', 'No vault connected — run Setup');
+        $drawer.find('[data-stat="entries"]').text('0');
+        $drawer.find('.dle-pipeline-label').text(_noVaultText).attr('aria-label', `Status: ${_noVaultText}`);
     }
 
     // html-1: the .dle-pipeline-label is not a live region (f106 — nesting live regions
@@ -146,8 +185,12 @@ export function renderStatusZone() {
     // Announce the displayed phase text once, at polite urgency, through #dle-drawer-live
     // when it changes. Skip the idle baseline so SR isn't told "Idle" on every render.
     const _displayedPhaseText = isColdWaiting
-        ? tr('dle_status_connecting', 'Connecting to the vault…')
-        : pipelineText;
+        ? _gatewayUnavailable
+            ? tr('dle_status_gateway_unavailable', 'Gateway unavailable — open Setup')
+            : tr('dle_status_connecting', 'Connecting to the vault…')
+        : isNoVault
+            ? tr('dle_status_no_vault', 'No vault connected — run Setup')
+            : pipelineText;
     if (_lastAnnouncedPhase !== null && _lastAnnouncedPhase !== _displayedPhaseText) {
         announceToScreenReader(_displayedPhaseText);
     }
