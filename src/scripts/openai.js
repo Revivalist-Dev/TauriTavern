@@ -4487,6 +4487,16 @@ export async function createGenerationParameters(settings, model, type, messages
         generate_data.custom_openai_responses_websocket =
             generate_data.custom_api_format === custom_api_formats.OPENAI_RESPONSES
             && Boolean(settings.custom_openai_responses_websocket);
+        // The custom OpenAI-compatible builder appends the prefill as a trailing assistant message.
+        // Claude Messages is handled above; do not duplicate its prefill.
+        if (generate_data.custom_api_format === custom_api_formats.OPENAI_COMPAT
+            && !generate_data.assistant_prefill
+            && type !== 'quiet'
+            && !(type === 'continue' && settings.continue_prefill)) {
+            generate_data.assistant_prefill = type === 'impersonate'
+                ? substitutePromptParams(settings.assistant_impersonation, {}, { macroContext, model })
+                : substitutePromptParams(settings.assistant_prefill, {}, { macroContext, model });
+        }
     }
 
     if (settings.chat_completion_source === chat_completion_sources.OPENCODE) {
@@ -6112,6 +6122,7 @@ async function discoverZedonByokCatalog({ fillEndpoint = false } = {}) {
         };
         addGroup('Upstream models', upstream);
         addGroup('Creative (TauriTavern preset)', creative);
+        $('#zedon_byok_creative_warning').toggle(creative.length > 0);
         if (current && models.some(model => model.id === current)) select.val(current);
         const detail = `${models.length} models, ${creative.length} creative`;
         status.text(`Connected: ${detail}.`);

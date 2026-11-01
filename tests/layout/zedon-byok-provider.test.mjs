@@ -28,6 +28,12 @@ test('Zedon BYOK model picker separates upstream and creative models', async () 
     assert.match(source, /Creative \(TauriTavern preset\)/);
 });
 
+test('custom OpenAI requests carry the TauriTavern assistant prefill', async () => {
+    const source = await read('src/scripts/openai.js');
+    assert.match(source, /generate_data\.custom_api_format === custom_api_formats\.OPENAI_COMPAT/);
+    assert.match(source, /generate_data\.assistant_prefill = type === 'impersonate'/);
+});
+
 test('Zedon BYOK source maps to the custom OpenAI-compatible transport', async () => {
     const source = await read('src-tauri/crates/tt-application/src/services/chat_completion_service/config.rs');
     assert.match(source, /ChatCompletionSource::Custom \| ChatCompletionSource::ZedonByok/);

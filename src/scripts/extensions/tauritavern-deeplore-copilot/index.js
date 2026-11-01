@@ -15772,8 +15772,7 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
                   asyncGeneratorFn = await ctx.ChatCompletionService.processRequest({
                       messages: messages,
                       max_tokens: maxTokens,
-                      stream: useStream,
-                      ...mainProviderOverrides(ctx)
+                      stream: useStream
                   }, { presetName: selectedPreset }, false, abort.signal);
               } else if (mainApi === 'textgenerationwebui' && ctx.TextCompletionService) {
                   const textGenSettings = window.textgenerationwebui_settings || ctx.textgenerationwebui_settings || {};
@@ -15810,8 +15809,7 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
                           asyncGeneratorFn = await ctx.ChatCompletionService.processRequest({
                               messages: messages,
                               max_tokens: maxTokens,
-                              stream: false,
-                              ...mainProviderOverrides(ctx)
+                              stream: false
                           }, { presetName: selectedPreset }, false, abort.signal);
                       } else if (mainApi === 'textgenerationwebui' && ctx.TextCompletionService) {
                           const textGenSettings = window.textgenerationwebui_settings || ctx.textgenerationwebui_settings || {};
