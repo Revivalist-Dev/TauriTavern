@@ -4,12 +4,12 @@
         "app/startup": {
             "elements": 14527,
             "scrollContainers": 84,
-            "liveNodes": 44574,
+            "liveNodes": 44573,
             "layoutObjects": 3886,
-            "eventListeners": 3248
+            "eventListeners": 3235
         },
         "character/open-heavy-card": {
-            "eventDispatches": 106,
+            "eventDispatches": 108,
             "styleRecalcs": 23,
             "forcedStyleRecalcs": 10,
             "elementsRestyled": 444,
@@ -22,29 +22,47 @@
             "hostBytes": 4331393,
             "elements": 8731,
             "scrollContainers": 16,
-            "liveNodes": 29871,
+            "liveNodes": 29870,
             "layoutObjects": 526,
             "eventListeners": 3201,
-            "jsAllocatedBytes": 8417004
+            "jsAllocatedBytes": 8270664
         },
         "character/open-back": {
-            "eventDispatches": 706,
+            "eventDispatches": 703,
             "styleRecalcs": 24,
             "forcedStyleRecalcs": 11,
             "elementsRestyled": 1181,
             "layouts": 14,
             "forcedLayouts": 2,
             "layoutObjectsLaidOut": 1249,
-            "frames": 12,
+            "frames": 11,
             "compositorUpdates": 3,
             "requests": 1,
             "hostBytes": 89045,
             "elements": 14527,
             "scrollContainers": 90,
-            "liveNodes": 44619,
+            "liveNodes": 44618,
             "layoutObjects": 4078,
             "eventListeners": 3275,
-            "jsAllocatedBytes": 47551544
+            "jsAllocatedBytes": 50189196
+        },
+        "chat/send-and-stream": {
+            "eventDispatches": 45,
+            "styleRecalcs": 15,
+            "forcedStyleRecalcs": 0,
+            "elementsRestyled": 257,
+            "layouts": 15,
+            "forcedLayouts": 0,
+            "layoutObjectsLaidOut": 188,
+            "frames": 11,
+            "compositorUpdates": 2,
+            "requests": 1,
+            "hostBytes": 0,
+            "elements": 13880,
+            "scrollContainers": 86,
+            "liveNodes": 43656,
+            "layoutObjects": 3971,
+            "eventListeners": 3277
         }
     }
 }

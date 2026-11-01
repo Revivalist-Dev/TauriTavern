@@ -17,11 +17,17 @@ export default async function character({ page, measure, centerOf }) {
     await page.click('#rightNavDrawerIcon');
     await showList();
     const ledger = await centerOf(item('Ledger.png'));
-    await measure('character/open-heavy-card', () => page.mouse.click(ledger.x, ledger.y));
+    await measure('character/open-heavy-card', async () => {
+        await page.mouse.click(ledger.x, ledger.y);
+        await page.waitForTimeout(500);
+    });
     await quiet(page);
     await showList();
     const review = await centerOf(item('Review.png'));
-    await measure('character/open-back', () => page.mouse.click(review.x, review.y));
+    await measure('character/open-back', async () => {
+        await page.mouse.click(review.x, review.y);
+        await page.waitForTimeout(500);
+    });
     await quiet(page);
     // Later scenarios start with the drawer closed, as after startup.
     await page.click('#rightNavDrawerIcon');
