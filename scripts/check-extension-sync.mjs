@@ -11,7 +11,7 @@ const pairs = [
         label: 'TauriTavern-DeepLore',
         source: path.join(workspaceRoot, 'tauri-tavern-extensions', 'TauriTavern-DeepLore'),
         installed: path.join(projectRoot, 'src', 'scripts', 'extensions', 'tauritavern-deeplore'),
-        files: ['index.js', 'style.css', 'manifest.json', 'settings.html'],
+        files: ['index.js', 'style.css', 'manifest.json', 'settings.html', 'settings.js', 'drawer.html', 'settings-popup.html', 'setup-wizard.html', 'icon.svg'],
     },
     {
         label: 'TauriTavern-DeepLore-Copilot',
