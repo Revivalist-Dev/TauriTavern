@@ -199,6 +199,9 @@ async function waitForPerfReady(page) {
                 });
                 context.eventSource.on(context.event_types.GENERATION_STARTED, () => {
                     globalThis.__perfGenerating = true;
+                    // Only the startup Quick Reply generation is cancelled. Scenario generations must
+                    // stay alive so the fixture can push tokens into their stream.
+                    if (!globalThis.__perfStartupPhase) return;
                     setTimeout(() => document.getElementById('mes_stop')?.click(), 50);
                 });
                 context.eventSource.on(context.event_types.GENERATION_STOPPED, () => {
