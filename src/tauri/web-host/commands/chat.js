@@ -1,5 +1,14 @@
 // @ts-check
 import { characterAvatarFileNameFromStem } from '../../main/services/characters/character-identity.js';
+import { estimateTokenCount } from '../../main/brokers/token-count-broker.js';
+
+/** Approximate the native tokenizer for browser-only fixtures. */
+function estimateBatchTokens(requests) {
+    return (Array.isArray(requests) ? requests : []).map((request) => {
+        const messages = Array.isArray(request?.messages) ? request.messages : [];
+        return messages.reduce((total, message) => total + estimateTokenCount(message?.content) + 4, 0);
+    });
+}
 
 /** Read ST's records-or-missing response once for both reads and commits. @param {ReturnType<import('../backend.js').createBackend>} backend @param {any} address */
 export function readChatRecords({ json }, address) {
@@ -20,5 +29,6 @@ export function createChatCommands(backend, resources) {
             if (allowNotFound) return '';
             throw { NotFound: `Chat not found: ${characterName}/${fileName}` };
         },
+        count_openai_tokens_batch: ({ dto }) => ({ token_counts: estimateBatchTokens(dto?.requests) }),
     };
 }

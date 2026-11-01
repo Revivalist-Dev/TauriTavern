@@ -10,6 +10,7 @@ import { frontendRoot } from '../helpers/frontend-content.mjs';
 import { pageData } from './dataset.mjs';
 
 const fixtureFile = fileURLToPath(new URL('../browser/web-host-fixture.mjs', import.meta.url));
+const perfBootstrapFile = fileURLToPath(new URL('./fixture-bootstrap.mjs', import.meta.url));
 const TYPES = {
     '.css': 'text/css', '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.json': 'application/json',
     '.png': 'image/png', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf',
@@ -61,146 +62,7 @@ globalThis.clearTimeout = id => { pending.delete(id); cancel(id); };
 globalThis.__perfRunPendingTimeouts = () => runPending(() => true);
 </script>
 <script type="application/json" id="perf-data">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>
-<script type="module">
-import { installWebHost } from '/tauri/web-host/install.js';
-import { createWebHostFixture } from '/__perf/web-host-fixture.mjs';
-const data = JSON.parse(document.getElementById('perf-data').textContent);
-const fixture = createWebHostFixture(data.settings, data.theme, data.extensions);
-fixture.chatFiles.set('review-chat', data.chat.map(record => JSON.stringify(record)).join('\\n'));
-fixture.chatFiles.set('ledger-chat', data.ledgerChat.map(record => JSON.stringify(record)).join('\\n'));
-const respond = (body, status = 200) => ({ status, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-const cards = {
-    'Review.png': () => JSON.parse(fixture.backend.handle({ method: 'POST', url: '/api/characters/get', headers: {}, body: '{}' }).body),
-    'Ledger.png': () => ({ ...JSON.parse(data.ledgerCard), json_data: data.ledgerCard, avatar: 'Ledger.png',
-        chat_size: 160000, data_size: 2100000, date_added: 2, date_last_chat: 2 }),
-};
-const chatsOf = { 'Review.png': ['review-chat'], 'Ledger.png': ['ledger-chat'] };
-// The native host's list entry (tt-domain Character::into_shallow); the full card is read when one opens.
-function shallow(card) {
-    const data = card.data ?? {}, extensions = data.extensions ?? {};
-    const pick = (value, fallback) => String(value ?? '').trim() ? value : fallback ?? '';
-    const talkativeness = card.talkativeness || extensions.talkativeness || 0.5;
-    const fav = Boolean(card.fav) || Boolean(extensions.fav);
-    return {
-        shallow: true, name: pick(card.name, data.name), description: '', personality: '', scenario: '', first_mes: '', mes_example: '',
-        avatar: card.avatar, chat: card.chat, creator: pick(card.creator, data.creator), creator_notes: pick(card.creator_notes, data.creator_notes),
-        character_version: pick(card.character_version, data.character_version), tags: card.tags?.length ? card.tags : data.tags ?? [],
-        create_date: card.create_date, talkativeness, fav, chat_size: card.chat_size, data_size: card.data_size,
-        date_added: card.date_added, date_last_chat: card.date_last_chat, alternate_greetings: [], system_prompt: '',
-        post_history_instructions: '', character_book: null, json_data: null,
-        data: { extensions: { talkativeness, fav, ...('world' in extensions ? { world: extensions.world } : {}) } },
-    };
-}
-function handleCharacters(request) {
-    const body = typeof request.body === 'string' && request.body ? JSON.parse(request.body) : {};
-    switch (\`\${request.method} \${request.url}\`) {
-        case 'POST /api/characters/all': return respond(Object.values(cards).map(card => shallow(card())));
-        case 'POST /api/characters/get':
-            return cards[body.avatar_url] ? respond(cards[body.avatar_url]()) : respond({ error: 'Character not found' }, 404);
-        case 'POST /api/characters/chats': {
-            const owned = chatsOf[body.avatar_url] ?? [];
-            const chats = JSON.parse(fixture.backend.handle(request).body);
-            return respond(chats.filter(chat => owned.includes(chat.file_name.replace(/\\.jsonl$/, ''))));
-        }
-        case 'POST /api/characters/edit':
-        case 'POST /api/characters/merge-attributes': {
-            // The fixture stores one card, Review.
-            const fields = request.body?.kind === 'form' ? Object.fromEntries(request.body.entries) : body;
-            return (fields.avatar_url ?? fields.avatar) === 'Review.png' ? null : respond({ error: 'Only Review is writable' }, 500);
-        }
-        default: return null;
-    }
-}
-// Opens the reply stream that the scenario feeds through __perfReply.
-function streamReply() {
-    const encoder = new TextEncoder();
-    return new ReadableStream({
-        start(controller) {
-            const send = data => controller.enqueue(encoder.encode(\`data: \${data}\\n\\n\`));
-            globalThis.__perfReply = {
-                push: token => send(JSON.stringify({ choices: [{ delta: { content: token }, index: 0 }] })),
-                end() {
-                    send('[DONE]');
-                    controller.close();
-                },
-            };
-        },
-    });
-}
-installWebHost({
-    identity: { platform: 'windows', kind: 'desktop' },
-    backend: { handle(request) {
-        const characters = handleCharacters(request);
-        if (characters) return characters;
-        if (request.method === 'POST' && request.url === '/api/worldinfo/get') {
-            return { status: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify(data.lore) };
-        }
-        if (request.method === 'POST' && request.url === '/api/backends/chat-completions/generate' && JSON.parse(request.body).stream) {
-            return { status: 200, headers: { 'content-type': 'text/event-stream' }, body: streamReply() };
-        }
-        return fixture.backend.handle(request);
-    } },
-    store: fixture.store,
-});
-// Host traffic as the native host sees it: the UTF-8 JSON of every command's arguments and result, with binary
-// data counted by its bytes. The trace records every call in order for the backend replay; strings the host
-// issued (session ids, revisions) become references to the result that issued them, including results that are
-// JSON documents in binary form.
-globalThis.__perfHost = { bytes: 0, recording: true, step: 'app/startup', calls: [], issued: new Map() };
-const utf8 = new TextEncoder();
-function hostBytes(value) {
-    let binary = 0;
-    const text = JSON.stringify(value, (key, item) => {
-        if (item instanceof ArrayBuffer || ArrayBuffer.isView(item)) {
-            binary += item.byteLength;
-            return null;
-        }
-        return item;
-    });
-    return (text === undefined ? 0 : utf8.encode(text).length) + binary;
-}
-const bytesOf = value => value instanceof ArrayBuffer ? new Uint8Array(value) : new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
-const issuedToken = value => typeof value === 'string' && value.length >= 16 && /[0-9]/.test(value) && /[a-z]/i.test(value);
-function base64(bytes) {
-    let text = '';
-    for (let i = 0; i < bytes.length; i += 0x8000) text += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-    return btoa(text);
-}
-function traced(value, issued) {
-    if (value instanceof ArrayBuffer || ArrayBuffer.isView(value)) return { $bytes: base64(bytesOf(value)) };
-    return JSON.parse(JSON.stringify(value ?? {}, (key, item) => {
-        if (item instanceof ArrayBuffer || ArrayBuffer.isView(item)) return Array.from(bytesOf(item));
-        return issued.has(item) ? { $result: issued.get(item) } : item;
-    }));
-}
-const utf8Text = new TextDecoder();
-function parsedResult(value) {
-    if (!(value instanceof ArrayBuffer || ArrayBuffer.isView(value))) return value;
-    try {
-        return JSON.parse(utf8Text.decode(bytesOf(value)));
-    } catch {
-        return undefined;
-    }
-}
-function rememberIssued(issued, index, value, at = []) {
-    if (issuedToken(value) && !issued.has(value)) issued.set(value, [index, at]);
-    else if (value && typeof value === 'object' && !ArrayBuffer.isView(value) && !(value instanceof ArrayBuffer)) {
-        for (const [key, item] of Object.entries(value)) rememberIssued(issued, index, item, [...at, key]);
-    }
-}
-const { invoke } = window.__TAURI__.core;
-window.__TAURI__.core.invoke = async (command, args, options) => {
-    const host = globalThis.__perfHost;
-    if (!host.recording) return invoke(command, args, options);
-    host.bytes += hostBytes(args);
-    const index = host.calls.length;
-    host.calls.push({ step: host.step, command, args: traced(args, host.issued), headers: traced(options?.headers, host.issued) });
-    const result = await invoke(command, args, options);
-    host.bytes += hostBytes(result);
-    rememberIssued(host.issued, index, parsedResult(result));
-    return result;
-};
-</script>`;
+<script type="module" src="/__perf/fixture-bootstrap.mjs"></script>`;
 }
 
 // What the native host serves from the user's data directory; this dataset has none of it.
@@ -213,7 +75,11 @@ async function serve() {
     async function resource(pathname) {
         if (pathname === '/') return { type: 'text/html', body: index };
         if (USER_DATA.test(pathname)) return pathname.endsWith('.css') ? { type: 'text/css', body: '' } : { type: 'image/png', body: EMPTY_PNG };
-        const file = pathname === '/__perf/web-host-fixture.mjs' ? fixtureFile : path.join(frontendRoot, decodeURIComponent(pathname));
+        const file = pathname === '/__perf/web-host-fixture.mjs'
+            ? fixtureFile
+            : pathname === '/__perf/fixture-bootstrap.mjs'
+                ? perfBootstrapFile
+                : path.join(frontendRoot, decodeURIComponent(pathname));
         return { type: TYPES[path.extname(file)] ?? 'application/octet-stream', body: await readFile(file) };
     }
     const server = createServer(async (request, response) => {
@@ -287,6 +153,86 @@ function countEngineWork(events) {
  * records only the bytes JavaScript allocated: sampling every allocation slows the page and would change how
  * the engine work splits into frames.
  */
+async function quiesce(page) {
+    for (let attempt = 0; attempt < 30; attempt++) {
+        const generating = await page.evaluate(() => globalThis.__perfGenerating === true);
+        if (generating) {
+            await page.evaluate(() => document.getElementById('mes_stop')?.click());
+        }
+        await page.waitForTimeout(100);
+    }
+    await page.evaluate(async () => (await import('/script.js')).waitForGenerationIdle());
+}
+
+async function waitForPerfReady(page) {
+    const debug = process.env.PERF_DEBUG === '1';
+    const deadline = Date.now() + 120_000;
+    let lastState;
+    let lastLog = 0;
+    let opened = false;
+    let listenersInstalled = false;
+    const timeout = () => new Promise((_, reject) => setTimeout(() => reject(new Error('page.evaluate timed out')), 3000));
+    while (Date.now() < deadline) {
+        try {
+            lastState = await Promise.race([
+                page.evaluate(() => {
+                    const context = globalThis.SillyTavern?.getContext?.();
+                    return {
+                        chatId: context?.chatId,
+                        characters: context?.characters?.length,
+                        appReady: globalThis.__perfAppReady === true,
+                        generating: globalThis.__perfGenerating === true,
+                    };
+                }),
+                timeout(),
+            ]);
+        } catch (error) {
+            lastState = { error: String(error?.message || error) };
+        }
+        if (lastState.characters > 0 && !listenersInstalled) {
+            await page.evaluate(() => {
+                const context = globalThis.SillyTavern.getContext();
+                globalThis.__perfAppReady = false;
+                globalThis.__perfGenerating = false;
+                context.eventSource.on(context.event_types.APP_READY, () => {
+                    globalThis.__perfAppReady = true;
+                });
+                context.eventSource.on(context.event_types.GENERATION_STARTED, () => {
+                    globalThis.__perfGenerating = true;
+                    setTimeout(() => document.getElementById('mes_stop')?.click(), 50);
+                });
+                context.eventSource.on(context.event_types.GENERATION_STOPPED, () => {
+                    globalThis.__perfGenerating = false;
+                });
+            });
+            listenersInstalled = true;
+        }
+        if (lastState.appReady && !opened && lastState.characters > 0) {
+            await page.evaluate(() => {
+                void globalThis.SillyTavern.getContext()
+                    .selectCharacterById(0, { chatFile: 'review-chat' });
+            });
+            opened = true;
+        }
+        if (lastState.appReady && opened && lastState.chatId === 'review-chat') {
+            // Let the startup quick replies finish their dry run, stopping any real generation they
+            // trigger. The following scenario measures the settled UI, not model output.
+            await page.waitForTimeout(1500);
+            await page.evaluate(() => {
+                if (globalThis.__perfGenerating) document.getElementById('mes_stop')?.click();
+            });
+            await page.waitForTimeout(300);
+            return;
+        }
+        if (debug && Date.now() - lastLog > 5000) {
+            lastLog = Date.now();
+            console.error('perf: waiting for startup', JSON.stringify(lastState), 'opened', opened);
+        }
+        await page.waitForTimeout(100);
+    }
+    throw new Error(`Timed out waiting for review-chat startup: ${JSON.stringify(lastState)}`);
+}
+
 export async function openFrontend({ allocations = false } = {}) {
     const quietWithinMs = allocations ? 30_000 : 5000;
     const server = await serve();
@@ -296,6 +242,9 @@ export async function openFrontend({ allocations = false } = {}) {
     if (allocations) args.push('--js-flags=--single-threaded');
     const browser = await chromium.launch({ args });
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    page.on('dialog', dialog => {
+        void dialog.dismiss().catch(() => {});
+    });
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('Performance.enable');
     const problems = [];
@@ -318,9 +267,14 @@ export async function openFrontend({ allocations = false } = {}) {
     // held response through, and repeats until nothing is held. Holding them means no work arrives after the
     // page looks quiet. Idleness is read from outside the page, so waiting adds no page work.
     async function settle() {
-        const busy = async () => (await cdp.send('Performance.getMetrics')).metrics.find(metric => metric.name === 'TaskDuration').value;
+        const busy = async () => (await cdp.send('Performance.getMetrics'))
+            .metrics.find(metric => metric.name === 'TaskDuration').value;
+        const settleDeadline = Date.now() + quietWithinMs * 2;
         for (;;) {
-            const deadline = Date.now() + quietWithinMs;
+            if (Date.now() > settleDeadline) {
+                throw new Error(`The page kept scheduling work for ${(quietWithinMs * 2) / 1000} s`);
+            }
+            const deadline = Math.min(Date.now() + quietWithinMs, settleDeadline);
             for (let quiet = 0, last = await busy(); quiet < 50;) {
                 if (Date.now() > deadline) throw new Error(`The page did not go quiet within ${quietWithinMs / 1000} s`);
                 await new Promise(resolve => setTimeout(resolve, 10));
@@ -328,7 +282,9 @@ export async function openFrontend({ allocations = false } = {}) {
                 quiet = now - last < 0.001 ? quiet + 10 : 0;
                 last = now;
             }
-            if (await page.evaluate(() => globalThis.__perfRunPendingTimeouts?.() ?? 0) > 0) continue;
+            // Recurring timers (pollers, debouncers) can leave one entry pending forever. Run the
+            // due queue once; the quiet-window measurement decides whether the page is settled.
+            await page.evaluate(() => globalThis.__perfRunPendingTimeouts?.() ?? 0);
             const route = held.shift();
             if (!route) return;
             await route.continue();
@@ -426,14 +382,32 @@ export async function openFrontend({ allocations = false } = {}) {
         results[name] = { ...work, requests: requests - before, hostBytes: await hostBytes() - hostBefore, ...await pageSize() };
     }
 
+    async function measureStreaming(name, action, tokenInputs, finish) {
+        if (name in results) throw new Error(`Duplicate perf step: ${name}`);
+        await settle();
+        const before = requests, hostBefore = await hostBytes();
+        await traceStep(name);
+        try {
+            const work = await trace(async () => {
+                await action();
+                for (const token of tokenInputs) await token();
+                await finish();
+            });
+            results[name] = { ...work, requests: requests - before, hostBytes: await hostBytes() - hostBefore, ...await pageSize() };
+        } finally {
+            await traceStep(null);
+        }
+    }
+
     // Startup's work depends on when resources finish loading, so it records the page it produces.
     try {
         // index.html declares <base href="/">: with a query string, jQuery UI Tabs treats its tabs as remote and
         // loads the whole page into a tab panel.
-        await page.goto(`http://127.0.0.1:${server.address().port}/`);
+        await page.goto(`http://127.0.0.1:${server.address().port}/`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
         // The fixture's character opens its chat, review-chat, once startup has finished.
-        await page.waitForFunction(() => globalThis.__TAURITAVERN_STARTUP_STAGE__ === 'full'
-            && globalThis.SillyTavern?.getContext().chatId === 'review-chat', null, { polling: 100, timeout: 120_000 });
+        await waitForPerfReady(page);
+        await quiesce(page);
+        await page.evaluate(() => { globalThis.__perfStartupPhase = false; });
         // The engine hit-tests a known pointer whenever layout changes, and some platforms start with one, so
         // the pointer starts at a fixed point.
         await page.mouse.move(1, 1);
@@ -461,6 +435,7 @@ export async function openFrontend({ allocations = false } = {}) {
     return {
         page,
         measure,
+        measureStreaming,
         centerOf,
         results,
         problems,

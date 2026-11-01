@@ -57,6 +57,9 @@ export function perfSettings() {
     const settings = structuredClone(defaultSettings);
     // With the browser flags in openFrontend, no animation spreads a step's work over time.
     settings.power_user.reduced_motion = true;
+    // The chat scenario drives the response token by token through the stream fixture.
+    settings.stream_openai = true;
+    settings.oai_settings.stream_openai = true;
     // The embedded-lorebook import prompt shows once per card, and this user has already answered it for Ledger.
     settings.accountStorage = { ...settings.accountStorage, 'AlertWI_Ledger.png': 'true' };
     return settings;
@@ -64,7 +67,10 @@ export function perfSettings() {
 
 /** The page's Web Host data: the fixture's arguments plus the dataset. */
 export function pageData() {
-    return { settings: perfSettings(), theme: defaultTheme, extensions: webHostSystemExtensions, ...dataset() };
+    // Quick Reply startup actions can run real generations during fixture setup. They are not part of
+    // any measured flow, so keep the extension out of the performance harness entirely.
+    const extensions = webHostSystemExtensions.filter(extension => extension.name !== 'quick-reply');
+    return { settings: perfSettings(), theme: defaultTheme, extensions, ...dataset() };
 }
 
 const jsonl = records => records.map(record => JSON.stringify(record)).join('\n');
