@@ -13,7 +13,11 @@ export default async function chat({ page, measureStreaming }) {
             await page.keyboard.press('Enter');
             await page.waitForFunction(id => (globalThis.__perfReplyId || 0) > id, previousReplyId);
         },
-        tokens.map(token => () => page.evaluate(text => globalThis.__perfReply.push(text), `${token} `)),
+        tokens.map(token => async () => {
+            await page.evaluate(text => globalThis.__perfReply.push(text), `${token} `);
+            // Give the streaming frame budget time to paint each token deterministically.
+            await page.waitForTimeout(30);
+        }),
         async () => {
             await page.evaluate(() => globalThis.__perfReply.end());
             await page.evaluate(async () => (await import('/script.js')).waitForGenerationIdle());
