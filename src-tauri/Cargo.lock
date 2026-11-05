@@ -9228,6 +9228,7 @@ dependencies = [
  "async-trait",
  "base64 0.23.1",
  "futures-util",
+ "http",
  "jsonwebtoken",
  "percent-encoding",
  "regex",
