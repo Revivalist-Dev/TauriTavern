@@ -1403,8 +1403,6 @@ function loadPopupSettings($container) {
     setRowDisabled($c('#dle-sp-strip-lookback').val(settings.stripLookbackDepth), !settings.stripDuplicateInjections);
     $c('#dle-sp-keyword-occurrence-weighting').prop('checked', settings.keywordOccurrenceWeighting);
     $c('#dle-sp-priority-reversed').prop('checked', settings.priorityReversed);
-    $c('#dle-sp-import-compress-default').prop('checked', settings.importCompressByDefault);
-    $c('#dle-sp-wi-import-em-handling').val(settings.wiImportEmHandling || 'append');
     $c('#dle-sp-contextual-gating-tolerance').val(settings.contextualGatingTolerance);
 
     // ── Injection tab ──
@@ -1990,12 +1988,6 @@ function bindPopupEvents($container) {
     $c('#dle-sp-strip-lookback').on('input', function () { settings.stripLookbackDepth = numVal($(this).val(), 2); saveSettingsDebounced(); });
     $c('#dle-sp-keyword-occurrence-weighting').on('change', function () { settings.keywordOccurrenceWeighting = $(this).prop('checked'); saveSettingsDebounced(); });
     $c('#dle-sp-priority-reversed').on('change', function () { settings.priorityReversed = $(this).prop('checked'); saveSettingsDebounced(); });
-    $c('#dle-sp-import-compress-default').on('change', function () { settings.importCompressByDefault = $(this).prop('checked'); saveSettingsDebounced(); });
-    $c('#dle-sp-wi-import-em-handling').on('change', function () {
-        const v = String($(this).val());
-        settings.wiImportEmHandling = v === 'skip' ? 'skip' : 'append';
-        saveSettingsDebounced();
-    });
     $c('#dle-sp-contextual-gating-tolerance').on('change', function () { settings.contextualGatingTolerance = String($(this).val()); saveSettingsDebounced(); });
 
     // ── Injection tab ──

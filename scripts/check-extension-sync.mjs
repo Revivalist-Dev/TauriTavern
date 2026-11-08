@@ -7,19 +7,6 @@ import { fileURLToPath } from 'node:url';
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const workspaceRoot = path.resolve(projectRoot, '..');
 const pairs = [
-    {
-        label: 'TauriTavern-DeepLore',
-        source: path.join(workspaceRoot, 'tauri-tavern-extensions', 'TauriTavern-DeepLore'),
-        installed: path.join(projectRoot, 'src', 'scripts', 'extensions', 'tauritavern-deeplore'),
-        files: ['index.js', 'style.css', 'manifest.json', 'settings.html', 'settings.js', 'drawer.html', 'settings-popup.html', 'setup-wizard.html', 'icon.svg'],
-        dirs: ['src'],
-    },
-    {
-        label: 'TauriTavern-DeepLore-Copilot',
-        source: path.join(workspaceRoot, 'tauri-tavern-extensions', 'TauriTavern-DeepLore-Copilot'),
-        installed: path.join(projectRoot, 'src', 'scripts', 'extensions', 'tauritavern-deeplore-copilot'),
-        files: ['index.js', 'style.css', 'manifest.json', 'window.html', 'settings.html'],
-    },
 ];
 
 const digest = (buffer) => createHash('sha256').update(buffer).digest('hex');

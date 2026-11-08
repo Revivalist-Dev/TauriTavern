@@ -6,16 +6,16 @@
 #tt-assistant { min-height: 0; min-width: 0; flex: 1 1 auto; }
 
 .ttia-root {
-    --ttia-surface: var(--SmartThemeBlurTintColor);
-    --ttia-ink: var(--SmartThemeBodyColor);
-    --ttia-muted: color-mix(in srgb, var(--ttia-ink) 60%, var(--ttia-surface));
-    --ttia-line: color-mix(in srgb, var(--ttia-ink) 12%, transparent);
-    --ttia-field: color-mix(in srgb, var(--ttia-ink) 5%, var(--ttia-surface));
-    --ttia-hover: color-mix(in srgb, var(--ttia-ink) 8%, transparent);
-    --ttia-accent: var(--SmartThemeUnderlineColor);
+    --ttia-surface: var(--tt-ui-surface, var(--SmartThemeBlurTintColor));
+    --ttia-ink: var(--tt-ui-text, var(--SmartThemeBodyColor));
+    --ttia-muted: var(--tt-ui-text-muted, color-mix(in srgb, var(--ttia-ink) 60%, var(--ttia-surface)));
+    --ttia-line: var(--tt-ui-border, color-mix(in srgb, var(--ttia-ink) 12%, transparent));
+    --ttia-field: var(--tt-ui-surface-muted, color-mix(in srgb, var(--ttia-ink) 5%, var(--ttia-surface)));
+    --ttia-hover: var(--tt-ui-surface-raised, color-mix(in srgb, var(--ttia-ink) 8%, transparent));
+    --ttia-accent: var(--tt-ui-accent, var(--SmartThemeUnderlineColor));
     --ttia-live: color-mix(in srgb, var(--ttia-accent) 80%, var(--ttia-ink));
-    --ttia-ok: color-mix(in srgb, #58b368 72%, var(--ttia-ink));
-    --ttia-err: color-mix(in srgb, #d0645a 82%, var(--ttia-ink));
+    --ttia-ok: var(--tt-ui-success, color-mix(in srgb, #58b368 72%, var(--ttia-ink)));
+    --ttia-err: var(--tt-ui-danger, color-mix(in srgb, #d0645a 82%, var(--ttia-ink)));
     --ttia-ease: cubic-bezier(.22, 1, .36, 1);
     --ttia-spring: cubic-bezier(.34, 1.4, .44, 1);
     --ttia-d-fast: var(--animation-duration, 125ms);
@@ -25,19 +25,19 @@
     --ttia-shadow-lift: 0 1px 2px color-mix(in srgb, var(--SmartThemeShadowColor) 30%, transparent),
         0 10px 30px -12px color-mix(in srgb, var(--SmartThemeShadowColor) 42%, transparent);
     /* Floating layers use the theme tint without its alpha: nested backdrop blur is not reliable in WebKit. */
-    --ttia-float: var(--ttia-surface);
-    height: 100%; min-height: 0; font-family: var(--mainFontFamily); font-size: var(--mainFontSize);
+    --ttia-float: var(--tt-ui-surface, var(--ttia-surface));
+    height: 100%; min-height: 0; font-family: var(--tt-ui-font, var(--mainFontFamily)); font-size: var(--tt-ui-font-size, var(--mainFontSize));
     color: var(--ttia-ink); text-shadow: none; line-height: 1.6; isolation: isolate;
     display: flex; flex-direction: column;
 }
-@supports (color: rgb(from red r g b / 1)) { .ttia-root { --ttia-float: rgb(from var(--SmartThemeBlurTintColor) r g b / 1); } }
+@supports (color: rgb(from red r g b / 1)) { .ttia-root { --ttia-float: var(--tt-ui-surface, rgb(from var(--SmartThemeBlurTintColor) r g b / 1)); } }
 .ttia-root *, .ttia-root *::before, .ttia-root *::after { box-sizing: border-box; }
 .ttia-root [hidden] { display: none !important; }
 .ttia-assistant { display: flex; flex-direction: column; min-height: 0; height: 100%; width: 100%; align-self: center; flex: 1; }
 .ttia-root button, .ttia-root input, .ttia-root select, .ttia-root textarea { font: inherit; color: inherit; }
 .ttia-root button {
-    display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 32px;
-    padding: 5px 10px; margin: 0; border: 1px solid transparent; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: var(--tt-ui-control-height, 30px);
+    padding: 5px 10px; margin: 0; border: 1px solid transparent; border-radius: var(--tt-ui-radius-sm, 4px);
     background: transparent; box-shadow: none; cursor: pointer; line-height: 1.4;
     transition: background-color var(--ttia-d-fast), border-color var(--ttia-d-fast), color var(--ttia-d-fast), opacity var(--ttia-d-fast), transform var(--ttia-d-fast) var(--ttia-ease);
 }
@@ -46,15 +46,16 @@
 .ttia-root button:disabled { opacity: .42; cursor: default; }
 .ttia-root :focus-visible { outline: 2px solid var(--interactable-outline-color); outline-offset: 2px; }
 .ttia-root input:where(:not([type="checkbox"]):not([type="range"])), .ttia-root select, .ttia-root textarea {
-    width: 100%; min-width: 0; border: 1px solid var(--ttia-line); border-radius: 9px;
-    background: var(--ttia-field); padding: 9px 11px; margin: 0; box-shadow: none;
+    width: 100%; min-width: 0; border: 1px solid var(--ttia-line); border-radius: var(--tt-ui-radius-sm, 4px);
+    background: var(--ttia-field); padding: 6px 10px; margin: 0; box-shadow: none;
+    font-family: var(--tt-ui-font); font-size: var(--tt-ui-font-size);
 }
-.ttia-root input[type="checkbox"] { accent-color: var(--ttia-ink); margin: 4px 0; width: 16px; height: 16px; flex-shrink: 0; }
+.ttia-root input[type="checkbox"] { accent-color: var(--ttia-accent); margin: 4px 0; width: 16px; height: 16px; flex-shrink: 0; }
 .ttia-root textarea { resize: vertical; }
 .ttia-root p { margin: 0 0 .7em; }
 .ttia-root p:last-child { margin-bottom: 0; }
-.ttia-root .ttia-primary { background: var(--ttia-ink); color: var(--ttia-surface); padding: 9px 14px; font-weight: 600; border-radius: 10px; }
-.ttia-root .ttia-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--ttia-ink) 88%, var(--ttia-surface)); }
+.ttia-root .ttia-primary { background: var(--tt-ui-accent); color: var(--tt-ui-accent-contrast); padding: 7px 12px; font-weight: 600; border-radius: var(--tt-ui-radius-sm, 4px); }
+.ttia-root .ttia-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--tt-ui-accent) 88%, var(--tt-ui-text)); }
 
 /* ---------- header ---------- */
 .ttia-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: 0 0 auto; padding: 13px 12px 11px 16px; border-bottom: 1px solid color-mix(in srgb, var(--ttia-ink) 9%, transparent); }
@@ -66,16 +67,6 @@
 .ttia-root .ttia-icon-button:hover:not(:disabled) { color: var(--ttia-ink); }
 .ttia-root .ttia-advanced { font-size: .8em; color: var(--ttia-muted); padding-inline: 6px; }
 .ttia-root .ttia-advanced:hover:not(:disabled) { color: var(--ttia-ink); }
-.ttia-brand, .ttia-emblem { position: relative; display: inline-grid; place-items: center; font-weight: 600; letter-spacing: -.06em; }
-.ttia-brand { width: 24px; height: 28px; font-size: 19px; }
-.ttia-brand span, .ttia-emblem span { position: absolute; width: 4px; height: 4px; right: 1px; bottom: 7px; border-radius: 50%; background: var(--ttia-accent); }
-.ttia-emblem {
-    width: 58px; height: 58px; font-size: 35px; border-radius: 17px; margin-bottom: 20px;
-    border: 1px solid color-mix(in srgb, var(--ttia-ink) 14%, transparent);
-    background: linear-gradient(160deg, color-mix(in srgb, var(--ttia-ink) 9%, transparent), transparent 55%), var(--ttia-field);
-    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ttia-ink) 9%, transparent);
-}
-.ttia-emblem span { width: 6px; height: 6px; right: 11px; bottom: 15px; }
 .ttia-chat-view, .ttia-settings-view { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
 .ttia-conversation-area, .ttia-history-area { display: flex; flex: 1; min-height: 0; flex-direction: column; }
 .ttia-loading { flex: 1; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 24px; color: var(--ttia-muted); }
@@ -414,8 +405,6 @@
 @keyframes ttia-latest-in { from { opacity: 0; transform: translateX(-50%) translateY(8px) scale(.94); } to { opacity: 1; transform: translateX(-50%); } }
 .ttia-welcome > h2 { animation: ttia-rise 420ms var(--ttia-ease) 40ms both; }
 .ttia-welcome > p { animation: ttia-rise 420ms var(--ttia-ease) 90ms both; }
-.ttia-welcome > .ttia-emblem { animation: ttia-emblem-in 560ms var(--ttia-spring) both; }
-@keyframes ttia-emblem-in { from { opacity: 0; transform: scale(.86); } to { opacity: 1; transform: none; } }
 
 @media (min-width: 1001px) {
     #AdvancedFormatting[data-tt-assistant="assistant"]:has(.ttia-root[data-mobile="false"]) { max-height: calc(100dvh - var(--topBarBlockSize)); }
@@ -443,4 +432,16 @@
     .ttia-welcome { padding-block: 14px; justify-content: flex-start; }
     .ttia-suggestions { margin-top: 10px; }
     .ttia-root .ttia-composer textarea { min-height: 1.55em; max-height: 4.5em; }
+}
+
+/* Text fields use a neutral focus ring; the accent stays reserved for actions. */
+.ttia-root :is(input, textarea, select):focus-visible,
+.ttia-root :is(.tt-ui-input, .tt-ui-textarea, .tt-ui-select):focus-visible {
+    outline: none !important;
+    border-color: color-mix(in srgb, var(--ttia-ink) 32%, transparent) !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--ttia-ink) 10%, transparent) !important;
+}
+
+.ttia-root .ttia-composer textarea:focus-visible {
+    box-shadow: none !important;
 }

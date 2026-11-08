@@ -88,7 +88,6 @@ impl AgentRuntimeService {
                 }
             }
         }
-        let history = self.read_session_history(&dto.session_id).await?;
         let roles = [AgentModelRole::User, AgentModelRole::Assistant];
         let history = self
             .read_session_tail(&dto.session_id, |entries| {

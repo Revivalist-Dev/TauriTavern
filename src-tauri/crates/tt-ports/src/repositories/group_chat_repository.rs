@@ -139,6 +139,16 @@ pub trait GroupChatRepository: Send + Sync {
         namespace: &str,
     ) -> Result<Vec<String>, DomainError>;
 
+    /// Remove the whole extension store directory for a group chat.
+    async fn delete_group_chat_store(&self, chat_id: &str) -> Result<(), DomainError>;
+
+    /// Move the whole extension store directory when a group chat is renamed.
+    async fn rename_group_chat_store(
+        &self,
+        old_chat_id: &str,
+        new_chat_id: &str,
+    ) -> Result<(), DomainError>;
+
     /// Find the last message that matches the query in a group chat (tail scan).
     async fn find_last_group_chat_message(
         &self,

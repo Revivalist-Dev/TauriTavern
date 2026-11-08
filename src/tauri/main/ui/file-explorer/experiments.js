@@ -1,7 +1,9 @@
 import { baseName } from './helpers.js';
 import { parseFrontmatter, approximateTokens, clearMetadataCache } from './metadata.js';
 
-const EXPERIMENT_ROOTS = ['Narrative-Experiments', 'lore/Narrative-Experiments'];
+const EXPERIMENT_ROOTS = ['.narrative', 'lore/.narrative', 'Narrative-Experiments', 'lore/Narrative-Experiments'];
+const NARRATIVE_ROOT = '.narrative';
+const ACTIVE_STORE_KEY = 'tt:narrative-overrides';
 
 function joinPath(...parts) {
     return parts.filter(Boolean).join('/').replace(/\/+/g, '/');
@@ -16,6 +18,43 @@ function parentOf(path) {
     return index < 0 ? '' : path.slice(0, index);
 }
 
+function prettifyName(value) {
+    return String(value || '')
+        .replace(/[-_]+/g, ' ')
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function currentChatKey() {
+    const context = window.SillyTavern?.getContext?.();
+    if (!context) return 'default';
+    const chat = String(context.chatId ?? context.chatMetadata?.chat_id ?? '');
+    const group = String(context.groupId ?? context.chatMetadata?.group_id ?? '');
+    if (group) return `group:${group}:${chat}`;
+    const character = String(
+        context.characterId
+        ?? context.character?.avatar
+        ?? context.name2
+        ?? '',
+    );
+    return `character:${character}:${chat}`;
+}
+
+function readActiveStore() {
+    try {
+        return JSON.parse(localStorage.getItem(ACTIVE_STORE_KEY) || '{}') || {};
+    } catch {
+        return {};
+    }
+}
+
+function writeActiveStore(store) {
+    try {
+        localStorage.setItem(ACTIVE_STORE_KEY, JSON.stringify(store));
+    } catch {
+        // Storage is optional; the active override still works for this session.
+    }
+}
+
 export function createExperimentOverlay({ api, getMountId, mount = document.body }) {
     const state = {
         manifests: [],
@@ -24,10 +63,12 @@ export function createExperimentOverlay({ api, getMountId, mount = document.body
         busy: false,
         error: '',
         mountId: null,
+        chatKey: currentChatKey(),
     };
     let menu = null;
     let button = null;
     let onChange = () => {};
+    let chatWatcher = null;
 
     function activeMount() {
         return typeof getMountId === 'function' ? getMountId() : getMountId;
@@ -45,11 +86,35 @@ export function createExperimentOverlay({ api, getMountId, mount = document.body
         return vaultState?.primaryMountId ?? vaultState?.mounts?.[0]?.id ?? null;
     }
 
+    async function listNarrativeFiles(mount, directory) {
+        const files = [];
+        const walk = async (path) => {
+            let entries;
+            try {
+                entries = await api.list(mount, path);
+            } catch {
+                return;
+            }
+            for (const entry of entries) {
+                if (entry.kind === 'directory') {
+                    await walk(entry.path);
+                } else if (/\.(md|markdown)$/i.test(entry.name || entry.path)) {
+                    if (/^README\.md$/i.test(entry.name || '')) continue;
+                    const relative = normalize(entry.path).slice(normalize(directory).length + 1);
+                    if (relative) files.push(relative);
+                }
+            }
+        };
+        await walk(directory);
+        return files;
+    }
+
     async function discover() {
         const mount = await mountId();
         if (!mount) return [];
         state.mountId = mount;
         const found = [];
+        const seen = new Set();
         for (const root of EXPERIMENT_ROOTS) {
             let entries;
             try {
@@ -59,19 +124,32 @@ export function createExperimentOverlay({ api, getMountId, mount = document.body
             }
             for (const entry of entries) {
                 if (entry.kind !== 'directory') continue;
+                if (seen.has(entry.path)) continue;
+                seen.add(entry.path);
                 const manifestPath = joinPath(entry.path, 'experiment.json');
+                let manifest = null;
                 try {
-                    const manifest = await readJson(mount, manifestPath);
-                    found.push({
-                        id: entry.path,
-                        label: manifest.title || manifest.name || baseName(entry.path),
-                        summary: manifest.summary || manifest.description || '',
-                        manifestPath,
-                        manifest,
-                    });
+                    manifest = await readJson(mount, manifestPath);
                 } catch {
-                    // A directory without a manifest is authoring material, not an experiment.
+                    if (root !== NARRATIVE_ROOT && root !== `lore/${NARRATIVE_ROOT}`) {
+                        // A directory without a manifest in the legacy authoring bay is not an override.
+                        continue;
+                    }
                 }
+                let overrides = Array.isArray(manifest?.overrides) ? manifest.overrides : null;
+                if (!overrides) {
+                    overrides = await listNarrativeFiles(mount, entry.path);
+                    if (!overrides.length) continue;
+                    manifest = { ...(manifest || {}), overrides };
+                }
+                found.push({
+                    id: entry.path,
+                    label: manifest.title || manifest.name || prettifyName(baseName(entry.path)),
+                    summary: manifest.summary || manifest.description
+                        || `${overrides.length} override file${overrides.length === 1 ? '' : 's'}`,
+                    manifestPath: manifest ? manifestPath : null,
+                    manifest,
+                });
             }
         }
         state.manifests = found;
@@ -89,8 +167,10 @@ export function createExperimentOverlay({ api, getMountId, mount = document.body
             mountId: mount,
             removals: new Set((manifest.manifest.removals || []).flatMap((path) => {
                 const normalized = normalize(path);
-                if (!base.startsWith('lore/') || normalized.startsWith('lore/')) return [normalized];
-                return [normalized, `lore/${normalized}`];
+                const candidates = [normalized];
+                if (!normalized.startsWith('lore/')) candidates.push(`lore/${normalized}`);
+                if (normalized.startsWith('lore/')) candidates.push(normalized.slice(5));
+                return candidates;
             })),
             superseded: new Set(),
             overrides: new Map(),
@@ -115,29 +195,75 @@ export function createExperimentOverlay({ api, getMountId, mount = document.body
             const frontmatter = parseFrontmatter(text);
             if (frontmatter.supersedes) {
                 overlay.superseded.add(normalize(frontmatter.supersedes));
+                if (!normalize(frontmatter.supersedes).startsWith('lore/')) {
+                    overlay.superseded.add(normalize(`lore/${frontmatter.supersedes}`));
+                }
                 if (base.startsWith('lore/')) overlay.superseded.add(normalize(`lore/${frontmatter.supersedes}`));
             }
             let target = rel.replace(/^overrides\/?/, '');
             if (!target) continue;
             if (base.startsWith('lore/') && !target.startsWith('lore/')) target = `lore/${target}`;
+            const targets = new Set([target]);
+            if (!target.startsWith('lore/')) targets.add(`lore/${target}`);
+            else targets.add(target.slice(5));
             const name = baseName(target);
-            overlay.overrides.set(target, {
-                path: target,
-                name,
-                kind: 'file',
-                sourcePath,
-                readPath: sourcePath,
-                content: text,
-                size: new Blob([text]).size,
-                keys: frontmatter.keys,
-                summary: frontmatter.summary,
-                virtual: true,
-            });
+            for (const targetPath of targets) {
+                overlay.overrides.set(targetPath, {
+                    path: targetPath,
+                    name: baseName(targetPath),
+                    kind: 'file',
+                    sourcePath,
+                    readPath: sourcePath,
+                    content: text,
+                    size: new Blob([text]).size,
+                    keys: frontmatter.keys,
+                    summary: frontmatter.summary,
+                    virtual: true,
+                });
+            }
         }
         return overlay;
     }
 
-    async function activate(id) {
+    function activeSelection() {
+        return readActiveStore()[state.chatKey] || null;
+    }
+
+    function persistSelection(id) {
+        const store = readActiveStore();
+        if (id) store[state.chatKey] = id;
+        else delete store[state.chatKey];
+        writeActiveStore(store);
+    }
+
+    function clearActive() {
+        state.active = null;
+        state.overlay = null;
+        state.error = '';
+        clearMetadataCache();
+        syncButton();
+        onChange();
+        window.dispatchEvent(new CustomEvent('tt:experiments-changed', { detail: status() }));
+    }
+
+    async function restoreForChat() {
+        state.chatKey = currentChatKey();
+        const selected = activeSelection();
+        if (!selected) {
+            clearActive();
+            return;
+        }
+        const manifests = state.manifests.length ? state.manifests : await discover();
+        const manifest = manifests.find((candidate) => candidate.id === selected);
+        if (!manifest) {
+            persistSelection(null);
+            clearActive();
+            return;
+        }
+        await activate(manifest.id, { persist: false });
+    }
+
+    async function activate(id, options = {}) {
         if (state.busy) return;
         const manifest = state.manifests.find((candidate) => candidate.id === id)
             ?? (await discover()).find((candidate) => candidate.id === id);
@@ -147,10 +273,12 @@ export function createExperimentOverlay({ api, getMountId, mount = document.body
         try {
             state.active = manifest;
             state.overlay = await buildOverlay(manifest);
+            if (options.persist !== false) persistSelection(manifest.id);
         } catch (error) {
             state.active = null;
             state.overlay = null;
             state.error = String(error?.message ?? error);
+            if (options.persist !== false) persistSelection(null);
         } finally {
             state.busy = false;
             closeMenu();
@@ -162,14 +290,18 @@ export function createExperimentOverlay({ api, getMountId, mount = document.body
     }
 
     function deactivate() {
-        state.active = null;
-        state.overlay = null;
-        state.error = '';
+        persistSelection(null);
+        clearActive();
         closeMenu();
-        clearMetadataCache();
-        syncButton();
-        onChange();
-        window.dispatchEvent(new CustomEvent('tt:experiments-changed', { detail: status() }));
+    }
+
+    function startChatWatcher() {
+        if (chatWatcher) return;
+        chatWatcher = setInterval(() => {
+            const key = currentChatKey();
+            if (key === state.chatKey) return;
+            void restoreForChat();
+        }, 500);
     }
 
     function syncButton() {
@@ -188,12 +320,23 @@ export function createExperimentOverlay({ api, getMountId, mount = document.body
             const path = normalize(entry.path);
             if (removed.has(path) || superseded.has(path)) continue;
             const replacement = overrides.get(path);
-            byPath.set(path, replacement ? { ...entry, ...replacement } : entry);
+            byPath.set(path, replacement ? {
+                ...entry,
+                ...replacement,
+                override: true,
+                overrideSource: `experiment:${state.active?.label ?? 'active'}`,
+            } : entry);
         }
 
         for (const [path, override] of overrides) {
             if (parentOf(path) !== currentDir) continue;
-            if (!byPath.has(path)) byPath.set(path, override);
+            if (!byPath.has(path)) {
+                byPath.set(path, {
+                    ...override,
+                    override: true,
+                    overrideSource: `experiment:${state.active?.label ?? 'active'}`,
+                });
+            }
         }
 
         return [...byPath.values()];
@@ -221,6 +364,7 @@ export function createExperimentOverlay({ api, getMountId, mount = document.body
                     title: replacement.name.replace(/\.md$/i, ''),
                     path: entry.path,
                     override: true,
+                    overrideSource: `experiment:${state.active?.label ?? 'active'}`,
                 });
                 seen.add(clean);
                 continue;
@@ -229,7 +373,8 @@ export function createExperimentOverlay({ api, getMountId, mount = document.body
         }
 
         for (const [path, override] of overrides) {
-            if (seen.has(path) || result.some((entry) => normalize(entry.path).replace(/^lore\//, '') === path)) continue;
+            const cleanPath = path.replace(/^lore\//, '');
+            if (seen.has(cleanPath) || result.some((entry) => normalize(entry.path).replace(/^lore\//, '') === cleanPath)) continue;
             result.push({
                 title: override.name.replace(/\.md$/i, ''),
                 folder: parentOf(path),
@@ -274,6 +419,7 @@ export function createExperimentOverlay({ api, getMountId, mount = document.body
     function status() {
         return {
             active: state.active ? { id: state.active.id, label: state.active.label } : null,
+            chatKey: state.chatKey,
             error: state.error,
         };
     }
@@ -292,27 +438,49 @@ export function createExperimentOverlay({ api, getMountId, mount = document.body
         }
         button.classList.add('tt-fe-experiment-open');
         await discover();
+        await restoreForChat();
         syncButton();
         menu = document.createElement('div');
         menu.className = 'tt-fe-experiment-menu';
         const title = document.createElement('div');
         title.className = 'tt-fe-experiment-title';
-        title.textContent = 'Narrative experiments';
+        title.textContent = 'Narratives';
         menu.append(title);
-        const base = document.createElement('button');
-        base.type = 'button';
-        base.className = 'tt-fe-experiment-item';
-        base.textContent = 'Base vault';
-        base.classList.toggle('tt-fe-experiment-active', !state.active);
-        base.addEventListener('click', deactivate);
-        menu.append(base);
+
+        const baseRow = document.createElement('div');
+        baseRow.className = 'tt-fe-experiment-item';
+        baseRow.classList.toggle('tt-fe-experiment-active', !state.active);
+        baseRow.innerHTML = '<span>Base vault</span><small>Use the base lore directory</small>';
+        const baseUse = document.createElement('button');
+        baseUse.type = 'button';
+        baseUse.className = 'tt-fe-experiment-use';
+        baseUse.textContent = state.active ? 'Use' : 'Active';
+        baseUse.disabled = !state.active;
+        baseUse.addEventListener('click', (event) => {
+            event.stopPropagation();
+            deactivate();
+        });
+        baseRow.append(baseUse);
+        menu.append(baseRow);
+
         for (const manifest of state.manifests) {
-            const item = document.createElement('button');
-            item.type = 'button';
+            const item = document.createElement('div');
             item.className = 'tt-fe-experiment-item';
             item.classList.toggle('tt-fe-experiment-active', state.active?.id === manifest.id);
             item.innerHTML = `<span>${escapeHtml(manifest.label)}</span><small>${escapeHtml(manifest.summary || manifest.id)}</small>`;
-            item.addEventListener('click', () => void activate(manifest.id));
+            const use = document.createElement('button');
+            use.type = 'button';
+            use.className = 'tt-fe-experiment-use';
+            use.textContent = state.active?.id === manifest.id ? 'Active' : 'Use';
+            use.disabled = state.active?.id === manifest.id;
+            use.addEventListener('click', (event) => {
+                event.stopPropagation();
+                void activate(manifest.id);
+            });
+            item.append(use);
+            item.addEventListener('click', () => {
+                if (state.active?.id !== manifest.id) void activate(manifest.id);
+            });
             menu.append(item);
         }
         if (state.error) {
@@ -339,10 +507,12 @@ export function createExperimentOverlay({ api, getMountId, mount = document.body
         syncButton();
     }
 
+    startChatWatcher();
     return {
         discover,
         activate,
         deactivate,
+        restoreForChat,
         openMenu,
         closeMenu,
         setOnChange,

@@ -110,11 +110,11 @@ test('switching away from Extensions and back restores the geometry', async () =
 
 test('the shell panel keeps the rail and panel geometry fixed', async () => {
     const railBefore = await rect(page, '#top-settings-holder');
-    await page.click('#sb_panel_layout-shell-panel .drawer-toggle');
-    await page.waitForSelector('#sb_panel_layout-shell-panel .drawer-content', { state: 'visible' });
+    await page.click('#tauri_panel_layout-shell-panel .drawer-toggle');
+    await page.waitForSelector('#tauri_panel_layout-shell-panel .drawer-content', { state: 'visible' });
 
-    const panel = await rect(page, '#sb_panel_layout-shell-panel .drawer-content');
-    const body = await rect(page, '#sb_panel_layout-shell-panel .sb-panel-body');
+    const panel = await rect(page, '#tauri_panel_layout-shell-panel .drawer-content');
+    const body = await rect(page, '#tauri_panel_layout-shell-panel .tauri-panel-body');
     assert.ok(panel && body, 'shell panel did not render');
     assertInsideViewport(panel, 'shell panel', viewport);
     assert.equal(Math.round(panel.x), 58, 'shell panel starts at the rail edge');
@@ -122,7 +122,7 @@ test('the shell panel keeps the rail and panel geometry fixed', async () => {
     assert.ok(body.height > 0, 'shell panel body is empty');
     assertRectStable(railBefore, await rect(page, '#top-settings-holder'), 'rail after opening shell panel');
 
-    await page.click('#sb_panel_layout-shell-panel .drawer-toggle');
+    await page.click('#tauri_panel_layout-shell-panel .drawer-toggle');
     await page.waitForTimeout(150);
     assertRectStable(railBefore, await rect(page, '#top-settings-holder'), 'rail after closing shell panel');
 });
@@ -136,7 +136,7 @@ test('opening and closing panels does not layout-shift the chrome', async () => 
     await page.waitForTimeout(250);
 
     const shifts = await readLayoutShifts(page);
-    const chrome = /^(#top-settings-holder|#extensions-settings-button|#extensions_settings|#extensions_settings2|\.drawer-content|\.sb-panel)/;
+    const chrome = /^(#top-settings-holder|#extensions-settings-button|#extensions_settings|#extensions_settings2|\.drawer-content|\.tauri-panel)/;
     const chromeShifts = shifts.filter((shift) => shift.sources.some((source) => {
         if (chrome.test(source.selector)) return true;
         const box = source.currentRect;
@@ -163,15 +163,16 @@ test('the rail and drawer headers are not covered by panel content', async () =>
     assert.deepEqual(hit, { rail: true, header: true });
 });
 
-test('stock drawers keep their centered geometry when the shell is disabled', async () => {
-    await page.evaluate(() => document.body.classList.remove('sb-shell'));
+test('the side rail has no top-row fallback', async () => {
+    await page.evaluate(() => document.body.classList.remove('tauri-shell'));
     await page.waitForTimeout(250);
-    await openExtensionsDrawer(page);
-    const drawer = await rect(page, '#extensions-settings-button .drawer-content');
-    assert.ok(drawer, 'stock extensions drawer did not open');
-    assert.ok(drawer.width > 460, `stock drawer width ${drawer.width} was not the centered width`);
-    assert.ok(drawer.x > 58, `stock drawer x ${drawer.x} still uses the rail offset`);
-    assertInsideViewport(drawer, 'stock extensions drawer', viewport);
-    await page.evaluate(() => document.body.classList.add('sb-shell'));
+    const state = await page.evaluate(() => ({
+        topBar: getComputedStyle(document.querySelector('#top-bar')).display,
+        rail: getComputedStyle(document.querySelector('#top-settings-holder')).position,
+    }));
+    assert.equal(state.topBar, 'none');
+    assert.equal(state.rail, 'fixed');
+    await page.evaluate(() => document.body.classList.add('tauri-shell'));
     await page.waitForTimeout(250);
 });
+

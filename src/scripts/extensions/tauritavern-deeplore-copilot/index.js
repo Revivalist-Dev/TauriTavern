@@ -15,7 +15,7 @@ You are "ST-Copilot", a meta-analytical engine and creative strategist for Silly
 - {{user}}: The in-universe player avatar.
 - {{char}}: The AI persona/setting.
 - ST-Copilot: You. An OOC observer. 
-MANDATORY: You are NOT {{char}}. Never generate narrative dialogue or actions for {{char}} or {{user}}.
+MANDATORY: You are NOT {{char}}. Never generate narrative dialogue or actions for {{char}} or {{user}}, except when the user explicitly asks you to create a chat post as a named character; only then compose that requested post as the exception.
 </system_role>
 
 <persona_configuration>
@@ -168,6 +168,7 @@ Generated \`chat-changes\` blocks are automatically executed and purged from the
 1. Target: Use \`msg_index\`, \`msg_range\`, or \`msg_indices\` from \`<scene_context>\`.
 2. Operations:
    - \`add\` / \`delete\`: Insert at \`msg_index\`.
+   - \`post\`: Create one in-character message as a named character. Use ONLY when the user explicitly asks you to write or post as that character; supply the exact card name in \`character\` and the message in \`content\`. This is the sole exception to the no-diegetic-writing rule.
    - \`prepend\` / \`append\`: Insert exactly at the extreme start/end of a message.
    - \`hide\` / \`unhide\`: Toggle message visibility for AI.
    - \`overwrite\`: 100% message replacement.
@@ -244,6 +245,7 @@ replacement text
   {"action":"prepend","msg_index":6,"content":"Text to add at the start. "},
   {"action":"append","msg_index":6,"content":" Text to add at the end."},
   {"action":"add","msg_index":7,"role":"assistant","content":"Brand new message text"},
+  {"action":"post","character":"Sakura Haruno","msg_index":7,"content":"In-character post text"},
   {"action":"delete","msg_index":12},
   {"action":"hide","msg_range":[8,10]},
   {"action":"unhide","msg_index":11},
@@ -286,6 +288,10 @@ Every entry MUST start with the exact word "Human".
   const DEFAULT_TOOLS_PROMPT = `Imperative: NEVER hallucinate missing context. If chat history, specific lore, or data appears absent, DO NOT assume the chat hasn't started or the data doesn't exist. You MUST proactively use your tools to fetch, verify, and retrieve the actual state before answering.
 
 Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response to the Human. You may chain tools sequentially.
+
+Repository files: use \`list_vault_files\`, \`read_vault_file\`, and \`write_vault_file\` for repository files such as \`.cursor/hooks\`, \`.cursor/rules\`, \`.cursor/agents\`, \`.cursor/tools\`, prompts, JSON and MJS files. These tools operate from the mounted vault root. For \`edit_deeplore_note\`, set \`vault_root: true\` when targeting a repository file.
+
+Multiple choice: when the user should pick from a small set of answers, call \`ask_user\` with \`options\` as an array of labels and \`allow_custom: false\`. The interface renders each option as a button.
 
 <available_tools>
 {{tools_list}}
@@ -501,7 +507,7 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
   const THEME_PRESETS = {
           default: {
               label: 'Dark Sky',
-              bg: 'rgba(0,0,0,0.85)', blur: 'blur(14px)',
+              bg: 'rgba(0,0,0,0.85)', blur: 'none',
               text: '#e2e2e6', textMuted: 'rgb(176,176,176)',
               accent: 'rgb(191,191,191)', accentDim: 'rgba(209,209,209,0.4)',
               accentBg: 'rgba(112,112,112,0.08)',
@@ -509,12 +515,12 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
               msgUserBg: 'rgba(214,214,214,0.1)', msgAiBg: 'rgba(214,214,214,0.03)',
               inputBg: 'rgba(0,0,0,0.30)', codeBg: 'rgba(0,0,0,0.35)',
               radius: '10px', danger: '#ff5c5c', success: '#4caf7d',
-              shadow: '0 24px 64px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
+              shadow: '0 10px 28px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.18)',
               border: '1px solid rgba(255,255,255,0.09)', font: '',
           },
           blue_ocean : {
               label: 'Blue Ocean',
-              bg: 'rgba(18,18,22,0.94)', blur: 'blur(14px)',
+              bg: 'rgba(18,18,22,0.94)', blur: 'none',
               text: '#e2e2e6', textMuted: '#72728a',
               accent: '#7c6dfa', accentDim: 'rgba(124,109,250,0.45)',
               accentBg: 'rgba(124,109,250,0.12)',
@@ -522,12 +528,12 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
               msgUserBg: 'rgba(124,109,250,0.10)', msgAiBg: 'rgba(255,255,255,0.03)',
               inputBg: 'rgba(0,0,0,0.30)', codeBg: 'rgba(0,0,0,0.35)',
               radius: '10px', danger: '#ff5c5c', success: '#4caf7d',
-              shadow: '0 24px 64px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
+              shadow: '0 10px 28px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.18)',
               border: '1px solid rgba(255,255,255,0.09)', font: '',
           },
           onyx_ivory: {
               label: 'Onyx & Ivory',
-              bg: 'rgba(17,17,17,0.96)', blur: 'blur(16px)',
+              bg: 'rgba(17,17,17,0.96)', blur: 'none',
               text: '#f4ede4', textMuted: '#b8a898',
               accent: '#d4c4b0', accentDim: 'rgba(212,196,176,0.4)',
               accentBg: 'rgba(212,196,176,0.08)',
@@ -535,12 +541,12 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
               msgUserBg: 'rgba(244,237,228,0.07)', msgAiBg: 'rgba(255,255,255,0.02)',
               inputBg: 'rgba(0,0,0,0.35)', codeBg: 'rgba(0,0,0,0.45)',
               radius: '10px', danger: '#e05c5c', success: '#6ab88a',
-              shadow: '0 28px 70px rgba(0,0,0,0.7), 0 4px 18px rgba(0,0,0,0.5)',
+              shadow: '0 10px 28px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.18)',
               border: '1px solid rgba(244,237,228,0.1)', font: '',
           },
           violet_sun: {
               label: 'Violet & Sun',
-              bg: 'rgba(20,8,42,0.97)', blur: 'blur(18px)',
+              bg: 'rgba(20,8,42,0.97)', blur: 'none',
               text: '#f0e8ff', textMuted: '#9a80c0',
               accent: '#ffd60a', accentDim: 'rgba(255,214,10,0.45)',
               accentBg: 'rgba(255,214,10,0.1)',
@@ -548,12 +554,12 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
               msgUserBg: 'rgba(255,214,10,0.07)', msgAiBg: 'rgba(90,24,154,0.06)',
               inputBg: 'rgba(0,0,0,0.4)', codeBg: 'rgba(0,0,0,0.5)',
               radius: '10px', danger: '#ff5c5c', success: '#4caf7d',
-              shadow: '0 24px 64px rgba(0,0,0,0.75), 0 0 40px rgba(90,24,154,0.15)',
+              shadow: '0 10px 28px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.18)',
               border: '1px solid rgba(90,24,154,0.3)', font: '',
           },
           forest_gold: {
               label: 'Forest & Gold',
-              bg: 'rgba(2,16,10,0.97)', blur: 'blur(12px)',
+              bg: 'rgba(2,16,10,0.97)', blur: 'none',
               text: '#e8dfc8', textMuted: '#8a9e80',
               accent: '#d4a373', accentDim: 'rgba(212,163,115,0.45)',
               accentBg: 'rgba(212,163,115,0.1)',
@@ -561,12 +567,12 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
               msgUserBg: 'rgba(212,163,115,0.08)', msgAiBg: 'rgba(255,255,255,0.02)',
               inputBg: 'rgba(0,0,0,0.4)', codeBg: 'rgba(0,0,0,0.5)',
               radius: '8px', danger: '#e05c5c', success: '#69a458',
-              shadow: '0 24px 64px rgba(0,0,0,0.8), 0 0 30px rgba(2,48,32,0.4)',
+              shadow: '0 10px 28px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.18)',
               border: '1px solid rgba(212,163,115,0.15)', font: '',
           },
           crimson_cream: {
               label: 'Crimson & Cream',
-              bg: 'rgba(28,4,4,0.97)', blur: 'blur(14px)',
+              bg: 'rgba(28,4,4,0.97)', blur: 'none',
               text: '#fff3e0', textMuted: '#c09070',
               accent: '#e85555', accentDim: 'rgba(214,40,40,0.45)',
               accentBg: 'rgba(214,40,40,0.1)',
@@ -574,12 +580,12 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
               msgUserBg: 'rgba(214,40,40,0.08)', msgAiBg: 'rgba(255,243,224,0.02)',
               inputBg: 'rgba(0,0,0,0.38)', codeBg: 'rgba(0,0,0,0.48)',
               radius: '10px', danger: '#ff5c5c', success: '#6ab88a',
-              shadow: '0 24px 64px rgba(0,0,0,0.75), 0 0 30px rgba(214,40,40,0.08)',
+              shadow: '0 10px 28px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.18)',
               border: '1px solid rgba(214,40,40,0.2)', font: '',
           },
           teal_midnight: {
               label: 'Teal & Midnight',
-              bg: 'rgba(10,12,24,0.97)', blur: 'blur(16px)',
+              bg: 'rgba(10,12,24,0.97)', blur: 'none',
               text: '#d8f0ee', textMuted: '#5a8a88',
               accent: '#2ec4b6', accentDim: 'rgba(46,196,182,0.4)',
               accentBg: 'rgba(46,196,182,0.1)',
@@ -587,12 +593,12 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
               msgUserBg: 'rgba(46,196,182,0.08)', msgAiBg: 'rgba(255,255,255,0.02)',
               inputBg: 'rgba(0,0,0,0.38)', codeBg: 'rgba(0,0,0,0.48)',
               radius: '10px', danger: '#ff5c5c', success: '#2ec4b6',
-              shadow: '0 24px 64px rgba(0,0,0,0.75), 0 0 40px rgba(26,26,46,0.5)',
+              shadow: '0 10px 28px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.18)',
               border: '1px solid rgba(46,196,182,0.15)', font: '',
           },
           ember_sand: {
               label: 'Ember & Sand',
-              bg: 'rgba(22,10,4,0.97)', blur: 'blur(14px)',
+              bg: 'rgba(22,10,4,0.97)', blur: 'none',
               text: '#f5ebe0', textMuted: '#b08060',
               accent: '#ff6f3c', accentDim: 'rgba(255,111,60,0.4)',
               accentBg: 'rgba(255,111,60,0.1)',
@@ -600,12 +606,12 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
               msgUserBg: 'rgba(255,111,60,0.08)', msgAiBg: 'rgba(245,235,224,0.02)',
               inputBg: 'rgba(0,0,0,0.36)', codeBg: 'rgba(0,0,0,0.46)',
               radius: '10px', danger: '#ff5c5c', success: '#6ab88a',
-              shadow: '0 24px 64px rgba(0,0,0,0.75), 0 0 30px rgba(255,111,60,0.06)',
+              shadow: '0 10px 28px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.18)',
               border: '1px solid rgba(255,111,60,0.18)', font: '',
           },
           sage_mist: {
               label: 'Sage & Mist',
-              bg: 'rgba(10,18,14,0.96)', blur: 'blur(16px)',
+              bg: 'rgba(10,18,14,0.96)', blur: 'none',
               text: '#e7edeb', textMuted: '#7a9a88',
               accent: '#69a481', accentDim: 'rgba(105,164,129,0.4)',
               accentBg: 'rgba(105,164,129,0.1)',
@@ -613,12 +619,12 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
               msgUserBg: 'rgba(105,164,129,0.08)', msgAiBg: 'rgba(231,237,235,0.02)',
               inputBg: 'rgba(0,0,0,0.32)', codeBg: 'rgba(0,0,0,0.42)',
               radius: '12px', danger: '#e05c5c', success: '#69a481',
-              shadow: '0 24px 64px rgba(0,0,0,0.65), 0 0 30px rgba(10,18,14,0.4)',
+              shadow: '0 10px 28px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.18)',
               border: '1px solid rgba(105,164,129,0.15)', font: '',
           },
           glass: {
               label: 'Glass',
-              bg: 'rgba(40,40,55,0.55)', blur: 'blur(22px) saturate(1.6)',
+              bg: 'rgba(40,40,55,0.55)', blur: 'none',
               text: '#f0efff', textMuted: '#9898b8',
               accent: '#a78bfa', accentDim: 'rgba(167,139,250,0.5)',
               accentBg: 'rgba(167,139,250,0.14)',
@@ -626,12 +632,12 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
               msgUserBg: 'rgba(167,139,250,0.10)', msgAiBg: 'rgba(255,255,255,0.05)',
               inputBg: 'rgba(0,0,0,0.25)', codeBg: 'rgba(0,0,0,0.30)',
               radius: '12px', danger: '#ff5c5c', success: '#4caf7d',
-              shadow: '0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1) inset',
+              shadow: '0 10px 28px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.18)',
               border: '1px solid rgba(255,255,255,0.18)', font: '',
           },
           hacker: {
               label: 'Hacker',
-              bg: 'rgba(6,14,6,0.97)', blur: 'blur(0px)',
+              bg: 'rgba(6,14,6,0.97)', blur: 'none',
               text: '#88ee88', textMuted: '#3a6640',
               accent: '#00ff88', accentDim: 'rgba(0,255,136,0.45)',
               accentBg: 'rgba(0,255,136,0.08)',
@@ -639,12 +645,12 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
               msgUserBg: 'rgba(0,255,136,0.05)', msgAiBg: 'rgba(0,0,0,0.4)',
               inputBg: 'rgba(0,0,0,0.55)', codeBg: 'rgba(0,0,0,0.7)',
               radius: '4px', danger: '#ff4444', success: '#00ff88',
-              shadow: '0 0 30px rgba(0,255,136,0.08), 0 16px 48px rgba(0,0,0,0.8)',
+              shadow: '0 10px 28px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.18)',
               border: '1px solid #00c77044', font: "'Consolas','Courier New',monospace",
           },
           native: {
               label: 'Native ST',
-              bg: 'var(--SmartThemeBlurTrans, rgba(20,20,24,0.92))', blur: 'var(--smartThemeBlur, blur(12px))',
+              bg: 'var(--SmartThemeBlurTrans, rgba(20,20,24,0.92))', blur: 'none',
               text: 'var(--SmartThemeBodyColorText, #e2e2e6)', textMuted: 'var(--SmartThemeBodyColorTextMuted, #72728a)',
               accent: 'var(--smartThemeMenuColorText, #7c6dfa)', accentDim: 'var(--white30a, rgba(255,255,255,0.3))',
               accentBg: 'var(--white10a, rgba(255,255,255,0.08))',
@@ -652,7 +658,7 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
               msgUserBg: 'var(--black30a, rgba(0,0,0,0.18))', msgAiBg: 'rgba(255,255,255,0.025)',
               inputBg: 'var(--black50a, rgba(0,0,0,0.3))', codeBg: 'var(--black50a, rgba(0,0,0,0.35))',
               radius: '10px', danger: '#ff5c5c', success: '#4caf7d',
-              shadow: '0 24px 64px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
+              shadow: '0 10px 28px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.18)',
               border: 'var(--smartThemeBorder, 1px solid rgba(255,255,255,0.09))', font: '',
           },
           
@@ -789,8 +795,56 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
                   properties: {
                       filename: { type: 'string', description: 'The title, relative path, or filename of the DeepLore note (e.g. "Aethelgard.md", "Characters/Eria.md", or note title).' },
                       vault_name: { type: 'string', description: 'Specific DeepLore vault name (optional).' },
+                      vault_root: { type: 'boolean', description: 'Read from the vault root instead of the lore subfolder. Use for .cursor hooks, rules, tools, agents and other repository files.' },
                   },
                   required: ['filename'],
+              },
+          },
+          {
+              id: 'list_vault_files',
+              name: 'list_vault_files',
+              label: 'List Vault Files',
+              icon: 'fa-folder-open',
+              description: 'List files and folders in the active TauriTavern lorebook vault. Use this to find .cursor hooks, rules, tools, agents, prompts, and documents.',
+              settingKey: 'toolsEnabled_list_vault_files',
+              schema: {
+                  type: 'object',
+                  properties: {
+                      path: { type: 'string', description: 'Vault-relative folder path, for example ".cursor" or ".cursor/hooks". Empty means the vault root.' },
+                  },
+              },
+          },
+          {
+              id: 'read_vault_file',
+              name: 'read_vault_file',
+              label: 'Read Vault File',
+              icon: 'fa-file-lines',
+              description: 'Read any text file in the active TauriTavern lorebook vault, including hooks, rules, tools, agents, prompts, and JSON/MJS files.',
+              settingKey: 'toolsEnabled_read_vault_file',
+              schema: {
+                  type: 'object',
+                  properties: {
+                      path: { type: 'string', description: 'Vault-relative file path, for example ".cursor/hooks/lorebook-guard.mjs".' },
+                  },
+                  required: ['path'],
+              },
+          },
+          {
+              id: 'write_vault_file',
+              name: 'write_vault_file',
+              label: 'Write Vault File',
+              icon: 'fa-file-pen',
+              description: 'Create or edit any text file in the active TauriTavern lorebook vault: hooks, rules, tools, agents, prompts, JSON, MJS, and documents.',
+              settingKey: 'toolsEnabled_write_vault_file',
+              schema: {
+                  type: 'object',
+                  properties: {
+                      path: { type: 'string', description: 'Vault-relative file path, for example ".cursor/hooks/lorebook-guard.mjs".' },
+                      content: { type: 'string', description: 'New content or replacement text.' },
+                      mode: { type: 'string', enum: ['overwrite', 'append', 'patch'], description: 'Edit mode (default overwrite).' },
+                      target_text: { type: 'string', description: 'Required for patch mode: the exact text to replace.' },
+                  },
+                  required: ['path', 'content'],
               },
           },
           {
@@ -812,18 +866,40 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
               name: 'edit_deeplore_note',
               label: 'Edit/Create DeepLore Note',
               icon: 'fa-pen-to-square',
-              description: 'Create a new markdown note or edit/append/patch an existing markdown file in a DeepLore Obsidian vault.',
+              description: 'Create a new markdown note or edit/append/patch an existing text file. With vault_root=true, edits any file at the vault root, including .cursor hooks, rules, tools, agents and documents.',
               settingKey: 'toolsEnabled_edit_deeplore_note',
               schema: {
                   type: 'object',
                   properties: {
-                      filename: { type: 'string', description: 'Relative path of the markdown note in the Obsidian vault (e.g., "World/Cities/Aethelgard.md" or "Characters/Eria.md")' },
+                      filename: { type: 'string', description: 'Relative path of the note or file (e.g., "World/Cities/Aethelgard.md" or ".cursor/hooks/lorebook-guard.mjs")' },
                       content: { type: 'string', description: 'The new note content or text snippet to write/append/patch' },
                       mode: { type: 'string', enum: ['overwrite', 'append', 'patch'], description: 'Edit mode: "overwrite" to set entire content, "append" to append to end of file, "patch" to replace target_text (default: "overwrite")' },
                       target_text: { type: 'string', description: 'When mode is "patch", the specific text string in the file to be replaced by content' },
                       vault_name: { type: 'string', description: 'Target vault name (optional, defaults to primary/scribe vault)' },
+                      vault_root: { type: 'boolean', description: 'Edit from the vault root instead of the lore subfolder. Use for .cursor hooks, rules, tools, agents and other repository files.' },
                   },
                   required: ['filename', 'content'],
+              },
+          },
+          {
+              id: 'delete_deeplore_entries',
+              name: 'delete_deeplore_entries',
+              label: 'Delete DeepLore Entries',
+              icon: 'fa-trash-can',
+              description: 'Delete one or more files or folders from the active DeepLore vault. Destructive: only call after the user explicitly confirms; pass confirmed=true.',
+              settingKey: 'toolsEnabled_delete_deeplore_entries',
+              schema: {
+                  type: 'object',
+                  properties: {
+                      paths: {
+                          type: 'array',
+                          items: { type: 'string' },
+                          description: 'Relative paths inside the active vault, e.g. ["lore/global/eldoria", "lore/characters/default_seraphina"].',
+                      },
+                      recursive: { type: 'boolean', description: 'Required to delete a folder and everything inside it.' },
+                      confirmed: { type: 'boolean', description: 'Must be true only after the user explicitly approved this deletion.' },
+                  },
+                  required: ['paths', 'confirmed'],
               },
           },
           {
@@ -831,13 +907,22 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
               name: 'ask_user',
               label: 'Ask User',
               icon: 'fa-circle-question',
-              description: 'Pause generation and ask the user a question before continuing. Requires streaming to be enabled.',
+              description: 'Pause generation and ask the user a question before continuing. Requires streaming to be enabled. Provide options to render a multiple-choice menu like Cursor; the selected option is returned as the tool result.',
               settingKey: 'toolsEnabled_ask_user',
               schema: {
                   type: 'object',
                   properties: {
                       question: { type: 'string', description: 'The question to ask the user' },
                       context: { type: 'string', description: 'Why you need this information (shown to user)' },
+                      options: {
+                          type: 'array',
+                          items: { type: 'string' },
+                          description: 'Optional 2-6 concrete answers rendered as clickable choices. Prefer this over prose when the user is choosing between approaches, files, or next actions.',
+                      },
+                      allow_custom: {
+                          type: 'boolean',
+                          description: 'When options are present, also show a free-text field (default true). Set false for a strict menu.',
+                      },
                   },
                   required: ['question'],
               },
@@ -847,11 +932,12 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
               name: 'get_char_info',
               label: 'Get Character Info',
               icon: 'fa-user-pen',
-              description: 'Retrieve detailed information about the current character card fields.',
+              description: 'Retrieve character card fields. In a group chat, pass name to select a group member; without name it returns the member list.',
               settingKey: 'toolsEnabled_get_char_info',
               schema: {
                   type: 'object',
                   properties: {
+                      name: { type: 'string', description: 'Group member name. Use this in group chats.' },
                       fields: { type: 'array', items: { type: 'string' }, description: 'Which fields to retrieve: description, personality, scenario, first_mes, mes_example, tags, authors_note, alternate_greetings' },
                   },
                   required: ['fields'],
@@ -887,7 +973,7 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
               name: 'mcp_call',
               label: 'Call MCP Tool',
               icon: 'fa-plug',
-              description: 'Call a tool on a registered MCP server. Use the MCP catalog in the Customize context to choose a server and tool.',
+              description: 'Call a tool on a registered MCP server. Use the MCP catalog in the Agent Workspace context to choose a server and tool.',
               settingKey: 'toolsEnabled_mcp_call',
               schema: {
                   type: 'object',
@@ -909,7 +995,7 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
               schema: {
                   type: 'object',
                   properties: {
-                      agentId: { type: 'string', description: 'Custom subagent ID from the Customize subagent list' },
+                      agentId: { type: 'string', description: 'Custom subagent ID from the Agent Workspace subagent list' },
                       task: { type: 'string', description: 'Task for the subagent (max 8000 characters)' },
                   },
                   required: ['agentId', 'task'],
@@ -1631,6 +1717,7 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
           toolsEnabled_read_deeplore_note: true,
           toolsEnabled_get_deeplore_vaults: true,
           toolsEnabled_edit_deeplore_note: true,
+          toolsEnabled_delete_deeplore_entries: true,
           toolsEnabled_ask_user: true,
           toolsEnabled_get_char_info: true,
           toolsEnabled_get_chat_stats: true,
@@ -2266,7 +2353,7 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
    * extension can be installed as a system extension.
    */
 
-  const TEXT_EXTENSIONS = new Set(['.md', '.markdown', '.txt', '.json', '.yaml', '.yml']);
+  const TEXT_EXTENSIONS = new Set(['.md', '.markdown', '.mdc', '.txt', '.json', '.jsonc', '.yaml', '.yml', '.toml', '.xml', '.html', '.css', '.js', '.mjs', '.cjs', '.jsx', '.ts', '.mts', '.cts', '.tsx', '.py', '.rs', '.go', '.java', '.kt', '.sh', '.bash', '.zsh', '.ps1', '.bat', '.cmd', '.sql', '.ini', '.cfg', '.conf', '.env', '.properties']);
   const MAX_CONTEXT_CHARS = 12000;
   const MAX_SELECTED_FILES = 8;
 
@@ -2288,8 +2375,119 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
       return getNativeLoreFolderNames();
   }
 
+  function normalizeVaultRelativePath(path) {
+      const raw = String(path ?? '').replace(/\\/g, '/').trim();
+      if (!raw) return '';
+      if (/^[A-Za-z]:\//.test(raw) || raw.startsWith('/')) {
+          throw new Error('Use a vault-relative path, not an absolute path.');
+      }
+      const parts = raw.split('/').filter(part => part && part !== '.');
+      if (parts.some(part => part === '..')) {
+          throw new Error('Vault paths cannot contain "..".');
+      }
+      return parts.join('/');
+  }
+
+  async function nativeVaultMount() {
+      const vault = nativeVaultApi();
+      const state = await vault.state();
+      const mounts = Array.isArray(state?.mounts) ? state.mounts : [];
+      const mount = mounts.find(candidate => candidate.id === state?.primaryMountId)
+          ?? mounts.find(candidate => candidate.primary)
+          ?? mounts[0];
+      if (!mount?.id) throw new Error('No active TauriTavern vault is available.');
+      return { vault, mount };
+  }
+
+  async function nativeVaultListFiles(path) {
+      const { vault, mount } = await nativeVaultMount();
+      const relative = normalizeVaultRelativePath(path);
+      const entries = await vault.list(mount.id, relative);
+      return { mount: mount.name || mount.path, path: relative, entries };
+  }
+
+  async function nativeVaultReadFile(path) {
+      const { vault, mount } = await nativeVaultMount();
+      const relative = normalizeVaultRelativePath(path);
+      if (!relative) throw new Error('A file path is required.');
+      const result = await vault.readText(mount.id, relative);
+      return { mount: mount.name || mount.path, path: relative, content: result?.content ?? result ?? '' };
+  }
+
+  async function nativeVaultWriteFile(path, content, mode = 'overwrite', targetText = '') {
+      const { vault, mount } = await nativeVaultMount();
+      const relative = normalizeVaultRelativePath(path);
+      if (!relative) throw new Error('A file path is required.');
+
+      let next = String(content ?? '');
+      if (mode !== 'overwrite') {
+          const current = await vault.readText(mount.id, relative);
+          const existing = String(current?.content ?? current ?? '');
+          if (mode === 'append') {
+              const separator = existing.trim().length ? '\n\n' : '';
+              next = `${existing.replace(/\s*$/, '')}${separator}${next}`;
+          } else if (mode === 'patch') {
+              if (!targetText) throw new Error('target_text is required for patch mode.');
+              const at = existing.indexOf(targetText);
+              if (at === -1) throw new Error('target_text was not found in the current file.');
+              next = `${existing.slice(0, at)}${next}${existing.slice(at + targetText.length)}`;
+          } else {
+              throw new Error(`Unsupported write mode: ${mode}`);
+          }
+      }
+
+      const split = relative.lastIndexOf('/');
+      const parent = split === -1 ? '' : relative.slice(0, split);
+      const name = split === -1 ? relative : relative.slice(split + 1);
+      const encoder = new TextEncoder();
+      await vault.writeFile(mount.id, parent, name, encoder.encode(next), true);
+      return { ok: true, mount: mount.name || mount.path, mountId: mount.id, path: relative, mode };
+  }
+
   function nativeLoreApi() {
-      return window.__TAURITAVERN__?.api?.lore ?? null;
+      const vault = globalThis.deepLoreEnhanced_vault;
+      if (!vault) return null;
+      return {
+          async state() {
+              const status = vault.status();
+              const folders = await vault.listFolders?.() ?? [];
+              return {
+                  root: status?.folder ?? '',
+                  scanned: true,
+                  folders: folders.map((folder) => ({ path: folder })),
+              };
+          },
+          async search({ query }) {
+              const matched = await globalThis.deepLoreEnhanced_matchText?.(String(query || ''));
+              if (!matched?.text) return [];
+              return [{ title: 'DeepLore matches', content: matched.text }];
+          },
+          async read(path) {
+              const note = await vault.read(String(path || ''));
+              return typeof note === 'string' ? note : note?.content ?? '';
+          },
+          async retrieve({ query }) {
+              const matched = await globalThis.deepLoreEnhanced_matchText?.(String(query || ''));
+              return { entries: [], text: matched?.text ?? '', count: matched?.count ?? 0, tokens: matched?.tokens ?? 0 };
+          },
+          async listEntries(folder) {
+              const paths = await vault.listFiles?.(folder ? String(folder) : '');
+              if (!Array.isArray(paths)) return [];
+              const markdown = paths.filter(path => /\.md$/i.test(path)).slice(0, 200);
+              return Promise.all(markdown.map(async (path) => {
+                  const content = await vault.read?.(path);
+                  return {
+                      id: path,
+                      title: String(path).split('/').pop()?.replace(/\.md$/i, '') ?? path,
+                      folder: String(path).split('/').slice(0, -1).join('/'),
+                      content: typeof content === 'string' ? content : content?.content ?? '',
+                      keys: [],
+                      secondaryKeys: [],
+                      enabled: true,
+                  };
+              }));
+          },
+      };
   }
 
   function nativeWorkspaceApi() {
@@ -2397,12 +2595,17 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
           lines.push(clip(entry.content, 4000));
           lines.push('</entry>');
       }
+      if (result.text) {
+          lines.push('<matched_lore>');
+          lines.push(clip(result.text, 8000));
+          lines.push('</matched_lore>');
+      }
       for (const file of focusedFiles) {
           lines.push(`<file path="${file.path}">`);
           lines.push(file.content);
           lines.push('</file>');
       }
-      if (!(result.entries?.length) && !focusedFiles.length) {
+      if (!(result.entries?.length) && !result.text && !focusedFiles.length) {
           lines.push('No lore entries or focused text files matched the current chat.');
       }
       lines.push('</lorebook_context>');
@@ -3001,15 +3204,64 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
       return valid.length ? valid : null;
   }
 
-  function parseLBChangesFromText(text) {
-      let raw = null;
-      const strict = text.match(/```lorebook-changes\s*([\s\S]*?)```/);
-      if (strict) {
-          raw = strict[1].trim();
-      } else {
-          const open = text.match(/```lorebook-changes\s*([\s\S]*?)(?=```|$)/);
-          if (open) raw = open[1].trim();
+  function _findLBChangesBlocks(text) {
+      const blocks = [];
+      const openRe = /```lorebook-changes[ \t]*\r?\n/gi;
+      let open;
+      while ((open = openRe.exec(text))) {
+          const contentStart = open.index + open[0].length;
+          const close = /^```[ \t]*\r?$/m.exec(text.slice(contentStart));
+          if (!close) {
+              blocks.push({
+                  openIndex: open.index,
+                  contentStart,
+                  contentEnd: text.length,
+                  removeEnd: text.length,
+                  raw: text.slice(contentStart).trim(),
+              });
+              break;
+          }
+          const contentEnd = contentStart + close.index;
+          const removeEnd = contentEnd + close[0].length;
+          blocks.push({
+              openIndex: open.index,
+              contentStart,
+              contentEnd,
+              removeEnd,
+              raw: text.slice(contentStart, contentEnd).trim(),
+          });
+          openRe.lastIndex = removeEnd;
       }
+      return blocks;
+  }
+
+  function parseLBChangesFromText(text) {
+      const blocks = _findLBChangesBlocks(text);
+      if (blocks.length) {
+          const changes = [];
+          for (const block of blocks) {
+              try {
+                  const parsed = JSON.parse(block.raw);
+                  if (Array.isArray(parsed?.changes)) changes.push(...parsed.changes);
+              } catch {
+                  // Try the next block; one malformed proposal must not hide the rest.
+              }
+          }
+          if (changes.length) {
+              const unique = [];
+              const seen = new Set();
+              for (const change of changes) {
+                  const key = JSON.stringify(change);
+                  if (seen.has(key)) continue;
+                  seen.add(key);
+                  unique.push(change);
+              }
+              return _sanitizeLBChanges(unique);
+          }
+      }
+      let raw = null;
+      const open = text.match(/```lorebook-changes[ \t]*\s*([\s\S]*?)(?=```|$)/);
+      if (open) raw = open[1].trim();
       if (!raw) return null;
       try {
           const data = JSON.parse(raw);
@@ -3037,10 +3289,14 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
   }
 
   function stripLBChangesBlock(text) {
-      return text
-          .replace(/```lorebook-changes[\s\S]*?```/g, '')
-          .replace(/```lorebook-changes[\s\S]*/g, '')
-          .trim();
+      const blocks = _findLBChangesBlocks(text);
+      if (!blocks.length) return text.trim();
+      let output = text;
+      for (let i = blocks.length - 1; i >= 0; i--) {
+          const block = blocks[i];
+          output = output.slice(0, block.openIndex) + output.slice(block.removeEnd);
+      }
+      return output.replace(/\n{3,}/g, '\n\n').trim();
   }
 
   async function bindNewLorebookToCharacter(bookName) {
@@ -3283,10 +3539,25 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
       }).filter(Boolean);
   }
 
-  function getCharInfo() {
+  function getCharEntity(name = '') {
       const ctx = SillyTavern.getContext();
-      const char = ctx.characters?.[ctx.characterId];
+      const requested = String(name || '').trim().toLowerCase();
+      if (requested) {
+          const entities = getActiveCharacterEntities();
+          const byName = entities.find(({ char, card }) =>
+              String(card?.name || char?.name || '').trim().toLowerCase() === requested);
+          if (byName?.char) return byName.char;
+
+          const all = Object.values(ctx.characters || {});
+          return all.find(char => String(char?.name || '').trim().toLowerCase() === requested) || null;
+      }
+      return ctx.characters?.[ctx.characterId] || null;
+  }
+
+  function getCharInfo(name = '') {
+      const char = getCharEntity(name);
       if (!char) return null;
+      const ctx = SillyTavern.getContext();
       
       const d = char.data || {};
       const ov = ctx.chatMetadata?.character_overrides || {};
@@ -3414,8 +3685,7 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
   }
 
   function isNativeLoreManagerAvailable() {
-      const host = api$1();
-      return Boolean(host?.lore?.state && host?.lore?.listEntries);
+      return Boolean(globalThis.deepLoreEnhanced_vault);
   }
 
   function loreVaultPath(path) {
@@ -3552,7 +3822,7 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
   }
 
   async function loadEntries() {
-      const lore = api$1()?.lore;
+      const lore = nativeLoreApi();
       if (!lore) return;
       const folder = state.selectedFolder?.path ?? null;
       const entries = await lore.listEntries(folder);
@@ -3567,18 +3837,14 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
       renderFolders();
       renderEntries();
       try {
-          const lore = api$1()?.lore;
-          if (!lore) throw new Error('Vault lore API is unavailable.');
+          const lore = nativeLoreApi();
+          if (!lore) throw new Error('DeepLore vault API is unavailable.');
           let loreState = await lore.state();
           if (!loreState.root) {
-              throw new Error('No primary vault is mounted.');
-          }
-          if (!loreState.scanned) {
-              await lore.scan();
-              loreState = await lore.state();
+              throw new Error('No DeepLore vault is mounted.');
           }
           state.folders = Array.isArray(loreState.folders) ? loreState.folders : [];
-          const vaultState = await api$1()?.vault?.state?.();
+          const vaultState = await api$1()?.vault?.state?.() ?? {};
           state.mountId = vaultState?.primaryMountId ?? vaultState?.mounts?.find((mount) => mount.primary)?.id ?? null;
           const defaultFolders = window.__TT_LORE_DEFAULTS__?.get?.()?.vault?.loreFolders ?? [];
           if (!state.selectedFolder && defaultFolders.length) {
@@ -3607,7 +3873,8 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
       state.loading = true;
       setStatus('Rescanning lore directories...');
       try {
-          await api$1()?.lore?.scan?.();
+          const status = globalThis.deepLoreEnhanced_vault?.status?.();
+          if (!status?.configured) throw new Error('No DeepLore vault is configured.');
       } catch (error) {
           state.loading = false;
           setStatus(String(error?.message ?? error), true);
@@ -7488,7 +7755,8 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
           .replace('{{chat_edit_format}}', CHAT_EDIT_FORMAT_BLOCK)
           .replace('{{active_chat_ids}}', activeChatIds);
       const chatNameNote = `\nCurrent chat name: "${chatDisplayName}"`;
-      return `<chat_messages_editing>\n${base}${chatNameNote}\n</chat_messages_editing>`;
+      const postPolicy = `\n<post_policy>\nWhen the user explicitly asks you to write, post or send a message as a named character, you may compose that one message and use the \`post\` chat change with the exact card name in \`character\` and the message in \`content\`. This is the only exception to the rule against writing diegetic dialogue. Never use \`post\` for the user, the Narrator, or a character the user did not name; never use it to narrate actions for other characters.\n</post_policy>`;
+      return `<chat_messages_editing>\n${base}${chatNameNote}${postPolicy}\n</chat_messages_editing>`;
   }
 
   function parseChatChangesFromText(text) {
@@ -7516,10 +7784,22 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
       const valid = [];
       for (const c of changes) {
           if (!c || typeof c !== 'object') continue;
-          if (!['replace', 'overwrite', 'prepend', 'append', 'bulk_replace', 'regex', 'delete', 'add', 'hide', 'unhide', 'rename_chat'].includes(c.action)) continue;
+          if (!['replace', 'overwrite', 'prepend', 'append', 'bulk_replace', 'regex', 'delete', 'add', 'post', 'hide', 'unhide', 'rename_chat'].includes(c.action)) continue;
 
           if (c.action === 'rename_chat') {
               if (!c.name?.trim()) continue;
+              valid.push(c);
+              continue;
+          }
+
+          if (c.action === 'post') {
+              c.character = String(c.character || c.name || '').trim();
+              c.content = String(c.content || '').trim();
+              if (!c.character || !c.content) continue;
+              if (c.msg_index !== undefined) {
+                  c.msg_index = parseInt(c.msg_index, 10);
+                  if (isNaN(c.msg_index)) delete c.msg_index;
+              }
               valid.push(c);
               continue;
           }
@@ -7696,6 +7976,18 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
                       }
                       successLog.push({ ...change, affectedCount: endIdx - startIdx + 1 });
                   }
+                  continue;
+              }
+
+              if (change.action === 'post') {
+                  const characterName = String(change.character || '').trim();
+                  const characters = SillyTavern.getContext().characters || [];
+                  const character = characters.find(c => String(c?.name || '').toLowerCase() === characterName.toLowerCase());
+                  if (!character) throw new Error(`No character card named "${characterName}"`);
+                  const at = Math.min(Math.max(0, Number(change.msg_index ?? msgs.length)), msgs.length);
+                  const { sendMessageAs } = await import('/scripts/slash-commands.js');
+                  await sendMessageAs({ name: character.name, avatar: character.avatar, at }, change.content);
+                  successLog.push({ ...change, affectedCount: 1 });
                   continue;
               }
 
@@ -7905,6 +8197,7 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
 
       const ACTION_LABELS = { 
           add: '<i class="fa-solid fa-square-plus" style="margin-right: 4px;"></i> Add', 
+          post: '<i class="fa-solid fa-user-pen" style="margin-right: 4px;"></i> Post as', 
           replace: '<i class="fa-solid fa-pen-to-square" style="margin-right: 4px;"></i> Replace', 
           overwrite: '<i class="fa-solid fa-rotate" style="margin-right: 4px;"></i> Overwrite', 
           prepend: '<i class="fa-solid fa-arrow-up" style="margin-right: 4px;"></i> Prepend', 
@@ -7945,6 +8238,16 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
           const stMsgs = SillyTavern.getContext().chat || [];
           if (change.action === 'rename_chat') {
               return { valid: !!(change.name && change.name.trim()), reason: 'Chat name cannot be empty' };
+          }
+          if (change.action === 'post') {
+              const characterName = String(change.character || '').trim();
+              if (!characterName) return { valid: false, reason: 'Post requires a character name' };
+              const characters = SillyTavern.getContext().characters || [];
+              const character = characters.find(c => String(c?.name || '').toLowerCase() === characterName.toLowerCase());
+              if (!character) return { valid: false, reason: `No character card named "${characterName}"` };
+              if (change.msg_index !== undefined && (change.msg_index < 0 || change.msg_index > stMsgs.length + 1)) return { valid: false, reason: 'Index out of bounds' };
+              if (!String(change.content || '').trim()) return { valid: false, reason: 'Post content is empty' };
+              return { valid: true };
           }
           if (change.action === 'add') {
               if (!['user', 'assistant', 'system'].includes(change.role)) return { valid: false, reason: 'Invalid role' };
@@ -8113,6 +8416,8 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
               let targetDesc = '';
               if (change.action === 'rename_chat') {
                   targetDesc = `Current chat`;
+              } else if (change.action === 'post') {
+                  targetDesc = `Post as ${change.character} ${change.msg_index === undefined ? 'at end' : `at #${change.msg_index}`}`;
               } else if (change.action === 'add') {
                   targetDesc = `Insert at #${change.msg_index} (${change.role})`;
               } else if (Array.isArray(change.msg_indices) && change.msg_indices.length) {
@@ -8349,7 +8654,30 @@ Process: Output \`tool_call\` JSON block -> Receive result -> Finalize response 
                   if (['hide', 'unhide'].includes(change.action)) {
                       return;
                   }
-                  if (change.action === 'add') {
+                  if (change.action === 'post') {
+                      const charInp = document.createElement('input');
+                      charInp.className = 'scp-lb-pe-input';
+                      charInp.placeholder = 'Exact character card name';
+                      charInp.value = change.character || '';
+                      charInp.addEventListener('input', () => {
+                          change.character = charInp.value;
+                          refreshValidation();
+                          updateTargetDesc();
+                      });
+                      editPanel.appendChild(mkRow('Character', charInp));
+
+                      const valueTa = document.createElement('textarea');
+                      valueTa.className = 'scp-lb-pe-textarea';
+                      valueTa.rows = 6;
+                      valueTa.placeholder = 'Write the in-character post here...';
+                      valueTa.value = change.content || '';
+                      valueTa.addEventListener('input', () => {
+                          change.content = valueTa.value;
+                          refreshPreview();
+                          refreshValidation();
+                      });
+                      editPanel.appendChild(mkRow('Content', valueTa));
+                  } else if (change.action === 'add') {
                       const roleSel = document.createElement('select');
                       roleSel.className = 'scp-lb-pe-input';
                       ['user', 'assistant', 'system'].forEach(r => {
@@ -9104,7 +9432,7 @@ ${scopeHtml}
     updateMemoryDot: updateMemoryDot
   });
 
-  // Native Customize bridge for the Copilot extension.
+  // Native Agent Workspace bridge for the Copilot extension.
 
   function getCustomizeApi() {
       return window.__TAURITAVERN__?.api?.customize ?? window.__TAURITAVERN__?.customize ?? null;
@@ -9135,6 +9463,25 @@ ${scopeHtml}
       }
   }
 
+  const MCP_DISCOVERY_TTL_MS = 60_000;
+  const mcpDiscoveryCache = new Map();
+
+  async function discoverMcpTools(api, server) {
+      if (!server?.id || server.state !== 'active') return null;
+      const key = `${server.id}:${server.endpoint ?? ''}`;
+      const cached = mcpDiscoveryCache.get(key);
+      if (cached && Date.now() - cached.at < MCP_DISCOVERY_TTL_MS) return cached.tools;
+      try {
+          const discovery = await api?.servers?.discover?.(server.id);
+          const tools = Array.isArray(discovery?.tools) ? discovery.tools : [];
+          mcpDiscoveryCache.set(key, { at: Date.now(), tools });
+          return tools;
+      } catch {
+          mcpDiscoveryCache.set(key, { at: Date.now(), tools: [] });
+          return [];
+      }
+  }
+
   async function buildCustomizeContextBlock(surface = 'copilot') {
       const api = getCustomizeApi();
       if (!api?.context) return '';
@@ -9150,10 +9497,16 @@ ${scopeHtml}
           let mcpServers = [];
           try {
               const listed = await window.__TAURITAVERN__?.api?.mcp?.servers?.list?.();
-              mcpServers = (listed?.servers ?? []).map((server) => {
-                  const tools = Object.keys(server.toolPermissions ?? {});
-                  return `### MCP server: ${server.displayName ?? server.id}\n${server.endpoint ?? ''}\nTools: ${tools.join(', ') || 'none discovered'}`;
-              });
+              mcpServers = await Promise.all((listed?.servers ?? []).map(async (server) => {
+                  const discovered = await discoverMcpTools(window.__TAURITAVERN__?.api?.mcp, server);
+                  const tools = discovered ?? Object.entries(server.toolPermissions ?? {}).map(([name, permission]) => ({ nativeName: name, description: '', permission }));
+                  const toolLines = tools.map((tool) => {
+                      const description = String(tool.description ?? '').replace(/\s+/g, ' ').trim();
+                      const clipped = description.length > 280 ? `${description.slice(0, 277)}...` : description;
+                      return `- ${tool.nativeName}${clipped ? `: ${clipped}` : ''}`;
+                  });
+                  return `### MCP server: ${server.displayName ?? server.id}\n${server.endpoint ?? ''}\nTools (call with mcp_call):\n${toolLines.join('\n') || 'none discovered'}`;
+              }));
           } catch {
               mcpServers = [];
           }
@@ -9190,8 +9543,8 @@ ${scopeHtml}
       }
   }
 
-  function getEnabledTools() {
-      const s = getSettings();
+  function getEnabledTools(settingsOverride = null) {
+      const s = settingsOverride || getSettings();
       if (!s.toolsEnabled) return [];
       return TOOL_DEFINITIONS.filter(t => s[t.settingKey] !== false);
   }
@@ -9232,12 +9585,88 @@ ${scopeHtml}
               }
               return { found: byPath.size, source: 'TauriTavern lore directory', results: [...byPath.values()] };
           }
+          case 'list_vault_files': {
+              try {
+                  return await nativeVaultListFiles(toolInput.path ?? '');
+              } catch (error) {
+                  return { error: error.message };
+              }
+          }
+          case 'read_vault_file': {
+              try {
+                  return await nativeVaultReadFile(toolInput.path);
+              } catch (error) {
+                  return { error: error.message };
+              }
+          }
+          case 'write_vault_file': {
+              try {
+                  return await nativeVaultWriteFile(
+                      toolInput.path,
+                      toolInput.content,
+                      toolInput.mode || 'overwrite',
+                      toolInput.target_text || toolInput.targetText || '',
+                  );
+              } catch (error) {
+                  return { error: error.message };
+              }
+          }
           case 'read_deeplore_note': {
               const path = toolInput.filename || toolInput.path || toolInput.note;
+              if (toolInput.vault_root === true) {
+                  try {
+                      return await nativeVaultReadFile(path);
+                  } catch (error) {
+                      return { error: error.message };
+                  }
+              }
               const entry = await nativeLoreRead(path);
               return entry
                   ? { content: entry.content, title: entry.title, vault: entry.folder, source: 'TauriTavern lore directory' }
                   : { error: `Lore entry not found: ${path}` };
+          }
+          case 'edit_deeplore_note': {
+              if (toolInput.vault_root === true) {
+                  try {
+                      return await nativeVaultWriteFile(
+                          toolInput.filename || toolInput.path || toolInput.note,
+                          toolInput.content,
+                          toolInput.mode || 'overwrite',
+                          toolInput.target_text || toolInput.targetText || '',
+                      );
+                  } catch (error) {
+                      return { error: error.message };
+                  }
+              }
+              return undefined;
+          }
+          case 'delete_deeplore_entries': {
+              if (toolInput.confirmed !== true) {
+                  return {
+                      error: 'Deletion requires explicit user confirmation. Ask the user, then call again with confirmed=true.',
+                  };
+              }
+              const vault = nativeVaultApi();
+              if (!vault?.deleteEntries) {
+                  return { error: 'Native vault deletion is unavailable.' };
+              }
+              const paths = (Array.isArray(toolInput.paths) ? toolInput.paths : [toolInput.paths])
+                  .map((value) => String(value ?? '').trim().replace(/^\/+/, ''))
+                  .filter(Boolean);
+              if (!paths.length) return { error: 'At least one vault path is required.' };
+              if (paths.some((value) => value.split(/[\\/]/).includes('..'))) {
+                  return { error: 'Vault paths cannot contain parent directory traversal.' };
+              }
+              const info = await vault.state?.();
+              const mountId = info?.primaryMountId;
+              if (!mountId) return { error: 'No active DeepLore vault is mounted.' };
+              await vault.deleteEntries(mountId, paths, Boolean(toolInput.recursive));
+              return {
+                  deleted: paths,
+                  recursive: Boolean(toolInput.recursive),
+                  recoverable: true,
+                  source: 'TauriTavern lore directory',
+              };
           }
           default:
               return undefined;
@@ -9247,7 +9676,7 @@ ${scopeHtml}
   async function executeTool(toolName, toolInput) {
       const pre = await runCustomizeHook('preToolUse', { toolName, toolInput });
       if (pre && pre.allowed === false) {
-          return { error: pre.results?.[0]?.agentMessage || pre.results?.[0]?.userMessage || 'Blocked by a Customize hook.' };
+          return { error: pre.results?.[0]?.agentMessage || pre.results?.[0]?.userMessage || 'Blocked by an Agent Workspace hook.' };
       }
       const effectiveInput = pre?.updatedInput ?? toolInput;
       try {
@@ -9642,7 +10071,7 @@ ${scopeHtml}
                   try {
                       const result = await globalThis.deepLoreEnhanced_writeNote(filename, content, {
                           mode,
-                          targetText,
+                          target_text: targetText,
                           vault: vaultName
                       });
                       if (result.ok) {
@@ -9658,12 +10087,33 @@ ${scopeHtml}
               }
           }
           case 'ask_user': {
-              return { __ask_user: true, question: toolInput.question, context: toolInput.context };
+              return {
+                  __ask_user: true,
+                  question: toolInput.question,
+                  context: toolInput.context,
+                  options: toolInput.options,
+                  choices: toolInput.choices,
+                  allow_custom: toolInput.allow_custom,
+              };
           }
           case 'get_char_info': {
-              const charInfoFull = getCharInfo();
-              if (!charInfoFull) return { error: 'No active character.' };
-              const charCtx = ctx.characters?.[ctx.characterId];
+              const requestedName = String(toolInput.name || toolInput.char || '').trim();
+              const charInfoFull = getCharInfo(requestedName);
+              if (!charInfoFull) {
+                  const members = getActiveCharacterEntities()
+                      .map(({ char, card }) => String(card?.name || char?.name || '').trim())
+                      .filter(Boolean);
+                  if (members.length > 0) {
+                      return {
+                          error: requestedName
+                              ? `No group member named "${requestedName}".`
+                              : 'This is a group chat. Pass name with get_char_info to choose a member.',
+                          characters: members,
+                      };
+                  }
+                  return { error: 'No active character.' };
+              }
+              const charCtx = getCharEntity(requestedName);
               const requestedFields = toolInput.fields || ['description', 'personality', 'scenario'];
               const result = { name: charInfoFull.name };
               for (const f of requestedFields) {
@@ -9713,8 +10163,94 @@ ${scopeHtml}
       }
   }
 
+  function normalizeSpecialToolName(raw) {
+      return String(raw || '')
+          .trim()
+          .replace(/^functions\./i, '')
+          .replace(/:\d+\s*$/, '')
+          .trim();
+  }
+
+  function parseToolArguments(raw) {
+      const text = String(raw || '').trim();
+      if (!text) return {};
+      try {
+          const value = JSON.parse(text);
+          return value && typeof value === 'object' ? value : {};
+      } catch (error) {
+          const start = text.indexOf('{');
+          const end = text.lastIndexOf('}');
+          if (start >= 0 && end > start) {
+              try {
+                  const value = JSON.parse(text.slice(start, end + 1));
+                  return value && typeof value === 'object' ? value : {};
+              } catch (innerError) {
+                  return {};
+              }
+          }
+          return {};
+      }
+  }
+
+  // Some models emit provider-specific tool tokens or XML wrappers instead of
+  // the fenced ```tool_call block requested by the prompt. Accept both so tool
+  // calling still runs when the provider leaks its native format.
+  function parseSpecialToolCalls(text) {
+      const calls = [];
+      const tokenRe = /<\|tool_call_begin\|>\s*([\s\S]*?)\s*<\|tool_call_argument_begin\|>\s*([\s\S]*?)\s*<\|tool_call_end\|>/gi;
+      for (const match of String(text || '').matchAll(tokenRe)) {
+          const name = normalizeSpecialToolName(match[1]);
+          if (name) calls.push({ name, input: parseToolArguments(match[2]) });
+      }
+
+      const xmlRe = /<tool_call(?:\s+[^>]*)?>\s*([\s\S]*?)\s*<\/tool_call>/gi;
+      for (const match of String(text || '').matchAll(xmlRe)) {
+          const inner = match[1].trim();
+          if (!inner) continue;
+          let parsed = null;
+          try {
+              parsed = JSON.parse(inner);
+          } catch (error) {
+              const callStyle = inner.match(/^(?:functions\.)?([A-Za-z0-9_.:-]+)\s*\(([\s\S]*)\)\s*$/);
+              if (callStyle) {
+                  calls.push({
+                      name: normalizeSpecialToolName(callStyle[1]),
+                      input: parseToolArguments(callStyle[2]),
+                  });
+                  continue;
+              }
+          }
+          if (parsed && typeof parsed === 'object' && parsed.name) {
+              calls.push({
+                  name: normalizeSpecialToolName(parsed.name),
+                  input: parsed.input ?? parsed.arguments ?? {},
+              });
+          }
+      }
+      return calls;
+  }
+
+  function extractSpecialToolCallPlaceholders(text, startIndex = 0) {
+      let tcIndex = startIndex;
+      let result = text;
+      const replaceBlock = (pattern) => {
+          result = result.replace(pattern, (match) => {
+              const count = Math.max(1, parseSpecialToolCalls(match).length);
+              let placeholders = '';
+              for (let i = 0; i < count; i++) placeholders += `\x00TC_${tcIndex++}\x00`;
+              return placeholders;
+          });
+      };
+
+      replaceBlock(/<\|tool_calls_section_begin\|>[\s\S]*?(?:<\|tool_calls_section_end\|>|$)/gi);
+      replaceBlock(/<\|tool_call_begin\|>[\s\S]*?<\|tool_call_end\|>/gi);
+      replaceBlock(/<tool_calls?_begin>[\s\S]*?(?:<\/tool_calls?_end>|$)/gi);
+      replaceBlock(/<tool_call(?:\s+[^>]*)?>[\s\S]*?<\/tool_call>/gi);
+      return { text: result, nextIndex: tcIndex };
+  }
+
   function parseToolCallsFromText(text) {
-      const results = [];
+      const results = parseSpecialToolCalls(text);
       const re = /```tool_call\n?([\s\S]*?)(?:```|$)/gi;
       let m;
       while ((m = re.exec(text)) !== null) {
@@ -9769,10 +10305,10 @@ ${scopeHtml}
       return results;
   }
 
-  function buildToolCallsSystemBlock() {
-      const tools = getEnabledTools();
+  function buildToolCallsSystemBlock(settingsOverride = null) {
+      const tools = getEnabledTools(settingsOverride);
       if (!tools.length) return '';
-      const s = getSettings();
+      const s = settingsOverride || getSettings();
       
       const formatSchemaProps = (properties) => {
           if (!properties || Object.keys(properties).length === 0) return '{}';
@@ -11319,6 +11855,46 @@ ${scopeHtml}
     updateSettingsUI: updateSettingsUI
   });
 
+  function getEditedFileTarget(tc) {
+      if (!tc || tc.status === 'running' || !tc.result || tc.result?.error) return null;
+      const isVaultWrite = tc.name === 'write_vault_file';
+      const isVaultNoteEdit = tc.name === 'edit_deeplore_note' && tc.input?.vault_root === true;
+      if (!isVaultWrite && !isVaultNoteEdit) return null;
+      const rawPath = tc.result?.path || tc.input?.path || tc.input?.filename || '';
+      const path = String(rawPath).replace(/\\/g, '/').replace(/^\/+/, '');
+      if (!path || path.split('/').includes('..')) return null;
+      return {
+          path,
+          mountId: tc.result?.mountId || null,
+          name: path.split('/').pop() || path,
+      };
+  }
+
+  async function openEditedFile(tc) {
+      const target = getEditedFileTarget(tc);
+      if (!target) return;
+      let mountId = target.mountId;
+      if (!mountId) {
+          try {
+              mountId = (await nativeVaultMount()).mount?.id;
+          } catch (error) {
+              window.toastr?.error?.(String(error?.message ?? error));
+              return;
+          }
+      }
+      const centerTabs = window.__TT_CENTER_TABS__;
+      if (!mountId || !centerTabs?.openFile) {
+          window.toastr?.warning?.('The center-tab editor is unavailable.');
+          return;
+      }
+      try {
+          target.mountId = mountId;
+          await centerTabs.openFile(target);
+      } catch (error) {
+          window.toastr?.error?.(String(error?.message ?? error));
+      }
+  }
+
   function createToolCallEl(tc) {
       const item = document.createElement('div');
       item.className = 'scp-tool-call-item scp-inline-tool-call';
@@ -11352,7 +11928,37 @@ ${tc.result !== undefined ? `<div class="scp-tool-call-section-label" style="mar
           _dbgAdd('TOOL_CALL_HEADER_TOGGLE', { toolId: tc.id, open: isOpen });
           item.classList.toggle('open');
       });
+      const openTarget = getEditedFileTarget(tc);
+      if (openTarget) {
+          const openButton = document.createElement('button');
+          openButton.type = 'button';
+          openButton.className = 'scp-tool-call-open';
+          openButton.title = `Open ${openTarget.path}`;
+          openButton.innerHTML = '<i class="fa-solid fa-arrow-up-right-from-square"></i><span>Open</span>';
+          openButton.addEventListener('click', (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              void openEditedFile(tc);
+          });
+          const header = item.querySelector('.scp-tool-call-header');
+          header?.insertBefore(openButton, header.querySelector('.scp-tool-call-chevron'));
+      }
       return item;
+  }
+
+  function captureOpenToolCallIds(containerEl) {
+      const ids = new Set();
+      containerEl?.querySelectorAll?.('.scp-inline-tool-call.open').forEach((item) => {
+          if (item.dataset.toolId) ids.add(item.dataset.toolId);
+      });
+      return ids;
+  }
+
+  function restoreOpenToolCallIds(containerEl, ids) {
+      if (!containerEl || !ids?.size) return;
+      containerEl.querySelectorAll('.scp-inline-tool-call').forEach((item) => {
+          if (ids.has(item.dataset.toolId)) item.classList.add('open');
+      });
   }
 
   function postProcessToolCalls(containerEl, toolCalls) {
@@ -11452,15 +12058,39 @@ ${tc.result !== undefined ? `<div class="scp-tool-call-section-label" style="mar
       });
   }
 
+  function normalizeAskChoices(input) {
+      let raw = input?.options ?? input?.choices;
+      if (typeof raw === 'string') {
+          try { raw = JSON.parse(raw); } catch { raw = null; }
+      }
+      if (!Array.isArray(raw)) return [];
+      return raw.map((choice) => {
+          if (typeof choice === 'string') {
+              const label = choice.trim();
+              return label ? { label, value: label, description: '' } : null;
+          }
+          if (!choice || typeof choice !== 'object') return null;
+          const label = String(choice.label ?? choice.text ?? choice.title ?? choice.value ?? choice.id ?? '').trim();
+          if (!label) return null;
+          return {
+              label,
+              value: String(choice.value ?? choice.id ?? label).trim() || label,
+              description: String(choice.description ?? '').trim(),
+          };
+      }).filter(Boolean).slice(0, 8);
+  }
+
   async function executeAskUser(input, msgEl) {
       const question = input.question || 'Do you have any additional information?';
       const context = input.context || '';
+      const choices = normalizeAskChoices(input);
+      const allowCustom = input.allow_custom !== false;
       return new Promise(resolve => {
           const wrap = document.createElement('div');
           wrap.className = 'scp-tool-ask-wrap';
           if (context) {
               const ctx = document.createElement('div');
-              ctx.style.cssText = 'font-size:10px;color:var(--scp-text-muted);margin-bottom:6px;font-style:italic';
+              ctx.className = 'scp-tool-ask-context';
               ctx.textContent = context;
               wrap.appendChild(ctx);
           }
@@ -11468,30 +12098,65 @@ ${tc.result !== undefined ? `<div class="scp-tool-call-section-label" style="mar
           q.className = 'scp-tool-ask-question';
           q.textContent = question;
           wrap.appendChild(q);
-          const inp = document.createElement('textarea');
-          inp.className = 'scp-tool-ask-input';
-          inp.placeholder = 'Your answer…';
-          inp.rows = 2;
-          wrap.appendChild(inp);
-          const btn = document.createElement('button');
-          btn.className = 'scp-tool-ask-submit';
-          btn.textContent = 'Submit Answer';
-          btn.addEventListener('click', () => {
-              const answer = inp.value.trim();
+
+          let host = wrap;
+          const finish = (answer) => {
               if (!answer) return;
-
               _dbgAdd('ASK_USER_SUBMIT', { question, answer });
-
-              wrap.remove();
+              host.remove();
               resolve(answer);
-          });
-          inp.addEventListener('keydown', e => {
-              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); btn.click(); }
-          });
-          wrap.appendChild(btn);
+          };
+
+          if (choices.length >= 2) {
+              const options = document.createElement('div');
+              options.className = 'scp-tool-ask-choices';
+              for (const choice of choices) {
+                  const option = document.createElement('button');
+                  option.type = 'button';
+                  option.className = 'scp-tool-ask-choice';
+                  option.textContent = choice.label;
+                  if (choice.description) option.title = choice.description;
+                  option.addEventListener('click', () => finish(choice.value));
+                  options.appendChild(option);
+              }
+              wrap.appendChild(options);
+          }
+
+          if (choices.length < 2 || allowCustom) {
+              const inputWrap = document.createElement('div');
+              inputWrap.className = 'scp-tool-ask-custom';
+              const inp = document.createElement('textarea');
+              inp.className = 'scp-tool-ask-input';
+              inp.placeholder = choices.length >= 2 ? 'Something else…' : 'Your answer…';
+              inp.rows = choices.length >= 2 ? 1 : 2;
+              inputWrap.appendChild(inp);
+              const btn = document.createElement('button');
+              btn.className = 'scp-tool-ask-submit';
+              btn.textContent = 'Submit Answer';
+              btn.addEventListener('click', () => finish(inp.value.trim()));
+              inp.addEventListener('keydown', e => {
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); btn.click(); }
+              });
+              inputWrap.appendChild(btn);
+              wrap.appendChild(inputWrap);
+              wrap._askInput = inp;
+          }
+
           const body = msgEl?.querySelector('.scp-msg-body');
-          if (body) body.appendChild(wrap);
-          inp.focus();
+          if (body) {
+              body.appendChild(wrap);
+          } else {
+              const overlay = document.createElement('div');
+              overlay.className = 'scp-tool-ask-modal';
+              const card = document.createElement('div');
+              card.className = 'scp-tool-ask-card';
+              card.appendChild(wrap);
+              overlay.appendChild(card);
+              document.body.appendChild(overlay);
+              host = overlay;
+          }
+          const firstChoice = wrap.querySelector('.scp-tool-ask-choice');
+          (firstChoice || wrap._askInput)?.focus();
       });
   }
 
@@ -12069,9 +12734,83 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
       return { reasoning, content: text };
   }
 
+  const THINK_OPEN_RE = /<think(?:ing)?>/i;
+  const THINK_CLOSE_RE = /<\/think(?:ing)?>/i;
+  const THINK_TAG_PREFIXES = ['<thinking>', '</thinking>', '<think>', '</think>'];
+
+  function heldThinkTagLength(text) {
+      const lower = text.toLowerCase();
+      let held = 0;
+      for (const tag of THINK_TAG_PREFIXES) {
+          for (let length = Math.min(tag.length - 1, lower.length); length > held; length--) {
+              if (lower.endsWith(tag.slice(0, length))) {
+                  held = length;
+                  break;
+              }
+          }
+      }
+      return held;
+  }
+
+  function mergeReasoning(providerReasoning, tagReasoning) {
+      const provider = (providerReasoning || '').trim();
+      const tag = (tagReasoning || '').trim();
+      if (!provider) return tag;
+      if (!tag || provider === tag || provider.endsWith(tag)) return provider;
+      if (tag.endsWith(provider)) return tag;
+      return `${provider}\n\n${tag}`;
+  }
+
+  // Incremental parser for models that emit  thinking...</think> inside content.
+  // It holds a trailing partial tag across chunks, so content never flashes as
+  // the answer while the model is still thinking.
+  function parseThinkStream(rawText, providerReasoning = '', flush = false) {
+      const raw = String(rawText ?? '');
+      let index = 0;
+      let inThinking = false;
+      let content = '';
+      let tagReasoning = '';
+
+      while (index < raw.length) {
+          const rest = raw.slice(index);
+          if (!inThinking) {
+              const open = rest.match(THINK_OPEN_RE);
+              if (open) {
+                  content += rest.slice(0, open.index);
+                  index += open.index + open[0].length;
+                  inThinking = true;
+                  continue;
+              }
+              const held = flush ? 0 : heldThinkTagLength(rest);
+              content += rest.slice(0, rest.length - held);
+              break;
+          }
+
+          const close = rest.match(THINK_CLOSE_RE);
+          if (close) {
+              tagReasoning += rest.slice(0, close.index);
+              index += close.index + close[0].length;
+              inThinking = false;
+              continue;
+          }
+          const held = flush ? 0 : heldThinkTagLength(rest);
+          tagReasoning += rest.slice(0, rest.length - held);
+          break;
+      }
+
+      return {
+          text: content,
+          reasoning: mergeReasoning(providerReasoning, tagReasoning),
+          inThinking,
+      };
+  }
+
   function extractToolCallPlaceholders(text, startIndex = 0) {
       let tcIndex = startIndex;
       let result = text;
+      const special = extractSpecialToolCallPlaceholders(result, tcIndex);
+      result = special.text;
+      tcIndex = special.nextIndex;
       
       result = result.replace(/```tool_call\n?([\s\S]*?)```/gi, (match, inner) => {
           const blockTcs = parseToolCallsFromText(`\`\`\`tool_call\n${inner}\n\`\`\``);
@@ -12100,6 +12839,7 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
 
   function _renderMsgBodyContent(msgEl, msg) {
       const settings = getSettings();
+      const openToolCallIds = captureOpenToolCallIds(msgEl);
       msgEl.querySelectorAll('.scp-tool-call-item').forEach(c => c.remove());
 
       const cleanContent = stripMemoryBlock(msg.content);
@@ -12224,6 +12964,7 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
       if (liveTCs.length) {
           postProcessToolCalls(msgEl, liveTCs);
       }
+      restoreOpenToolCallIds(msgEl, openToolCallIds);
   }
 
   function _updateMsgTokenCount(msgEl, content, forceRecalc = false) {
@@ -12439,6 +13180,7 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
       msg.swipeIndex = newIdx;
       msg.content = msg.swipes[newIdx].content;
       msg.reasoning = msg.swipes[newIdx].reasoning || null;
+      msg.toolCalls = msg.swipes[newIdx].toolCalls || undefined;
       saveSessionsToMetadata();
       updateMsgCount(session);
       return true;
@@ -12520,6 +13262,7 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
               if (bar) bar.style.display = 'flex';
           }
           if (streamContentEl) {
+              const openToolCallIds = captureOpenToolCallIds(wrapEl);
               let procReasoning = reasoning || '';
               let procText = stripMemoryBlock(text);
               let tcIndex = 0;
@@ -12537,13 +13280,16 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
               if (procText) streamContentEl.appendChild(cursorEl);
               postProcessHTMLBlocks(streamContentEl);
 
-              if (tcIndex > 0) {
+              if (tcIndex > 0 && !state$1.activeToolCalls.length) {
                   const liveTCs = parseToolCallsFromText((reasoning || '') + '\n' + text);
                   const displayed = liveTCs.map((tc, i) => ({
                       id: `live_${i}`, name: tc.name, input: tc.input, status: 'done', result: undefined
                   }));
                   postProcessToolCalls(wrapEl, displayed);
+              } else if (state$1.activeToolCalls.length) {
+                  postProcessToolCalls(wrapEl, state$1.activeToolCalls);
               }
+              restoreOpenToolCallIds(wrapEl, openToolCallIds);
           }
           smartScrollToBottom();
       };
@@ -12556,10 +13302,10 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
           const fullPromptText = builtMessages.map(m => m.content).join('\n');
           const tokensIn = await apiMod.estimateTokens(fullPromptText);
 
-          const result = await apiMod.callGenerate(tempSession, settings, null, onChunk);
+          const initialResult = await apiMod.callGenerate(tempSession, settings, null, onChunk);
           cleanupCursor();
 
-          if (result === null) {
+          if (initialResult === null) {
               msgData.swipes.pop();
               msgData.swipeIndex = msgData.swipes.length - 1;
               msgData.content = msgData.swipes[msgData.swipeIndex]?.content || '';
@@ -12570,10 +13316,25 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
               return;
           }
 
-          const { text: rawText, reasoning: fullReasoning } = result;
-          const fullText = normalizeCharNamesInBlock(rawText);
+          const toolRun = settings.toolsEnabled && getEnabledTools().length > 0
+              ? await runToolRounds(tempSession, settings, initialResult, {
+                  excludeId: msgId,
+                  askUser: (res) => executeAskUser(res, wrapEl),
+                  generate: (toolSession, toolSettings, ignored, callback) => apiMod.callGenerate(toolSession, toolSettings, null, callback),
+                  onChunk: (fullText, fullReasoning) => onChunk(fullText, fullReasoning),
+              })
+              : { result: initialResult, toolCalls: [] };
 
-          msgData.swipes[msgData.swipeIndex] = { content: fullText, reasoning: fullReasoning || null };
+          const { text: rawText, reasoning: fullReasoning } = toolRun.result;
+          const fullText = normalizeCharNamesInBlock(rawText);
+          const toolCalls = JSON.parse(JSON.stringify(toolRun.toolCalls || []));
+
+          msgData.toolCalls = toolCalls;
+          msgData.swipes[msgData.swipeIndex] = {
+              content: fullText,
+              reasoning: fullReasoning || null,
+              toolCalls,
+          };
           msgData.content = fullText;
           msgData.reasoning = fullReasoning || null;
           saveSessionsToMetadata();
@@ -15246,7 +16007,7 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
       const charEditDirective = buildCharEditAIInstructions(settings).trim();
       const chatEditDirective = buildChatEditAIInstructions(settings).trim();
       const memoryAIInstr = buildMemoryAIInstructions(settings).trim();
-      const toolsBlock = buildToolCallsSystemBlock().trim();
+      const toolsBlock = buildToolCallsSystemBlock(settings).trim();
 
       const modules = [memoryAIInstr, aiInstructions, charEditDirective, chatEditDirective, toolsBlock].filter(Boolean);
       if (modules.length > 0) {
@@ -15494,10 +16255,19 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
       }
   }
 
+  function clampCopilotMaxTokens(value, model) {
+      const requested = Number(value);
+      if (!Number.isFinite(requested) || requested <= 0) return value;
+      if (/kimi/i.test(String(model || ''))) {
+          return Math.min(requested, 16384);
+      }
+      return requested;
+  }
+
   async function callGenerate(session, settings, pendingText, onChunk) {
       const ctx = SillyTavern.getContext();
       const messages = await assembleMessages(session, settings, pendingText);
-      const maxTokens = parseInt(settings.maxTokens) || 8200;
+      let maxTokens = parseInt(settings.maxTokens) || 8200;
 
       const abort = new AbortController();
       state$1.abortController = abort;
@@ -15592,6 +16362,7 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
 
       if (settings.connectionSource === 'custom') {
           let text = '';
+          let rawText = '';
           let reasoning = null;
           let reasoningStartMs = null;
           let reasoningDone = false;
@@ -15640,11 +16411,15 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
                               try {
                                   const data = JSON.parse(l.slice(6));
                                   const ext = deepExtract(data);
-                                  if (ext.t) text += ext.t;
+                                  if (ext.t) rawText += ext.t;
                                   if (ext.r) {
                                       if (reasoningStartMs === null) reasoningStartMs = performance.now();
                                       reasoning = (reasoning || '') + ext.r;
                                   }
+                                  const parsed = parseThinkStream(rawText, reasoning);
+                                  text = parsed.text;
+                                  reasoning = parsed.reasoning;
+                                  if (reasoning && reasoningStartMs === null) reasoningStartMs = performance.now();
                                   if (text && !reasoningDone && reasoning) {
                                       reasoningDone = true;
                                       data._finalReasoningMs = performance.now() - reasoningStartMs;
@@ -15660,8 +16435,10 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
               } else {
                   const data = await res.json();
                   const ext = deepExtract(data);
-                  text = ext.t || '';
-                  reasoning = ext.r;
+                  const parsed = parseThinkStream(ext.t || '', ext.r, true);
+                  rawText = ext.t || '';
+                  text = parsed.text;
+                  reasoning = parsed.reasoning;
               }
           } catch (e) {
               state$1.abortController = null;
@@ -15670,7 +16447,8 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
           }
 
           state$1.abortController = null;
-          return { text: text.trim(), reasoning, isMaxTokens: false };
+          const parsed = parseThinkStream(rawText, reasoning, true);
+          return { text: parsed.text.trim(), reasoning: parsed.reasoning, isMaxTokens: false };
       }
 
       const service = ctx.ConnectionManagerRequestService;
@@ -15716,6 +16494,17 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
       }
 
       let asyncGeneratorFn;
+      const selectedProfile = profiles.find(profile => profile.id === profileId);
+      const activeModel = selectedProfile?.model
+          || selectedProfile?.modelId
+          || selectedProfile?.model_id
+          || settings.customModel
+          || settings.model
+          || ctx.chatCompletionSettings?.openai_model
+          || ctx.chatCompletionSettings?.custom_model
+          || '';
+      maxTokens = clampCopilotMaxTokens(maxTokens, activeModel);
+
       const origFetch = window.fetch;
       
       window.fetch = async function(...args) {
@@ -15837,6 +16626,7 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
       }
 
       let text = '';
+      let rawText = '';
       let reasoning = null;
       let reasoningStartMs = null;
       let reasoningDone = false;
@@ -15850,11 +16640,16 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
       if (!isGen) {
           const value = asyncGeneratorFn;
           if (typeof value === 'string') {
-              text = value.trim();
+              const parsed = parseThinkStream(value, '', true);
+              text = parsed.text.trim();
+              reasoning = parsed.reasoning;
+              rawText = value;
           } else {
               const ext = deepExtract(value);
-              text = ext.t.trim();
-              reasoning = ext.r;
+              rawText = ext.t || '';
+              const parsed = parseThinkStream(rawText, ext.r, true);
+              text = parsed.text.trim();
+              reasoning = parsed.reasoning;
               lastValue = value;
           }
           
@@ -15878,12 +16673,12 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
               lastValue = value;
 
               const ext = deepExtract(value);
-              text = ext.t;
-              const newReasoning = ext.r;
-
-              if (newReasoning) {
+              rawText = ext.t || '';
+              const parsed = parseThinkStream(rawText, ext.r, false);
+              text = parsed.text;
+              if (parsed.reasoning) {
                   if (reasoningStartMs === null) reasoningStartMs = performance.now();
-                  reasoning = newReasoning;
+                  reasoning = parsed.reasoning;
               }
               if (text && !reasoningDone && reasoning) {
                   reasoningDone = true;
@@ -15907,7 +16702,181 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
       const isMaxTokens = finishReason === 'length' || finishReason === 'max_tokens' || finishReason === 'stop_limit';
 
       state$1.abortController = null;
-      return { text: text.trim(), reasoning, isMaxTokens };
+      const parsedFinal = parseThinkStream(rawText, reasoning, true);
+      return { text: parsedFinal.text.trim(), reasoning: parsedFinal.reasoning, isMaxTokens };
+  }
+
+  async function runToolRounds(session, settings, initialResult, options = {}) {
+      const maxRounds = Math.max(1, Number(settings.toolsMaxRounds) || 5);
+      const excludeId = options.excludeId || null;
+      const generate = options.generate || callGenerate;
+      const execute = options.executeTool || executeTool;
+      const onChunk = typeof options.onChunk === 'function' ? options.onChunk : () => {};
+      const askUser = typeof options.askUser === 'function'
+          ? options.askUser
+          : (res) => executeAskUser(res, null);
+      const toolHistory = [];
+      const executedToolCalls = [];
+      let result = initialResult ? { ...initialResult } : { text: '', reasoning: null };
+      let accumulatedText = result.text || '';
+      let accumulatedReasoning = result.reasoning || null;
+      let roundText = result.text || '';
+      let executedAny = false;
+      let needsFinal = false;
+      let rounds = 0;
+
+      const joinText = (base, next) => {
+          const left = String(base || '').trimEnd();
+          const right = String(next || '').trimStart();
+          if (!left) return right;
+          if (!right) return left;
+          return `${left}\n\n${right}`;
+      };
+
+      const update = (text = accumulatedText, reasoning = accumulatedReasoning) => {
+          accumulatedText = text;
+          accumulatedReasoning = reasoning;
+          onChunk(text, reasoning);
+      };
+
+      const historyMessages = () => toolHistory.map((entry, index) => ({
+          ...entry,
+          id: `tc_hist_${Date.now()}_${index}`,
+          timestamp: Date.now(),
+          _tcTemp: true,
+      }));
+
+      const tempMessages = (extra = []) => [
+          ...session.messages.filter(m => !excludeId || m.id !== excludeId),
+          ...historyMessages(),
+          ...extra,
+      ];
+
+      for (; rounds < maxRounds; rounds++) {
+          const tcs = parseToolCallsFromText(roundText);
+          if (!tcs.length) break;
+          executedAny = true;
+
+          const roundEntries = [];
+          for (const tc of tcs) {
+              const tcId = `tc_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+              const entry = { id: tcId, name: tc.name, input: tc.input, status: 'running', result: undefined };
+              state$1.activeToolCalls.push(entry);
+              roundEntries.push(entry);
+              executedToolCalls.push(entry);
+              update();
+
+              try {
+                  const res = await execute(tc.name, tc.input);
+                  if (res?.__ask_user) {
+                      if (!askUser) {
+                          entry.result = { warning: 'ask_user requires the send composer.' };
+                          entry.status = 'warning';
+                      } else {
+                          entry.result = await askUser(res);
+                          entry.status = 'done';
+                      }
+                  } else {
+                      entry.result = res;
+                      entry.status = 'done';
+                  }
+              } catch (error) {
+                  _dbgAdd('TOOL_EXECUTION_FAILED', { toolName: tc.name, error: error.message });
+                  entry.result = { error: error.message };
+                  entry.status = 'error';
+              }
+              update();
+          }
+
+          toolHistory.push({ role: 'assistant', content: stripMemoryBlock(roundText) });
+          const toolResultsText = roundEntries.map(entry =>
+              `<tool_result name="${entry.name}" status="${entry.status}">\n${typeof entry.result === 'string' ? entry.result : JSON.stringify(entry.result, null, 2)}\n</tool_result>`
+          ).join('\n');
+          toolHistory.push({
+              role: 'user',
+              content: `<tool_results>\n${toolResultsText}\n</tool_results>\n\nCONTINUE your response using these results. Write exactly where you left off.`,
+          });
+
+          if (rounds + 1 >= maxRounds) {
+              needsFinal = true;
+              break;
+          }
+
+          const baseText = accumulatedText;
+          const baseReasoning = accumulatedReasoning;
+          let nextResult;
+          try {
+              nextResult = await generate(
+                  { ...session, messages: tempMessages() },
+                  settings,
+                  null,
+                  (text, reasoning) => update(
+                      joinText(baseText, text),
+                      mergeReasoning(baseReasoning, reasoning),
+                  ),
+              );
+          } catch (error) {
+              _dbgAdd('TOOL_FOLLOWUP_FAILED', { error: error?.message || String(error) });
+              needsFinal = true;
+              break;
+          }
+
+          if (!nextResult) {
+              needsFinal = true;
+              break;
+          }
+
+          const nextText = nextResult.text || '';
+          const nextReasoning = nextResult.reasoning || null;
+          accumulatedText = joinText(accumulatedText, nextText);
+          accumulatedReasoning = mergeReasoning(accumulatedReasoning, nextReasoning);
+          roundText = nextText;
+          result = nextResult;
+
+          if (!nextText.trim()) {
+              needsFinal = true;
+              break;
+          }
+      }
+
+      if (executedAny && (needsFinal || rounds >= maxRounds || parseToolCallsFromText(roundText).length > 0)) {
+          const nudge = {
+              role: 'user',
+              content: 'The tool calls are complete. Continue the conversation now and answer the user using the results above. Do not call any more tools; write the final response.',
+          };
+          let finalResult = null;
+          try {
+              finalResult = await generate(
+                  { ...session, messages: tempMessages([nudge]) },
+                  { ...settings, toolsEnabled: false },
+                  null,
+                  (text, reasoning) => update(
+                      joinText(accumulatedText, text),
+                      mergeReasoning(accumulatedReasoning, reasoning),
+                  ),
+              );
+          } catch (error) {
+              _dbgAdd('TOOL_FINALIZATION_FAILED', { error: error?.message || String(error) });
+          }
+
+          if (finalResult?.text?.trim()) {
+              accumulatedText = joinText(accumulatedText, finalResult.text);
+              accumulatedReasoning = mergeReasoning(accumulatedReasoning, finalResult.reasoning);
+              result = finalResult;
+          } else {
+              accumulatedText = joinText(
+                  accumulatedText,
+                  'The tool calls completed, but the model did not return a follow-up response. Please retry this message.',
+              );
+              result = { ...result, text: accumulatedText, reasoning: accumulatedReasoning };
+          }
+      }
+
+      return {
+          result: { ...result, text: accumulatedText, reasoning: accumulatedReasoning },
+          toolCalls: executedToolCalls,
+          executed: executedAny,
+      };
   }
 
   async function runGenerate(session, userText, addUserMsg = true, processedAtts = null, stopDepth = 0) {
@@ -15916,7 +16885,7 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
       userText = await expandCustomizeCommand(userText, 'copilot');
       const preHook = await runCustomizeHook('beforeSubmitPrompt', { prompt: String(userText ?? '') });
       if (preHook && preHook.allowed === false) {
-          window.toastr?.warning?.(preHook.results?.[0]?.userMessage || 'Blocked by a Customize hook.');
+          window.toastr?.warning?.(preHook.results?.[0]?.userMessage || 'Blocked by an Agent Workspace hook.');
           return;
       }
       if (preHook?.updatedInput?.prompt) userText = preHook.updatedInput.prompt;
@@ -15979,6 +16948,7 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
           }
 
           if (streamContentEl) {
+              const openToolCallIds = captureOpenToolCallIds(streamMsgEl);
               let procReasoning = reasoning || '';
               let procText = stripMemoryBlock(text);
               
@@ -16012,6 +16982,7 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
                   });
                   postProcessToolCalls(streamMsgEl, displayed);
               }
+              restoreOpenToolCallIds(streamMsgEl, openToolCallIds);
           }
           smartScrollToBottom();
       };
@@ -16047,26 +17018,13 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
           }
 
           if (result !== null && settings.toolsEnabled && getEnabledTools().length > 0) {
-              const maxRounds = settings.toolsMaxRounds ?? 5;
-              let roundText = result.text || '';
-              let roundReasoning = result.reasoning;
-              let extraHistory = [];
-
-              let accumulatedText = roundText;
-              let accumulatedReasoning = roundReasoning || null;
-
-              const _updateLiveUI = (tempText = '', tempReasoning = null) => {
+              const renderLive = (combinedText = '', combinedReasoning = null) => {
                   if (!streamMsgEl || !streamContentEl) return;
-                  let combinedText = tempText ? accumulatedText + '\n\n' + tempText : accumulatedText;
-                  let combinedReasoning = accumulatedReasoning || '';
-                  if (tempReasoning) {
-                      combinedReasoning = combinedReasoning ? combinedReasoning + '\n\n' + tempReasoning : tempReasoning;
-                  }
-                  
-                  let procReasoning = combinedReasoning;
+                  const openToolCallIds = captureOpenToolCallIds(streamMsgEl);
+                  let procReasoning = combinedReasoning || '';
                   let procText = stripMemoryBlock(combinedText);
                   let tcIndex = 0;
-                  
+
                   if (procReasoning) {
                       const resR = extractToolCallPlaceholders(procReasoning, tcIndex);
                       procReasoning = resR.text;
@@ -16086,91 +17044,21 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
                   if (state$1.activeToolCalls.length || tcIndex > 0) {
                       postProcessToolCalls(streamMsgEl, state$1.activeToolCalls);
                   }
+                  restoreOpenToolCallIds(streamMsgEl, openToolCallIds);
                   smartScrollToBottom();
               };
 
-              for (let round = 0; round < maxRounds; round++) {
-                  let tcs = parseToolCallsFromText(roundText);
-                  if (!tcs.length) break;
-
-                  const roundEntries = [];
-                  for (const tc of tcs) {
-                      const tcId = `tc_${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
-                      const entry = { id: tcId, name: tc.name, input: tc.input, status: 'running', result: undefined };
-                      state$1.activeToolCalls.push(entry);
-                      roundEntries.push(entry);
-                      
-                      _updateLiveUI();
-
-                      try {
-                          const res = await executeTool(tc.name, tc.input);
-                          if (res?.__ask_user) {
-                              if (!streamMsgEl) {
-                                  entry.result = { warning: 'ask_user requires streaming to be enabled.' };
-                                  entry.status = 'warning';
-                              } else {
-                                  entry.result = await executeAskUser(res, streamMsgEl);
-                                  entry.status = 'done';
-                              }
-                          } else {
-                              entry.result = res;
-                              entry.status = 'done';
-                          }
-                      } catch (e) {
-                          _dbgAdd('TOOL_EXECUTION_FAILED', { toolName: tc.name, error: e.message });
-                          entry.result = { error: e.message };
-                          entry.status = 'error';
-                      }
-                      
-                      _updateLiveUI();
-                  }
-
-                  extraHistory.push({ role: 'assistant', content: stripMemoryBlock(roundText) });
-                  const toolResultsText = roundEntries.map(e =>
-                      `<tool_result name="${e.name}" status="${e.status}">\n${typeof e.result === 'string' ? e.result : JSON.stringify(e.result, null, 2)}\n</tool_result>`
-                  ).join("\n");
-
-                  extraHistory.push({ role: 'user', content: `<tool_results>\n${toolResultsText}\n</tool_results>\n\nCONTINUE your response using these results. Write exactly where you left off.` });
-
-                  const thinkingText = document.getElementById('scp-thinking-text');
-                  if (thinkingText) thinkingText.textContent = `Round ${round + 2}/${maxRounds + 1}…`;
-                  const bar = document.getElementById('scp-thinking-bar');
-                  if (bar) bar.style.display = 'flex';
-
-                  for (const eh of extraHistory) {
-                      session.messages.push({ id: `tc_hist_${Date.now()}`, role: eh.role, content: eh.content, timestamp: Date.now(), _tcTemp: true });
-                  }
-
-                  isStreaming = false;
-                  streamAccumText = '';
-                  const cursor2 = document.createElement('span');
-                  cursor2.className = 'scp-stream-cursor';
-                  
-                  const tempSession = { 
-                      ...session, 
-                      messages: session.messages.filter(m => m.id !== streamMsgId) 
-                  };
-
-                  const nextResult = await callGenerate(tempSession, settings, null, (t, r) => {
-                      _updateLiveUI(t, r);
-                      if (streamContentEl) streamContentEl.appendChild(cursor2);
-                  });
-
-                  session.messages = session.messages.filter(m => !m._tcTemp);
-                  cursor2.remove();
-
-                  if (nextResult === null) break;
-
-                  roundText = nextResult.text || '';
-                  roundReasoning = nextResult.reasoning || null;
-                  
-                  accumulatedText += '\n\n' + roundText;
-                  if (roundReasoning) {
-                      accumulatedReasoning = accumulatedReasoning ? accumulatedReasoning + '\n\n' + roundReasoning : roundReasoning;
-                  }
-                  
-                  result = { text: accumulatedText, reasoning: accumulatedReasoning };
-              }
+              const toolRun = await runToolRounds(session, settings, result, {
+                  excludeId: streamMsgId,
+                  askUser: (res) => executeAskUser(res, streamMsgEl),
+                  onChunk: (fullText, fullReasoning) => {
+                      isStreaming = true;
+                      streamAccumText = fullText;
+                      streamAccumReasoning = fullReasoning;
+                      renderLive(fullText, fullReasoning);
+                  },
+              });
+              result = toolRun.result;
           }
 
           if (result === null) {
@@ -16208,13 +17096,14 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
               }
 
               if (msg) {
-                  msg.swipes = [{ content: fullText, reasoning: fullReasoning || null }];
+                  const savedToolCalls = state$1.activeToolCalls.length ? JSON.parse(JSON.stringify(state$1.activeToolCalls)) : undefined;
+                  msg.swipes = [{ content: fullText, reasoning: fullReasoning || null, toolCalls: savedToolCalls }];
                   msg.swipeIndex = 0;
                   saveSessionsToMetadata();
               }
           } else {
               const newMsg = addMessage(session, 'assistant', fullText, { reasoning: fullReasoning || null, toolCalls: state$1.activeToolCalls.length ? JSON.parse(JSON.stringify(state$1.activeToolCalls)) : undefined });
-              newMsg.swipes = [{ content: fullText, reasoning: fullReasoning || null }];
+              newMsg.swipes = [{ content: fullText, reasoning: fullReasoning || null, toolCalls: newMsg.toolCalls }];
               newMsg.swipeIndex = 0;
               saveSessionsToMetadata();
               appendMsgEl(newMsg);
@@ -16312,6 +17201,7 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
 
           const { content: disp } = getDisplayContent(procText, settings);
           if (streamContentEl) {
+              const openToolCallIds = captureOpenToolCallIds(targetEl);
               streamContentEl.innerHTML = renderMarkdown(disp);
               streamContentEl.appendChild(cursorEl);
               postProcessHTMLBlocks(streamContentEl);
@@ -16323,14 +17213,17 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
                   });
                   postProcessToolCalls(targetEl, displayed);
               }
+              restoreOpenToolCallIds(targetEl, openToolCallIds);
           }
           smartScrollToBottom();
       };
 
       const _applyFinalContinuation = (fullCombined) => {
           const { content: disp } = getDisplayContent(fullCombined, settings);
+          const openToolCallIds = captureOpenToolCallIds(targetEl);
           if (streamContentEl) { streamContentEl.innerHTML = renderMarkdown(disp); postProcessHTMLBlocks(streamContentEl); }
           _renderMsgBodyContent(targetEl, targetMsg);
+          restoreOpenToolCallIds(targetEl, openToolCallIds);
       };
 
       try {
@@ -18112,7 +19005,6 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
   async function init() {
       _dbgSetupGlobalErrorHandlers();
       
-      try { exports.ST_WorldInfo = await import('/scripts/world-info.js'); } catch(e) { console.warn('ST-Copilot: Could not import world-info.js'); }
       try { exports.ST_Utils = await import('/scripts/utils.js'); } catch(e) { console.warn('ST-Copilot: Could not import utils.js'); }
       
       await loadManifestVersion();
@@ -18265,7 +19157,50 @@ window.onerror=function(m){window.parent.postMessage({type:'scp-iframe-err',msg:
   });
 
   exports.refreshSessionDropdown = refreshSessionDropdown;
+  exports.__parseToolCalls = parseToolCallsFromText;
+  exports.__extractToolCalls = extractToolCallPlaceholders;
+  exports.__parseThinkStream = parseThinkStream;
+  exports.__getCharInfo = (name) => getCharInfo(name);
+  exports.__runToolRounds = runToolRounds;
+  exports.__clampMaxTokens = clampCopilotMaxTokens;
+  exports.__captureOpenToolCallIds = captureOpenToolCallIds;
+  exports.__restoreOpenToolCallIds = restoreOpenToolCallIds;
+  exports.__parseLBChangesFromText = parseLBChangesFromText;
+  exports.__stripLBChangesBlock = stripLBChangesBlock;
+  exports.__normalizeAskChoices = normalizeAskChoices;
+  exports.__getEditedFileTarget = getEditedFileTarget;
+  exports.__executeAskUser = executeAskUser;
+  exports.__createToolCallEl = createToolCallEl;
+  exports.__vaultFiles = {
+      list: nativeVaultListFiles,
+      read: nativeVaultReadFile,
+      write: nativeVaultWriteFile,
+  };
+  exports.__deleteEntries = (input) => executeNativeTool('delete_deeplore_entries', input);
 
   return exports;
 
 })({});
+
+
+if (typeof window !== 'undefined') {
+    window.__STCopilotToolDebug = {
+        parse: STCopilot.__parseToolCalls,
+        extract: STCopilot.__extractToolCalls,
+        parseThinkStream: STCopilot.__parseThinkStream,
+        getCharInfo: (name) => STCopilot.__getCharInfo(name),
+        runToolRounds: (...args) => STCopilot.__runToolRounds(...args),
+        clampMaxTokens: (...args) => STCopilot.__clampMaxTokens(...args),
+        captureOpenToolCallIds: (...args) => STCopilot.__captureOpenToolCallIds(...args),
+        restoreOpenToolCallIds: (...args) => STCopilot.__restoreOpenToolCallIds(...args),
+        parseLBChanges: (...args) => STCopilot.__parseLBChangesFromText(...args),
+        stripLBChanges: (...args) => STCopilot.__stripLBChangesBlock(...args),
+        normalizeAskChoices: (...args) => STCopilot.__normalizeAskChoices(...args),
+        getEditedFileTarget: (...args) => STCopilot.__getEditedFileTarget(...args),
+        executeAskUser: (...args) => STCopilot.__executeAskUser(...args),
+        createToolCallEl: (...args) => STCopilot.__createToolCallEl(...args),
+        vaultFiles: STCopilot.__vaultFiles,
+        deleteEntries: (input) => STCopilot.__deleteEntries(input),
+    };
+}
+

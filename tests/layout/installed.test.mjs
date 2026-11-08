@@ -59,7 +59,7 @@ async function pickAppPage() {
     for (const context of contexts) {
         for (const candidate of context.pages()) {
             const url = candidate.url();
-            if (url.includes('localhost:1430') || url.startsWith('tauri://')) {
+            if (url.includes('localhost:1430') || url.startsWith('tauri://') || url.includes('tauri.localhost')) {
                 await candidate.waitForSelector('#top-settings-holder', { timeout: 20_000 });
                 return candidate;
             }
@@ -111,7 +111,7 @@ test('installed extension settings panels open without moving the drawer', { ski
         .map((entry) => entry.name) : [];
     await openExtensions();
     await page.waitForTimeout(800);
-    await page.waitForSelector('#ica--settings', { state: 'attached', timeout: 5_000 }).catch(() => {});
+    await page.waitForSelector('#tauri-agents--settings', { state: 'attached', timeout: 5_000 }).catch(() => {});
 
     const railBefore = await rect(page, '#top-settings-holder');
     const drawerBefore = await rect(page, '#extensions-settings-button .drawer-content');
@@ -137,8 +137,8 @@ test('installed extension settings panels open without moving the drawer', { ski
 
     for (const panel of panels) {
         const selector = `[data-live-layout="${panel.index}"]`;
-        const header = page.locator(`${selector} .inline-drawer-header`);
-        const content = page.locator(`${selector} .inline-drawer-content`);
+        const header = page.locator(`${selector} > .inline-drawer-header`);
+        const content = page.locator(`${selector} > .inline-drawer-content`);
         const toggleable = (await header.count()) > 0 && (await content.count()) > 0;
         if (toggleable && !(await content.isVisible())) {
             await header.first().click();
@@ -169,7 +169,7 @@ test('installed extension settings panels open without moving the drawer', { ski
 
 test('installed shell panels keep the rail and panel geometry', { skip: !ENABLED }, async () => {
     const railBefore = await rect(page, '#top-settings-holder');
-    const panels = await page.evaluate(() => [...document.querySelectorAll('#top-settings-holder .drawer.sb-panel-drawer')]
+    const panels = await page.evaluate(() => [...document.querySelectorAll('#top-settings-holder .drawer.tauri-panel-drawer')]
         .map((element) => element.id));
     for (const id of panels) {
         await page.locator(`#${id} .drawer-toggle`).first().click();
@@ -178,7 +178,8 @@ test('installed shell panels keep the rail and panel geometry', { skip: !ENABLED
         if (content) {
             assert.ok(content.x >= 0, `${id}: panel left of viewport`);
             assert.ok(content.right <= (await page.evaluate(() => window.innerWidth)) + 1, `${id}: panel right of viewport`);
-            assert.ok(content.width <= 460, `${id}: panel wider than 460`);
+            const maxPanelWidth = await page.evaluate(() => window.innerWidth - 58 - 24);
+            assert.ok(content.width <= maxPanelWidth + 1, `${id}: panel wider than the viewport limit`);
             report.shellPanels.push({ id, width: content.width, x: content.x });
         }
     }
@@ -186,3 +187,78 @@ test('installed shell panels keep the rail and panel geometry', { skip: !ENABLED
     assert.equal(railAfter.x, railBefore.x, 'rail moved while switching shell panels');
     assert.equal(railAfter.width, railBefore.width, 'rail resized while switching shell panels');
 });
+
+test('installed DeepLore features and migrated cursor hooks are live', { skip: !ENABLED }, async () => {
+    const result = await page.evaluate(async () => {
+        const context = window.SillyTavern?.getContext?.();
+        const settings = context?.extensionSettings?.deeplore_enhanced;
+        const vaultApi = window.deepLoreEnhanced_vault;
+        const status = await vaultApi?.status?.();
+        const vaultState = await window.__TAURITAVERN__.api.vault.state();
+        const mount = vaultState.mounts.find((entry) => entry.path.replaceAll('\\', '/').endsWith('/lorebook-umamusume'));
+        if (!mount) throw new Error('lorebook-umamusume is not mounted');
+        const hooks = window.__TAURITAVERN__.api.customize.hooks;
+        const config = await hooks.config(mount.path);
+        await hooks.trust(mount.path);
+        const run = await hooks.run({
+            event: 'preToolUse',
+            surface: 'native_agent',
+            payload: {
+                hook_event_name: 'preToolUse',
+                tool_name: 'Write',
+                tool_input: { file_path: 'World/Hook Probe.md', content: 'The story begins.' },
+            },
+            vaultRoot: mount.path,
+        });
+        const blockedRun = await hooks.run({
+            event: 'preToolUse',
+            surface: 'native_agent',
+            payload: {
+                hook_event_name: 'preToolUse',
+                tool_name: 'Write',
+                tool_input: { file_path: 'World/Hook Probe.md', content: 'The foal arrives.' },
+            },
+            vaultRoot: mount.path,
+        });
+        return {
+            enabled: settings?.enabled === true,
+            injectionMode: settings?.injectionMode,
+            featureKeys: settings ? Object.keys(settings) : [],
+            vault: {
+                status,
+                keys: vaultApi ? Object.keys(vaultApi) : [],
+            },
+            globals: {
+                onGenerate: typeof window.deepLoreEnhanced_onGenerate,
+                matchText: typeof window.deepLoreEnhanced_matchText,
+                vault: typeof vaultApi,
+            },
+            hookCommand: config.hooks?.preToolUse?.[0]?.command,
+            hookRun: run,
+            blockedRun,
+        };
+    });
+
+    assert.equal(result.enabled, true, 'DeepLore is not enabled');
+    assert.equal(result.injectionMode, 'extension', 'DeepLore injection is not active');
+    assert.ok(result.featureKeys.includes('injectionMode'), 'DeepLore injection settings are missing');
+    assert.ok(result.featureKeys.includes('autoSuggestEnabled'), 'DeepLore auto-suggest settings are missing');
+    for (const feature of ['aiSearchEnabled', 'aiNotepadEnabled', 'librarianEnabled', 'scribeEnabled', 'notebookEnabled']) {
+        assert.ok(result.featureKeys.includes(feature), `DeepLore ${feature} is not available`);
+    }
+    assert.ok(result.vault.keys.includes('status'), 'DeepLore vault status API is missing');
+    assert.ok(result.vault.keys.includes('matchText'), 'DeepLore matching API is missing');
+    assert.ok(result.vault.keys.includes('read') && result.vault.keys.includes('write'), 'DeepLore file API is missing');
+    assert.equal(result.globals.onGenerate, 'function', 'DeepLore generation hook is missing');
+    assert.equal(result.globals.matchText, 'function', 'DeepLore matcher is missing');
+    assert.equal(result.globals.vault, 'object', 'DeepLore vault object is missing');
+    assert.ok(result.vault.status?.configured, 'DeepLore vault is not configured');
+    assert.equal(result.hookCommand, 'node .cursor/hooks/lorebook-guard.mjs');
+    assert.equal(result.hookRun.results.length, 1, 'TauriTavern did not execute the vault hook');
+    assert.equal(result.hookRun.results[0].exitCode, 0, result.hookRun.results[0].stderr);
+    assert.match(result.hookRun.results[0].stdout, /"permission":"allow"/);
+    assert.equal(result.blockedRun.results.length, 1, 'TauriTavern did not execute the blocking hook');
+    assert.equal(result.blockedRun.results[0].exitCode, 0, result.blockedRun.results[0].stderr);
+    assert.match(result.blockedRun.results[0].stdout, /"permission":"deny"/);
+});
+

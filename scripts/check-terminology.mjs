@@ -8,8 +8,6 @@ const projectRoot = path.resolve(scriptDirectory, '..');
 const workspaceRoot = path.resolve(projectRoot, '..');
 const roots = [
     projectRoot,
-    path.join(workspaceRoot, 'tauri-tavern-extensions', 'TauriTavern-DeepLore'),
-    path.join(workspaceRoot, 'tauri-tavern-extensions', 'TauriTavern-DeepLore-Copilot'),
 ].filter((root) => !root.includes(`${path.sep}node_modules${path.sep}`));
 
 const ignoredDirectories = new Set(['.git', 'node_modules', 'target', 'dist']);

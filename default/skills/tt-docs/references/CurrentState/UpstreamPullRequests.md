@@ -10,7 +10,7 @@ Verdicts are:
 - **Reject**: non-Windows platform work, or in conflict with this branch's Windows-only rules.
 
 Baseline: `v2.4.0` (`fff9af0`); the local branch carries only the Windows-only trimming and the
-SillyBunny host layer.
+Tauri host layer.
 
 ## UI / panel PRs already merged into 2.4.0 (not processed again)
 
@@ -34,7 +34,7 @@ Verdict: all three are already in the baseline; **do not cherry-pick them again*
 | #359 | fix(webview): send no Referrer for app host origins | MERGEABLE | **Apply** | In-app resource requests from WebView2 should not carry a Referer; the change stays inside `tauri_resource_adapter.rs` and is compatible with the trimmed resource delivery path. |
 | #373 | fix(chat): refuse writes without an editor; check before re-render | MERGEABLE | **Apply** | A Windows WebView2 regression fix for the chat editor; the change is small and has no coupling to the UI layer. |
 | #377 | Feat/chat save progress | CONFLICTING | **Defer** | The save-progress indicator goes into the settings panel and the status capsule, so it has to build on the new host UI layer. The conflict surface is large right now, so redo it once the UI layer is stable. |
-| #378 | perf(save): coalesce or take over duplicate writes | MERGEABLE | **Defer** | Save coalescing rewrites the write timing in `src/script.js`, and it overlaps the chat rendering changes in the SillyBunny host layer. Merge and re-test after the UI layer lands. |
+| #378 | perf(save): coalesce or take over duplicate writes | MERGEABLE | **Defer** | Save coalescing rewrites the write timing in `src/script.js`, and it overlaps the chat rendering changes in the Tauri host layer. Merge and re-test after the UI layer lands. |
 
 ## Suggested merge order
 
@@ -53,3 +53,4 @@ Verdict: all three are already in the baseline; **do not cherry-pick them again*
       relevant contract tests.
 - [ ] If a later upstream release contains these PRs, take them through the version upgrade instead of
       cherry-picking them again.
+

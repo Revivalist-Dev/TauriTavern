@@ -9,8 +9,10 @@ import {
 import { createOverlays } from './overlays.js';
 import { createRenderer } from './render.js';
 import { createExperimentOverlay } from './experiments.js';
+import { installVaultOverrides } from './vault-overrides.js';
 const LS_WIDTH = 'tt.fileExplorer.width';
 const LS_VIEW = 'tt.fileExplorer.view';
+const LS_OPEN = 'tt.fileExplorer.open';
 function getApi() {
     if (window.__TT_VAULT_API__) return window.__TT_VAULT_API__;
     const host = window.__TAURITAVERN__;
@@ -23,6 +25,7 @@ function getApi() {
 export function createFileExplorer({ api = getApi(), mount = document.body } = {}) {
     const state = createState();
     const host = {};
+    installVaultOverrides();
     const experiments = createExperimentOverlay({
         api,
         getMountId: () => state.currentMountId,
@@ -33,7 +36,6 @@ export function createFileExplorer({ api = getApi(), mount = document.body } = {
     let content;
     let mountsList;
     let breadcrumbs;
-    let footer;
     let renderer;
     let overlays;
     let resizeState = null;
@@ -41,13 +43,11 @@ export function createFileExplorer({ api = getApi(), mount = document.body } = {
     host.state = state;
     const getDock = () => dock;
     const getContent = () => content;
-    const getFooter = () => footer;
     const getBreadcrumbs = () => breadcrumbs;
     const getMountsList = () => mountsList;
     const getToggle = () => toggle;
     host.getDock = getDock;
     host.getContent = getContent;
-    host.getFooter = getFooter;
     host.getBreadcrumbs = getBreadcrumbs;
     host.getMountsList = getMountsList;
     host.getToggle = getToggle;
@@ -74,8 +74,9 @@ export function createFileExplorer({ api = getApi(), mount = document.body } = {
         return button;
     }
     function buildDock() {
-        dock = el('aside');
+        dock = el('aside', 'tt-file-explorer');
         dock.id = 'tt-file-explorer';
+        dock.dataset.ttUi = 'panel';
         dock.setAttribute('aria-label', 'File explorer');
         dock.hidden = true;
 
@@ -120,10 +121,10 @@ export function createFileExplorer({ api = getApi(), mount = document.body } = {
         dock.append(mounts);
 
         const toolbar = el('div', 'tt-fe-toolbar');
-        breadcrumbs = el('div', 'tt-fe-breadcrumbs');
+        breadcrumbs = el('div', 'tt-fe-breadcrumbs tt-ui-breadcrumbs');
         toolbar.append(breadcrumbs);
         toolbar.append(iconButton('fa-solid fa-sliders', 'Lore defaults', () => window.__TT_LORE_DEFAULTS__?.open()));
-        const experimentButton = iconButton('fa-solid fa-flask', 'Narrative experiments', () => void experiments.openMenu(experimentButton));
+        const experimentButton = iconButton('fa-solid fa-flask', 'Narratives', () => void experiments.openMenu(experimentButton));
         toolbar.append(experimentButton);
         toolbar.append(iconButton('fa-solid fa-rotate', 'Refresh', () => host.refreshAll()));
         toolbar.append(iconButton('fa-solid fa-book-open', 'Use this folder for lore', () => {
@@ -159,8 +160,6 @@ export function createFileExplorer({ api = getApi(), mount = document.body } = {
         content.addEventListener('drop', (event) => overlays.onContentDrop(event));
         dock.append(content);
 
-        footer = el('footer', 'tt-fe-footer');
-        dock.append(footer);
         mount.append(dock);
     }
     function buildToggle() {
@@ -379,6 +378,7 @@ export function createFileExplorer({ api = getApi(), mount = document.body } = {
     }
     function openDock() {
         if (!dock) buildDock();
+        localStorage.setItem(LS_OPEN, '1');
         dock.hidden = false;
         document.body.classList.add('tt-fe-open');
         applyWidth(dockWidth());
@@ -389,6 +389,7 @@ export function createFileExplorer({ api = getApi(), mount = document.body } = {
 
     function closeDock() {
         if (!dock) return;
+        localStorage.setItem(LS_OPEN, '0');
         dock.hidden = true;
         document.body.classList.remove('tt-fe-open');
         overlays.closePreview();
@@ -518,7 +519,6 @@ export function createFileExplorer({ api = getApi(), mount = document.body } = {
         renderer = createRenderer(host);
         overlays = createOverlays(host);
 
-
         Object.assign(host, {
             addMount,
             setPrimary,
@@ -532,7 +532,10 @@ export function createFileExplorer({ api = getApi(), mount = document.body } = {
             openFolder,
             setView,
             render: () => renderer.render(),
-            refreshAll: () => loadState({ preserveExpanded: true }).then(loadCurrent),
+            refreshAll: async () => {
+                await refreshPaths(state.mounts.map((mount) => mount.id));
+                await loadCurrent();
+            },
             refreshView: () => { state.children.clear(); loadCurrent(); },
             ensureChildren,
             isExpanded,
@@ -554,12 +557,24 @@ export function createFileExplorer({ api = getApi(), mount = document.body } = {
             state.expanded.add(keyOf(state.primaryMountId, ''));
             await loadCurrent();
         }
+        if (localStorage.getItem(LS_OPEN) === '1') {
+            // Defer until the shell has finished mounting; opening during initialize can race the
+            // right drawer and duplicate the initial vault load.
+            setTimeout(() => {
+                if (!document.body.classList.contains('tt-fe-open')) openDock();
+            }, 0);
+        }
         window.__ttFileExplorer = { open: openDock, close: closeDock, toggle: toggleDock, state, api, refresh: loadCurrent, openPath, experiments };
         window.__TT_EXPERIMENTS__ = experiments;
         experiments.setOnChange(() => {
             state.children.clear();
-            document.querySelector('[title="Narrative experiments"]')
+            document.querySelector('[title="Narratives"]')
                 ?.classList.toggle('tt-fe-experiment-active', Boolean(experiments.active));
+            void host.refreshAll?.();
+        });
+        void experiments.restoreForChat();
+        window.addEventListener('tt:vault-overrides-changed', () => {
+            state.children.clear();
             void host.refreshAll?.();
         });
     }

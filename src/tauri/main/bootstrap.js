@@ -1,3 +1,4 @@
+import './ui/tauri-ui/index.js';
 import { installWindowLayout } from '../../scripts/util/window-layout.js';
 import { installWindowBackdrop } from '../../scripts/window-backdrop.js';
 import { invoke } from '../../tauri-bridge.js';
@@ -402,15 +403,17 @@ export function bootstrapTauriMain() {
     runAfterTauriReady(() => import('./services/panel-runtime/install.js')
         .then(({ installPanelRuntime }) => installPanelRuntime()));
     eventSource.once(event_types.APP_READY, () => {
-        void import('./ui/sillybunny-shell/index.js')
-            .then(({ installSillyBunnyShell }) => {
-                installSillyBunnyShell();
+        void import('./ui/tauri-shell/index.js')
+            .then(({ installTauriShell }) => {
+                installTauriShell();
                 return import('./ui/customize/index.js');
             })
             .then(({ installCustomizePanel }) => installCustomizePanel())
-            .catch((error) => { console.error('TauriTavern: Failed to install the SillyBunny shell:', error); });
+            .catch((error) => { console.error('TauriTavern: Failed to install the Tauri shell:', error); });
         void import('./ui/lore-defaults/index.js')
             .then(({ installLoreDefaults }) => installLoreDefaults())
+            .then(() => import('./ui/session-workspace/index.js'))
+            .then(({ installSessionWorkspace }) => installSessionWorkspace())
             .then(() => import('./ui/center-tabs/index.js'))
             .then(({ installCenterTabs }) => {
                 installCenterTabs();
@@ -418,9 +421,6 @@ export function bootstrapTauriMain() {
             })
             .then(({ installFileExplorer }) => installFileExplorer())
             .catch((error) => { console.error('TauriTavern: Failed to install lore defaults, center tabs, or file explorer:', error); });
-        void import('../../scripts/lore-directory.js')
-            .then(({ installLoreDirectory }) => installLoreDirectory())
-            .catch((error) => { console.error('TauriTavern: Failed to install the lore directory:', error); });
         void import('./ui/copilot-dock/index.js')
             .then(({ installCopilotDock }) => installCopilotDock())
             .catch((error) => { console.error('TauriTavern: Failed to install the Copilot dock:', error); });
@@ -435,3 +435,4 @@ export function bootstrapTauriMain() {
             .catch(() => {});
     }
 }
+

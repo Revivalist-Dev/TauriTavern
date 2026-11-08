@@ -18,29 +18,15 @@ function mustGetJQuery() {
     return /** @type {JQueryStatic} */ (jq);
 }
 
-/**
- * @returns {HTMLSelectElement}
- */
-function mustGetWorldInfoGlobalSelect() {
-    const el = document.getElementById('world_info');
-    if (!(el instanceof HTMLSelectElement)) {
-        throw new Error('WorldInfoGlobalSelectorSelect2Enforcer: #world_info <select> not found');
-    }
-    return el;
-}
-
 function enforceWorldInfoGlobalSelect2() {
     const $ = mustGetJQuery();
-    const select = mustGetWorldInfoGlobalSelect();
+    const select = document.getElementById('world_info');
+    if (!(select instanceof HTMLSelectElement)) return;
     const control = $(select);
 
-    if (!select.multiple) {
-        throw new Error('WorldInfoGlobalSelectorSelect2Enforcer: #world_info is expected to be <select multiple>');
-    }
+    if (!select.multiple) return;
 
-    if (typeof $.fn.select2 !== 'function') {
-        throw new Error('WorldInfoGlobalSelectorSelect2Enforcer: select2 plugin not found');
-    }
+    if (typeof $.fn.select2 !== 'function') return;
 
     if (control.data('select2')) {
         return;

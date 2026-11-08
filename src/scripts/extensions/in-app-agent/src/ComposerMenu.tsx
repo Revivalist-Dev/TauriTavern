@@ -64,7 +64,7 @@ export function ComposerMenu({ className, state, label, title, name, open, disab
     }
 
     return <div className={`ttia-menu ${className}`} data-state={state} ref={root}>
-        <button ref={button} type="button" className="ttia-chip" disabled={disabled}
+        <button ref={button} type="button" className="ttia-chip tt-ui-button" disabled={disabled}
             aria-haspopup="menu" aria-expanded={open} aria-controls={menuId} aria-label={label} title={title}
             onClick={event => {
                 if (open) { close(); return; }
@@ -74,7 +74,7 @@ export function ComposerMenu({ className, state, label, title, name, open, disab
                 if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
                 event.preventDefault(); keyboard.current = true; onOpenChange(true);
             }}>{trigger}</button>
-        <div ref={pop} className="ttia-menu-pop" id={menuId} role="menu" tabIndex={-1} aria-label={name} data-open={open}
+        <div ref={pop} className="ttia-menu-pop tt-ui-menu" id={menuId} role="menu" tabIndex={-1} aria-label={name} data-open={open}
             inert={!open} aria-hidden={!open} onKeyDown={onKeyDown}>
             {/* Choosing a row closes the menu first, so the row's own action can move focus onward. A disabled row stays focusable and does nothing. */}
             <div className="ttia-menu-list" onPointerOver={onPointerOver} onPointerLeave={() => setLit(false)} onClickCapture={event => {
@@ -97,7 +97,7 @@ export function ComposerMenu({ className, state, label, title, name, open, disab
 export function MenuRadio({ checked, label, detail, title, onSelect }: {
     checked: boolean; label: string; detail?: string | undefined; title?: string | undefined; onSelect: () => void;
 }) {
-    return <button type="button" tabIndex={-1} className="ttia-menu-item" role="menuitemradio" aria-checked={checked} title={title} onClick={onSelect}>
+    return <button type="button" tabIndex={-1} className="ttia-menu-item tt-ui-menu__item" role="menuitemradio" aria-checked={checked} title={title} onClick={onSelect}>
         <span className="ttia-menu-label">{label}</span>{detail && <span className="ttia-menu-detail" aria-hidden="true">{detail}</span>}<Icon name="check" />
     </button>;
 }
@@ -105,7 +105,8 @@ export function MenuRadio({ checked, label, detail, title, onSelect }: {
 export function MenuAction({ label, detail, disabled, onSelect }: {
     label: string; detail?: string | undefined; disabled: boolean; onSelect: () => void;
 }) {
-    return <button type="button" tabIndex={-1} className="ttia-menu-item" role="menuitem" aria-disabled={disabled} onClick={onSelect}>
+    return <button type="button" tabIndex={-1} className="ttia-menu-item tt-ui-menu__item" role="menuitem" aria-disabled={disabled} onClick={onSelect}>
         <span className="ttia-menu-label">{label}</span>{detail && <span className="ttia-menu-detail">{detail}</span>}
     </button>;
 }
+

@@ -95,12 +95,12 @@ upstream merges are manual and reviewable.
 - The Windows build guide, README, frontend contract, frontend guide, backend structure and the
   built-in skills describe Windows only.
 
-### SillyBunny desktop UI
+### Tauri desktop UI
 
-- The desktop SillyBunny surface is ported as a first-party host UI layer
-  (`docs/CurrentState/SillyBunnyShell.md`); no mobile shell, phone breakpoints, Android/iOS branches
+- The desktop Tauri surface is ported as a first-party host UI layer
+  (`docs/CurrentState/TauriShell.md`); no mobile shell, phone breakpoints, Android/iOS branches
   or platform-specific window chrome are carried over.
-- The `sillybunny-extensions` `sb-tabs` injector stands down when the host shell is active, so the
+- The `tauri-extensions` `tauri-tabs` injector stands down when the host shell is active, so the
   custom tab DOM is no longer part of the navigation path.
 
 The parity page `.cursor/documents/harness/tauritavern-port-parity.md` lists the deviations.

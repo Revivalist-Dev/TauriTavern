@@ -12,16 +12,16 @@ export function NewConversationIcon() {
     </svg>;
 }
 export function ErrorNotice({ error, retry }: { error: unknown; retry?: () => void }) {
-    return <div className="ttia-error" role="alert">
+    return <div className="ttia-error tt-ui-status" role="alert">
         <Icon name="circle-exclamation" /><div><p>{errorText(error)}</p>
-            {retry && <button type="button" onClick={retry}>{tr('retry')}</button>}
+            {retry && <button className="tt-ui-button" type="button" onClick={retry}>{tr('retry')}</button>}
         </div>
     </div>;
 }
 export function Disclosure({ label, children, className = '' }: { label: ReactNode; children: ReactNode | ((open: boolean) => ReactNode); className?: string }) {
     const [open, setOpen] = useState(false);
-    return <div className={`ttia-fold ${open ? 'is-open' : ''} ${className}`}>
-        <button className="ttia-fold-toggle" type="button" aria-expanded={open} data-assistant-disclosure onClick={() => setOpen(!open)}>
+    return <div className={`ttia-fold ${open ? 'is-open' : ''} ${className}`} data-tt-ui="disclosure">
+        <button className="ttia-fold-toggle tt-ui-disclosure-toggle" type="button" aria-expanded={open} data-assistant-disclosure onClick={() => setOpen(!open)}>
             <Icon name="chevron-right" />{label}
         </button>
         <div className="ttia-fold-body" inert={!open} aria-hidden={!open}><div>{typeof children === 'function' ? children(open) : children}</div></div>
@@ -36,7 +36,7 @@ export function CopyButton({ text, copy }: { text: string; copy: AssistantAction
         return () => clearTimeout(timer);
     }, [copied]);
     return <span className="ttia-copy">
-        <button type="button" aria-label={tr(copied ? 'copied' : 'copy')} title={tr(copied ? 'copied' : 'copy')}
+        <button className="tt-ui-button tt-ui-icon-button" type="button" aria-label={tr(copied ? 'copied' : 'copy')} title={tr(copied ? 'copied' : 'copy')}
             onClick={() => { setError(null); void copy(text).then(() => setCopied(true)).catch(setError); }}>
             <Icon name={copied ? 'check' : 'copy'} /><span>{tr(copied ? 'copied' : 'copy')}</span>
         </button>{error != null && <span role="alert">{errorText(error)}</span>}

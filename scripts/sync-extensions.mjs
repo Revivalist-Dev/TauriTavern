@@ -9,21 +9,6 @@ const workspaceRoot = path.resolve(projectRoot, '..');
 const extensionsRoot = path.join(projectRoot, 'src', 'scripts', 'extensions');
 
 const jobs = [
-    {
-        name: 'TauriTavern-DeepLore-Copilot',
-        source: path.join(workspaceRoot, 'tauri-tavern-extensions', 'TauriTavern-DeepLore-Copilot'),
-        target: path.join(extensionsRoot, 'tauritavern-deeplore-copilot'),
-        build: true,
-        files: ['index.js', 'style.css', 'manifest.json', 'window.html', 'settings.html'],
-    },
-    {
-        name: 'TauriTavern-DeepLore',
-        source: path.join(workspaceRoot, 'tauri-tavern-extensions', 'TauriTavern-DeepLore'),
-        target: path.join(extensionsRoot, 'tauritavern-deeplore'),
-        build: false,
-        files: ['index.js', 'style.css', 'manifest.json', 'settings.html', 'settings.js', 'drawer.html', 'settings-popup.html', 'setup-wizard.html', 'icon.svg'],
-        dirs: ['src'],
-    },
 ];
 
 for (const job of jobs) {

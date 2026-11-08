@@ -40,58 +40,62 @@ export function Settings({ draft, setDraft, options, actions, busy, error, dirty
     const skillSelected = (name: string) => !draft.skills.deny?.some(value => value === '*' || value === name)
         && draft.skills.visible.some(value => value === '*' || value === name);
     const selectedSkillCount = skillNames.filter(skillSelected).length;
-    return <form className="ttia-settings" onSubmit={event => { event.preventDefault(); onSave(); }}>
+    return <form className="ttia-settings tt-ui-panel" onSubmit={event => { event.preventDefault(); onSave(); }}>
         <fieldset className="ttia-settings-scroll" disabled={busy}>
-            <label className="ttia-field"><span>{tr('preset')}</span><select value={draft.preset.ref?.name ?? ''}
+            <label className="ttia-field tt-ui-field"><span>{tr('preset')}</span><select className="tt-ui-select" value={draft.preset.ref?.name ?? ''}
                 onChange={event => setDraft({ ...draft, preset: { ...draft.preset, ref: { apiId: 'openai', name: event.target.value } } })}>
                 {draft.preset.ref?.name && !options.presets.includes(draft.preset.ref.name) && <option value={draft.preset.ref.name}>{draft.preset.ref.name} · {tr('unavailable')}</option>}
                 {options.presets.map(name => <option key={name}>{name}</option>)}
             </select></label>
-            {!actions.isMobile() && <label className="ttia-field ttia-desktop-width">
+            {!actions.isMobile() && <label className="ttia-field ttia-desktop-width tt-ui-field">
                 <span>{tr('contentWidth')}<span>{contentWidth}%</span></span>
-                <input type="range" min={40} max={100} step={5} value={contentWidth} aria-label={tr('contentWidth')}
+                <input className="tt-ui-range" type="range" min={40} max={100} step={5} value={contentWidth} aria-label={tr('contentWidth')}
                     onChange={event => onContentWidthChange(event.target.valueAsNumber)} />
                 <small className="ttia-muted">{tr('contentWidthHelp')}</small>
             </label>}
             <Disclosure className="ttia-settings-section" label={<><span>{tr('tools')}</span><small>{tr('selected', { count: draft.tools.allow.filter(selected).length })}</small></>}>
-                <input type="search" aria-label={tr('searchTools')} placeholder={tr('searchTools')} value={search} onChange={event => setSearch(event.target.value)} />
+                <input className="tt-ui-input" type="search" aria-label={tr('searchTools')} placeholder={tr('searchTools')} value={search} onChange={event => setSearch(event.target.value)} />
                 {groups.map(name => {
                     const tools = matching.filter(tool => group(tool) === name);
                     return tools.length ? <fieldset key={name}><legend>{tr(name)}</legend>{tools.map(tool => <label className="ttia-choice" key={tool.id}>
-                        <input type="checkbox" checked={selected(tool.id)} onChange={event => selectTool(tool.id, event.target.checked)} />
+                        <input className="tt-ui-checkbox" type="checkbox" checked={selected(tool.id)} onChange={event => selectTool(tool.id, event.target.checked)} />
                         <span title={tool.id}><strong>{toolName(tool.id, tool.title || tool.nativeName)}</strong>
                             <small>{tool.enabled === false ? tr('disabled') : toolDescription(tool)}</small></span>
                     </label>)}</fieldset> : null;
                 })}
                 {search && matching.length === 0 && <p className="ttia-muted">{tr('noTools')}</p>}
                 {draft.tools.allow.filter(id => !known.has(id)).map(id => <label className="ttia-choice" key={id}>
-                    <input type="checkbox" checked={selected(id)} onChange={event => selectTool(id, event.target.checked)} /><span>{id}<small>{tr('unavailable')}</small></span>
+                    <input className="tt-ui-checkbox" type="checkbox" checked={selected(id)} onChange={event => selectTool(id, event.target.checked)} /><span>{id}<small>{tr('unavailable')}</small></span>
                 </label>)}
-                {options.diagnostics.map((diagnostic, index) => <p className="ttia-warning" key={index}>{diagnostic.message}</p>)}
+                {options.diagnostics.map((diagnostic, index) => <p className="ttia-warning tt-ui-status" key={index}>{diagnostic.message}</p>)}
             </Disclosure>
             <Disclosure className="ttia-settings-section" label={<><span>{tr('skills')}</span><small>{tr('selected', { count: selectedSkillCount })}</small></>}>
                 {skillNames.length === 0 && <p className="ttia-muted">{tr('noSkills')}</p>}
                 {skillNames.map(name => {
                     const skill = options.skills.find(item => item.name === name);
-                    return <label className="ttia-choice" key={name}><input type="checkbox" checked={skillSelected(name)}
+                    return <label className="ttia-choice" key={name}><input className="tt-ui-checkbox" type="checkbox" checked={skillSelected(name)}
                         onChange={event => selectSkill(name, event.target.checked)} /><span><strong>{skill?.displayName || name}</strong>{skill?.scope.kind === 'builtin' && <small>{tr('builtinSkill')}</small>}<small>{skill?.description ?? (installed.includes(name) ? '' : tr('unavailable'))}</small></span></label>;
                 })}
                 {selectedSkillCount > 0 && !selected('builtin:workspace.read_file') && <div className="ttia-note"><p>{tr('skillReadNote')}</p>
-                    <button type="button" onClick={() => selectTool('builtin:workspace.read_file', true)}>{tr('enableRead')}</button></div>}
+                    <button className="tt-ui-button" type="button" onClick={() => selectTool('builtin:workspace.read_file', true)}>{tr('enableRead')}</button></div>}
                 <SkillImport actions={actions} profileId={draft.id} onPendingChange={setImportPending} onInstalled={name => {
                     setInstalled(current => [...new Set([...current, name])]); selectSkill(name, true); refreshOptions();
                 }} />
             </Disclosure>
             <Disclosure className="ttia-settings-section" label={tr('advancedSettings')}>
-                <label className="ttia-choice"><input type="checkbox" checked={draft.run.stream} onChange={event => setDraft({ ...draft, run: { ...draft.run, stream: event.target.checked } })} /><span>{tr('stream')}</span></label>
-                <label className="ttia-field"><span>{tr('instructions')}</span><textarea rows={10} value={draft.instructions.agentSystemPrompt ?? ''}
+                <label className="ttia-choice"><input className="tt-ui-checkbox" type="checkbox" checked={draft.run.stream} onChange={event => setDraft({ ...draft, run: { ...draft.run, stream: event.target.checked } })} /><span>{tr('stream')}</span></label>
+                <label className="ttia-field tt-ui-field"><span>{tr('instructions')}</span><textarea className="tt-ui-textarea" rows={10} value={draft.instructions.agentSystemPrompt ?? ''}
                     onChange={event => setDraft({ ...draft, instructions: { ...draft.instructions, agentSystemPrompt: event.target.value } })} /></label>
             </Disclosure>
             {error != null && <ErrorNotice error={error} />}
         </fieldset>
-        <footer className="ttia-settings-footer"><small>{tr(dirty ? 'unsaved' : 'nextMessage')}</small><div className="ttia-actions">
-            <button type="button" disabled={busy} onClick={onCancel}>{tr('cancel')}</button>
-            <button type="submit" className="ttia-primary" disabled={busy || importPending || !dirty}>{tr(busy ? 'saving' : 'save')}</button>
+        <footer className="ttia-settings-footer tt-ui-toolbar"><small>{tr(dirty ? 'unsaved' : 'nextMessage')}</small><div className="ttia-actions">
+            <button className="tt-ui-button" type="button" disabled={busy} onClick={onCancel}>{tr('cancel')}</button>
+            <button type="submit" className="ttia-primary tt-ui-button" disabled={busy || importPending || !dirty}>{tr(busy ? 'saving' : 'save')}</button>
         </div></footer>
     </form>;
 }
+
+
+
+

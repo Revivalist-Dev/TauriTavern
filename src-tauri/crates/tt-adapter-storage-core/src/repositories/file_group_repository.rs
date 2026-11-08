@@ -484,7 +484,33 @@ impl GroupRepository for FileGroupRepository {
                         ))
                     })?;
                 }
+                let chat_store = self.group_chats_dir.join(".tauritavern").join(&chat_id);
+                if chat_store.exists() {
+                    fs::remove_dir_all(&chat_store).await.map_err(|e| {
+                        tracing::error!(
+                            "Failed to delete group chat store {:?}: {}",
+                            chat_store,
+                            e
+                        );
+                        DomainError::InternalError(format!(
+                            "Failed to delete group chat store: {}",
+                            e
+                        ))
+                    })?;
+                }
             }
+        }
+
+        let group_store = self
+            .group_chats_dir
+            .join(".tauritavern")
+            .join("_groups")
+            .join(id);
+        if group_store.exists() {
+            fs::remove_dir_all(&group_store).await.map_err(|e| {
+                tracing::error!("Failed to delete group workspace {:?}: {}", group_store, e);
+                DomainError::InternalError(format!("Failed to delete group workspace: {}", e))
+            })?;
         }
 
         // Update cache

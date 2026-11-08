@@ -243,6 +243,8 @@ pub(super) async fn build(
         data_change_reconciler.clone(),
         database_service.clone(),
     );
+    let global_agents_root = data_directory.root().join("agents");
+    let _ = std::fs::create_dir_all(&global_agents_root);
     let customize_service = Arc::new(CustomizeService::new(
         data_directory.root().join("_tauritavern").join("customize"),
         vec![
@@ -252,6 +254,7 @@ pub(super) async fn build(
                 .unwrap_or_default()
                 .join("src/scripts/extensions"),
         ],
+        global_agents_root,
     ));
     agent_services
         .agent_runtime_service

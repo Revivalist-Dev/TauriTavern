@@ -1,7 +1,7 @@
 /**
- * Panel host for the SillyBunny desktop shell.
+ * Panel host for the Tauri desktop shell.
  *
- * Extensions register panels through sb-core's `registerPanel`, which prefers
+ * Extensions register panels through tauri-core's `registerPanel`, which prefers
  * the host API published here. Each panel becomes an ordinary left-rail drawer
  * so SillyTavern's own open/close behaviour keeps working. There is no mobile
  * presentation and no second generation pipeline.
@@ -9,9 +9,10 @@
 
 import { doNavbarIconClick } from '../../../../script.js';
 import { setTopLevelDrawerOpen } from '../../../../scripts/drawers.js';
+import { TauriUI } from '../tauri-ui/index.js';
 
 const RAIL_ID = 'top-settings-holder';
-const PANEL_PREFIX = 'sb_panel_';
+const PANEL_PREFIX = 'tauri_panel_';
 const DEFAULT_ICON = 'fa-solid fa-puzzle-piece';
 
 /** @type {Map<string, { panel: object, drawer: HTMLElement, content: HTMLElement, body: HTMLElement, rendered: boolean }>} */
@@ -65,8 +66,8 @@ function renderPanel(entry) {
         });
         entry.rendered = true;
     } catch (error) {
-        entry.body.replaceChildren(element('p', 'sb-panel-error', `Failed to load panel: ${error?.message ?? error}`));
-        console.error(`[sb-shell] Panel "${entry.panel.id}" failed to render:`, error);
+        entry.body.replaceChildren(element('p', 'tauri-panel-error', `Failed to load panel: ${error?.message ?? error}`));
+        console.error(`[tauri-shell] Panel "${entry.panel.id}" failed to render:`, error);
     }
 }
 
@@ -76,32 +77,35 @@ function createDrawer(panel) {
         throw new Error('SillyTavern top bar is not ready');
     }
     const id = panelId(panel.id);
-    const drawer = element('div', 'drawer sb-panel-drawer');
+    const drawer = element('div', 'drawer tauri-panel-drawer');
     drawer.id = id;
 
-    const toggle = element('div', 'drawer-toggle drawer-header sb-rail-button');
+    const toggle = element('div', 'drawer-toggle drawer-header');
     toggle.title = panel.label;
     toggle.setAttribute('aria-label', panel.label);
-    const icon = element('div', `drawer-icon ${panel.icon || DEFAULT_ICON} fa-fw closedIcon sb-rail-icon`);
+    const icon = element('div', `drawer-icon ${panel.icon || DEFAULT_ICON} fa-fw closedIcon`);
     icon.setAttribute('aria-hidden', 'true');
     toggle.append(icon);
 
-    const content = element('div', 'drawer-content sb-panel-content closedDrawer');
+    const content = element('div', 'drawer-content tauri-panel-content closedDrawer');
     content.id = `${id}_content`;
-    const header = element('header', 'sb-panel-header');
-    header.append(element('h2', 'sb-panel-heading', panel.label));
-    const close = element('button', 'sb-icon-button sb-panel-close');
-    close.type = 'button';
-    close.title = 'Close';
-    close.setAttribute('aria-label', 'Close');
-    close.append(element('i', 'fa-solid fa-xmark'));
+    content.dataset.ttUi = 'panel';
+    const header = element('header', 'tauri-panel-header tt-ui-panel__header');
+    header.append(element('h2', 'tauri-panel-heading tt-ui-panel__title', panel.label));
+    const close = TauriUI.button({
+        icon: 'fa-xmark',
+        label: 'Close',
+        title: 'Close',
+        size: 'compact',
+        className: 'tauri-icon-button tauri-panel-close',
+    });
     header.append(close);
 
-    const body = element('div', 'sb-panel-body');
+    const body = element('div', 'tauri-panel-body tt-ui-panel__body');
     content.append(header, body);
     drawer.append(toggle, content);
-    if (!holder.querySelector('.sb-rail-separator')) {
-        holder.append(element('div', 'sb-rail-separator'));
+    if (!holder.querySelector('.tauri-rail-separator')) {
+        holder.append(element('div', 'tauri-rail-separator'));
     }
     holder.append(drawer);
 
@@ -177,14 +181,14 @@ export function installPanelHost() {
         },
         list: listPanels,
     };
-    globalThis.__TAURITAVERN_SB_SHELL__ = api;
+    globalThis.__TAURITAVERN_SHELL__ = api;
 
-    const pending = Array.isArray(globalThis.__SB_PENDING_PANELS__) ? globalThis.__SB_PENDING_PANELS__.splice(0) : [];
+    const pending = Array.isArray(globalThis.__TAURI_PENDING_PANELS__) ? globalThis.__TAURI_PENDING_PANELS__.splice(0) : [];
     for (const panel of pending) {
         try {
             registerPanel(panel);
         } catch (error) {
-            console.error('[sb-shell] Failed to register a pending panel:', error);
+            console.error('[tauri-shell] Failed to register a pending panel:', error);
         }
     }
     hostInstalled = true;
@@ -194,3 +198,5 @@ export function installPanelHost() {
 export function isPanelHostInstalled() {
     return hostInstalled;
 }
+
+

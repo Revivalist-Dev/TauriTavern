@@ -23,6 +23,17 @@ body.tt-copilot-open #tt-copilot-dock {
     display: flex;
 }
 
+#scp-window .scp-header-left {
+    flex-wrap: wrap;
+    row-gap: 2px;
+}
+
+#scp-window #tt-copilot-focus {
+    flex: 1 0 100%;
+    width: fit-content;
+    margin-left: 0;
+}
+
 body.tt-copilot-open #sheld {
     right: 0;
     left: calc(var(--tt-left-rail-width) + var(--tt-copilot-width));

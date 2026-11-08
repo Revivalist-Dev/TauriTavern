@@ -80,6 +80,7 @@
     --SmartThemeBlurStrength: calc(var(--blurStrength) * 1px);
     --SmartThemeShadowColor: rgba(0, 0, 0, 0.5);
     --SmartThemeBorderColor: rgba(0, 0, 0, 0.5);
+
     --SmartThemeCheckboxBgColorR: 220;
     --SmartThemeCheckboxBgColorG: 220;
     --SmartThemeCheckboxBgColorB: 210;

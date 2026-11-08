@@ -7,9 +7,9 @@
 
 .scp-window {
     --scp-bg:          rgba(18,18,22,0.94);
-    --scp-blur:        blur(14px);
+    --scp-blur:        none;
     --scp-border:      1px solid rgba(255,255,255,0.09);
-    --scp-shadow:      0 24px 64px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4);
+    --scp-shadow:      0 10px 28px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.18);
     --scp-text:        #e2e2e6;
     --scp-text-muted:  #72728a;
     --scp-accent:      #7c6dfa;
@@ -52,6 +52,15 @@
     line-height: 1.5;
     transition: opacity 0.2s;
 }
+
+#scp-window {
+    /* A saved theme can still carry the old large shadow in inline variables.
+       Keep the floating Copilot panel soft regardless of that stored preset. */
+    box-shadow: var(--tt-ui-shadow, 0 8px 24px rgba(0, 0, 0, 0.24)) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+}
+
 .scp-window.scp-dragging,
 .scp-window.scp-resizing {
     will-change: left, top, width, height, transform;
@@ -223,7 +232,7 @@
     min-width: 200px; width: max-content; max-width: 400px;
     background: var(--scp-bg); border: var(--scp-border);
     border-radius: 10px;
-    box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.3);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.16);
     z-index: 99950; overflow: hidden;
 }
 .scp-sess-panel.open {
@@ -661,7 +670,7 @@
     align-items: center; 
     justify-content: center;
     z-index: 99999;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.28);
     transition: transform 0.2s;
     touch-action: none;
     -webkit-tap-highlight-color: transparent;
@@ -669,7 +678,7 @@
 }
 .scp-dock-icon:hover {
     background: var(--scp-accent); color: #fff;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 20px var(--scp-accent-dim);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.28);
     transform: scale(1.08);
 }
 .scp-dock-icon.scp-icon-dragging {
@@ -706,7 +715,7 @@
 
 .scp-modal {
     background: var(--scp-bg); border: var(--scp-border);
-    border-radius: 12px; box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+    border-radius: 12px; box-shadow: 0 10px 28px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.18);
     width: 680px; max-width: 100%; max-height: 80vh; max-height: 80dvh;
     display: flex; flex-direction: column; overflow: hidden;
     animation: scp-modal-slide 0.18s cubic-bezier(0.34,1.56,0.64,1);
@@ -725,17 +734,27 @@
 .scp-modal-header span { display: flex; align-items: center; gap: 7px; color: var(--scp-accent); }
 
 .scp-modal-tabs {
-    display: flex; gap: 2px; padding: 8px 12px 0;
-    background: var(--scp-header-bg); border-bottom: var(--scp-border);
+    --scp-tab-bg: var(--tt-tab-surface-muted, #1f1f26);
+    --scp-tab-bg-hover: var(--tt-tab-surface-hover, #27272f);
+    --scp-tab-bg-active: var(--tt-tab-surface-active, #2f2c3c);
+    --scp-tab-border: var(--tt-tab-border, #3a3a44);
+    display: flex; gap: 2px; padding: 4px 4px 0;
+    background: var(--tt-tab-surface, #23232a); border-bottom: 1px solid var(--scp-tab-border);
 }
 .scp-modal-tab {
-    background: none; border: none; color: var(--scp-text-muted); cursor: pointer;
-    font-size: 11px; font-family: var(--scp-font); padding: 5px 12px;
-    border-radius: 5px 5px 0 0; border-bottom: 2px solid transparent;
-    transition: all 0.15s; margin-bottom: -1px;
+    background: var(--scp-tab-bg); border: 1px solid transparent;
+    border-bottom: 2px solid transparent; color: var(--scp-text-muted); cursor: pointer;
+    font-size: 12px; font-weight: 500; font-family: var(--scp-font); padding: 6px 10px;
+    border-radius: 5px 5px 0 0;
+    transition: background-color 0.15s, color 0.15s, border-color 0.15s; margin-bottom: -1px;
 }
-.scp-modal-tab:hover { color: var(--scp-text); }
-.scp-modal-tab.active { color: var(--scp-accent); border-bottom-color: var(--scp-accent); background: var(--scp-accent-bg); }
+.scp-modal-tab:hover { color: var(--scp-text); background: var(--scp-tab-bg-hover); }
+.scp-modal-tab.active {
+    color: var(--tt-tab-text, var(--scp-text)); font-weight: 600;
+    border-color: var(--scp-tab-border);
+    border-bottom-color: var(--tt-tab-accent, var(--scp-accent));
+    background: var(--scp-tab-bg-active);
+}
 
 .scp-modal-body { flex: 1; overflow: auto; padding: 14px 16px; }
 .scp-ctx-pre {
@@ -772,7 +791,7 @@
     min-width: 280px; max-width: 440px; width: min(90vw, 440px);
     max-height: calc(100dvh - 40px); max-height: calc(100vh - 40px);
     overflow-y: auto;
-    box-shadow: 0 40px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04) inset;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.18);
     animation: scp-dialog-in 0.2s cubic-bezier(0.34,1.56,0.64,1);
     color: var(--SmartThemeBodyColorText, #e2e2e6);
     font-family: var(--primaryFontFamily, system-ui, sans-serif);
@@ -991,7 +1010,7 @@
     border: 1px solid rgba(255,255,255,0.12);
     border-radius: 10px;
     padding: 12px;
-    box-shadow: 0 16px 48px rgba(0,0,0,0.65), 0 4px 12px rgba(0,0,0,0.35);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.16);
     display: flex; flex-direction: column; gap: 10px;
     width: 210px;
     animation: scp-panel-in 0.15s ease;
@@ -1469,7 +1488,7 @@ details.scp-reasoning-block[open] .scp-reasoning-summary::before { transform: ro
     border: 1px solid rgba(255,255,255,0.12);
     border-radius: 12px;
     box-shadow:
-        0 24px 64px rgba(0,0,0,0.72),
+        0 10px 28px rgba(0,0,0,0.30),
         0 6px 20px rgba(0,0,0,0.45),
         0 0 0 1px rgba(255,255,255,0.04) inset;
     backdrop-filter: blur(20px);
@@ -1671,7 +1690,7 @@ details.scp-reasoning-block[open] .scp-reasoning-summary::before { transform: ro
     --scp-radius: 10px;
     --scp-danger: #ff5c5c;
     --scp-success: #4caf7d;
-    --scp-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    --scp-shadow: 0 10px 28px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.18);
 }
 
 .scp-lb-panel {
@@ -2139,7 +2158,7 @@ details.scp-reasoning-block[open] .scp-reasoning-summary::before { transform: ro
     min-width: 180px; width: max-content; max-width: 280px;
     background: var(--scp-bg); border: var(--scp-border);
     border-radius: 10px;
-    box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.3);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.16);
     z-index: 99960; overflow: hidden;
     padding: 5px;
 }
@@ -2656,7 +2675,7 @@ details.scp-reasoning-block[open] .scp-reasoning-summary::before { transform: ro
     --scp-radius: 10px;
     --scp-danger: #ff5c5c;
     --scp-success: #4caf7d;
-    --scp-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    --scp-shadow: 0 10px 28px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.18);
 }
 
 .scp-settings-panel {
@@ -3034,7 +3053,7 @@ details.scp-reasoning-block[open] .scp-reasoning-summary::before { transform: ro
     background: var(--SmartThemeBlurTrans, rgba(14,14,18,0.98));
     border: 1px solid rgba(255,255,255,0.12);
     border-radius: 10px;
-    box-shadow: 0 16px 48px rgba(0,0,0,0.65), 0 4px 12px rgba(0,0,0,0.35);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.16);
     animation: scp-panel-in 0.15s ease;
     max-width: min(320px, 92vw);
 }
@@ -4581,6 +4600,28 @@ details.scp-cl-entry[open] .scp-cl-entry-summary::before { transform: rotate(90d
 }
 .scp-tool-call-item.open .scp-tool-call-chevron { transform: rotate(90deg); }
 
+.scp-tool-call-open {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    padding: 2px 7px;
+    border-radius: 5px;
+    border: 1px solid var(--scp-accent-dim);
+    background: var(--scp-accent-bg);
+    color: var(--scp-accent);
+    font-family: var(--scp-font);
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.scp-tool-call-open:hover {
+    background: var(--scp-accent);
+    border-color: var(--scp-accent);
+    color: #fff;
+}
+
 .scp-tool-call-body {
     padding: 8px 10px 10px;
     border-top: 1px solid rgba(255,255,255,0.06);
@@ -4655,6 +4696,62 @@ details.scp-cl-entry[open] .scp-cl-entry-summary::before { transform: rotate(90d
     color: var(--scp-text);
     margin-bottom: 10px;
     line-height: 1.5;
+}
+.scp-tool-ask-context {
+    font-size: 10px;
+    color: var(--scp-text-muted);
+    margin-bottom: 6px;
+    font-style: italic;
+}
+.scp-tool-ask-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.scp-tool-ask-choice {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--scp-accent-dim);
+    background: var(--scp-accent-bg);
+    color: var(--scp-text);
+    font-family: var(--scp-font);
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.scp-tool-ask-choice:hover,
+.scp-tool-ask-choice:focus-visible {
+    background: var(--scp-accent);
+    border-color: var(--scp-accent);
+    color: #fff;
+    outline: none;
+}
+.scp-tool-ask-custom {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.scp-tool-ask-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgb(0 0 0 / 55%);
+}
+.scp-tool-ask-card {
+    width: min(540px, 100%);
+    max-height: min(80vh, 620px);
+    overflow-y: auto;
+    padding: 18px;
+    border: 1px solid var(--scp-accent-dim);
+    border-radius: 10px;
+    background: var(--scp-bg);
+    box-shadow: 0 18px 60px rgb(0 0 0 / 45%);
 }
 .scp-tool-ask-input {
     width: 100%;
@@ -4959,7 +5056,7 @@ details.scp-cl-entry[open] .scp-cl-entry-summary::before { transform: rotate(90d
     min-width: 170px; width: max-content;
     background: var(--scp-bg); border: var(--scp-border);
     border-radius: 10px;
-    box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.3);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.16);
     z-index: 99950; overflow: hidden; padding: 5px;
 }
 .scp-menu-panel.open { display: block; animation: scp-panel-in 0.15s ease; }
@@ -5001,7 +5098,7 @@ details.scp-cl-entry[open] .scp-cl-entry-summary::before { transform: rotate(90d
     --scp-radius: 10px;
     --scp-danger: #ff5c5c;
     --scp-success: #4caf7d;
-    --scp-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    --scp-shadow: 0 10px 28px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.18);
 }
 .scp-char-panel {
     width: min(1000px, calc(100vw - 32px));
@@ -5159,7 +5256,7 @@ details.scp-cl-entry[open] .scp-cl-entry-summary::before { transform: rotate(90d
     color: rgba(255, 255, 255, 0.4) !important;
     box-shadow: none;
 }
-.scp-provider-badge{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;color:var(--scp-text-muted);border:var(--scp-border);border-radius:4px;padding:1px 5px}
+.scp-provider-badge{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;line-height:1.4;color:var(--scp-text-muted);border:var(--scp-border);border-radius:4px;padding:1px 5px;margin-right:6px}
 
 /* ═══════════════════════════════════════════════════════════════
    VAULT LORE MANAGER — native TauriTavern lore directories
@@ -5382,4 +5479,141 @@ details.scp-cl-entry[open] .scp-cl-entry-summary::before { transform: rotate(90d
     .scp-vl-actions {
         flex-wrap: wrap;
     }
+}
+
+
+
+
+/* ── Tauri UI parity ─────────────────────────────────────────────
+   Copilot uses the same surfaces, accent, typography and control
+   geometry as Vault Explorer and the rest of TauriTavern. A saved
+   Copilot theme can still inject --scp-* values inline, so these
+   mappings are authoritative.
+   ─────────────────────────────────────────────────────────────── */
+
+.scp-window,
+.scp-lb-overlay,
+.scp-char-overlay,
+.scp-settings-overlay,
+.scp-picker-overlay,
+.scp-diff-overlay,
+.scp-modal-overlay,
+.scp-overlay {
+    --scp-bg: var(--tt-ui-surface) !important;
+    --scp-text: var(--tt-ui-text) !important;
+    --scp-text-muted: var(--tt-ui-text-muted) !important;
+    --scp-accent: var(--tt-ui-accent) !important;
+    --scp-accent-dim: color-mix(in srgb, var(--tt-ui-accent) 55%, var(--tt-ui-surface) 45%) !important;
+    --scp-accent-bg: var(--tt-ui-surface-active) !important;
+    --scp-header-bg: var(--tt-ui-surface) !important;
+    --scp-toolbar-bg: var(--tt-ui-surface-muted) !important;
+    --scp-msg-user-bg: var(--tt-ui-surface-active) !important;
+    --scp-msg-ai-bg: var(--tt-ui-surface-muted) !important;
+    --scp-input-bg: var(--tt-ui-surface-muted) !important;
+    --scp-code-bg: var(--tt-ui-surface-muted) !important;
+    --scp-border: 1px solid var(--tt-ui-border) !important;
+    --scp-shadow: var(--tt-ui-shadow) !important;
+    --scp-blur: none !important;
+    --scp-font: var(--tt-ui-font) !important;
+    --scp-font-size: var(--tt-ui-font-size) !important;
+    --scp-radius: var(--tt-ui-radius-md) !important;
+    --scp-danger: var(--tt-ui-danger) !important;
+    --scp-success: var(--tt-ui-success) !important;
+    color: var(--tt-ui-text);
+    font-family: var(--tt-ui-font);
+    font-size: var(--tt-ui-font-size);
+}
+
+#scp-window .scp-header,
+.scp-lb-header,
+.scp-char-header,
+.scp-settings-header,
+.scp-modal-header {
+    min-height: 38px;
+    padding: 6px 8px;
+    background: var(--tt-ui-surface) !important;
+    border-bottom: 1px solid var(--tt-ui-border) !important;
+}
+
+#scp-window .scp-title,
+.scp-lb-title,
+.scp-char-title,
+.scp-settings-title,
+.scp-modal-title {
+    color: var(--tt-ui-text) !important;
+    font-size: var(--tt-ui-font-size) !important;
+    font-weight: 600 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+}
+
+#scp-window .scp-hbtn,
+#scp-window .scp-tbtn,
+#scp-window .scp-btn,
+.scp-lb-panel .scp-btn,
+.scp-lb-panel .scp-hbtn,
+.scp-modal .scp-btn {
+    border-radius: var(--tt-ui-radius-sm) !important;
+    font-size: var(--tt-ui-font-size) !important;
+}
+
+#scp-window .scp-hbtn,
+.scp-lb-panel .scp-hbtn {
+    min-width: 26px;
+    min-height: 26px;
+}
+
+.scp-lb-panel,
+.scp-char-panel,
+.scp-settings-panel,
+.scp-picker-panel {
+    color: var(--tt-ui-text);
+    background: var(--tt-ui-surface) !important;
+    border-color: var(--tt-ui-border) !important;
+    border-radius: var(--tt-ui-radius-md) !important;
+}
+
+#scp-window .scp-input,
+.scp-modal .scp-input,
+.scp-lb-search-wrap {
+    min-height: var(--tt-ui-control-height);
+    border-radius: var(--tt-ui-radius-sm) !important;
+    font-size: var(--tt-ui-font-size) !important;
+}
+
+.scp-lb-search-wrap {
+    background: var(--tt-ui-surface-muted) !important;
+    border: 1px solid var(--tt-ui-border) !important;
+}
+
+.scp-lb-search {
+    background: transparent !important;
+    color: var(--tt-ui-text) !important;
+    font-size: var(--tt-ui-font-size) !important;
+}
+
+.scp-header-titles {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    min-width: 0;
+}
+
+.scp-char-badge {
+    max-width: 180px;
+    padding: 0;
+    overflow: hidden;
+    color: var(--tt-ui-text-muted) !important;
+    font-size: 10px !important;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+}
+
+.scp-char-badge:empty {
+    display: none;
 }

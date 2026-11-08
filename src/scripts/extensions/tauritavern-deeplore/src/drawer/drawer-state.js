@@ -27,7 +27,6 @@ export const TOOL_ACTIONS = {
     'notebook': '/dle-notebook',
     'ai-notebook': '/dle-ai-notepad',
     'summarize': '/dle-summarize',
-    'import-wi': '/dle-import',
     'optimize-keys': '/dle-optimize-keys',
     'graph': '/dle-graph',
     'scribe-history': '/dle-scribe-history',

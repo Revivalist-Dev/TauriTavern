@@ -44,6 +44,7 @@ pub mod resource_bridge_commands;
 pub mod runtime_paths_commands;
 pub mod searxng_search_commands;
 pub mod secret_commands;
+pub mod session_workspace_commands;
 pub mod settings_commands;
 pub mod skill_commands;
 pub mod sprite_commands;

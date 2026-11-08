@@ -2190,7 +2190,7 @@ globalThis.deepLoreEnhanced_onGenerate = onGenerate;
 // External API for other extensions / scripts to match vault entries against arbitrary text.
 globalThis.deepLoreEnhanced_matchText = matchTextForExternal;
 
-// External vault API for sibling extensions (sb-agents Pathfinder). Paths are
+// External vault API for sibling extensions (tauri-agents Pathfinder). Paths are
 // vault-relative; the configured vault subfolder is applied automatically.
 globalThis.deepLoreEnhanced_vault = {
     version: 1,
@@ -2232,6 +2232,112 @@ function requireDeepLoreVault() {
     }
     return vault;
 }
+
+async function normalizeNativeVaultSubfolder(settings) {
+    const api = window.__TAURITAVERN__?.api?.vault;
+    if (!api?.state || !api?.list) return;
+
+    const state = await api.state().catch(() => null);
+    const mounts = Array.isArray(state?.mounts) ? state.mounts : [];
+    const mountId = window.__TT_LORE_DEFAULTS__?.get?.()?.vault?.mountId
+        ?? state?.primaryMountId
+        ?? mounts[0]?.id;
+    if (!mountId) return;
+
+    const entries = await api.list(mountId, '').catch(() => null);
+    if (!Array.isArray(entries)) return;
+    const hasLoreDirectory = entries.some(entry => entry.kind === 'directory' && entry.name === 'lore');
+    if (hasLoreDirectory) return;
+
+    let changed = false;
+    for (const vault of settings.vaults || []) {
+        if (vault.native && vault.subfolder === 'lore') {
+            vault.subfolder = '';
+            changed = true;
+        }
+    }
+    if (changed) {
+        try { saveSettingsDebounced(); } catch { /* settings may still be loading */ }
+    }
+}
+
+// Compatibility surface for extensions that use the older DeepLore write API.
+// Copilot calls `deepLoreEnhanced_writeNote(path, content, options)`; DeepLore
+// itself only exposed the lower-level vault object.
+function composeWriteContent(existingContent, content, mode = 'overwrite', targetText = '') {
+    const existing = String(existingContent ?? '');
+    const supplied = String(content ?? '');
+    if (mode === 'overwrite') return { ok: true, content: supplied };
+    if (mode === 'append') {
+        const separator = existing.trim().length > 0 ? '\n\n' : '';
+        return { ok: true, content: `${existing.replace(/\s*$/, '')}${separator}${supplied}` };
+    }
+    if (mode === 'patch') {
+        if (!targetText) return { ok: false, error: 'target_text is required for patch mode' };
+        const at = existing.indexOf(targetText);
+        if (at === -1) return { ok: false, error: 'target_text was not found in the current note' };
+        return {
+            ok: true,
+            content: `${existing.slice(0, at)}${supplied}${existing.slice(at + targetText.length)}`,
+        };
+    }
+    return { ok: false, error: `Unsupported write mode: ${mode}` };
+}
+
+globalThis.__DeepLoreWriteApiDebug = { composeWriteContent };
+
+globalThis.deepLoreEnhanced_readNote = async function readNoteCompat(path) {
+    try {
+        const vault = requireDeepLoreVault();
+        const result = await readNote(vault.host, vault.port, vault.apiKey, joinVaultPath(vault.subfolder, path), vault.https);
+        return { ...result, path };
+    } catch (error) {
+        return { ok: false, error: error?.message || String(error), path };
+    }
+};
+
+globalThis.deepLoreEnhanced_writeNote = async function writeNoteCompat(path, content, options = {}) {
+    try {
+        const mode = options.mode || 'overwrite';
+        if (!['overwrite', 'append', 'patch'].includes(mode)) {
+            return { ok: false, error: `Unsupported write mode: ${mode}`, path, mode };
+        }
+
+        const vault = requireDeepLoreVault();
+        let ifMatch = options.ifMatch ?? null;
+        let nextContent = String(content ?? '');
+
+        if (mode !== 'overwrite') {
+            const current = await readNote(
+                vault.host,
+                vault.port,
+                vault.apiKey,
+                joinVaultPath(vault.subfolder, path),
+                vault.https,
+            );
+            if (current?.ok === false) return { ...current, path, mode };
+
+            const composed = composeWriteContent(current?.content, content, mode, options.target_text);
+            if (!composed.ok) return { ...composed, path, mode };
+            nextContent = composed.content;
+            ifMatch = current?.etag ?? null;
+        }
+
+        const result = await writeNote(
+            vault.host,
+            vault.port,
+            vault.apiKey,
+            path,
+            nextContent,
+            vault.https,
+            vault.subfolder ?? '',
+            ifMatch,
+        );
+        return { ...result, path, mode };
+    } catch (error) {
+        return { ok: false, error: error?.message || String(error), path };
+    }
+};
 
 // ============================================================================
 // Initialization
@@ -2322,6 +2428,7 @@ async function _doInit() {
         // otherwise our wizard lands on top of ST's persona-name popup on brand-new installs.
         const firstRunSettings = getSettings();
         if (window.__TAURITAVERN__?.api?.vault) {
+            await normalizeNativeVaultSubfolder(firstRunSettings);
             const vaults = Array.isArray(firstRunSettings.vaults) ? firstRunSettings.vaults : [];
             if (!vaults.some(v => v.native)) {
                 firstRunSettings.vaults = [{
@@ -2331,7 +2438,7 @@ async function _doInit() {
                     apiKey: '',
                     https: false,
                     enabled: true,
-                    subfolder: 'lore',
+                    subfolder: '',
                     native: true,
                 }];
                 firstRunSettings._wizardCompleted = true;
@@ -3332,6 +3439,30 @@ async function _doInit() {
 }
 
 jQuery(async function () {
+    // Bridge Vault Explorer's "Use this folder for lore" action into DeepLore's
+    // own per-chat filter. The native lore path is a fallback only when DeepLore
+    // is disabled.
+    if (!window.__dleLoreFolderBridgeInstalled) {
+        window.__dleLoreFolderBridgeInstalled = true;
+        window.addEventListener('tt:use-lore-folder', (event) => {
+            const settings = getSettings();
+            if (!settings.enabled) return;
+            const folder = event.detail?.folder;
+            if (!folder) return;
+            const current = Array.isArray(chat_metadata.deeplore_folder_filter)
+                ? [...chat_metadata.deeplore_folder_filter]
+                : [];
+            if (!current.includes(folder)) {
+                current.push(folder);
+                chat_metadata.deeplore_folder_filter = current;
+                saveMetadataDebounced();
+                if (typeof toastr !== 'undefined') {
+                    toastr.info(`Added ${folder} to DeepLore's folder filter.`);
+                }
+            }
+        });
+    }
+
     // Boot-MED-1 (2026-05-22): promise-based init latch.
     // If a second jQuery dispatch fires while the first init is mid-await (HMR,
     // duplicate dispatch, fast double-load), await the in-flight init and return
@@ -3357,3 +3488,4 @@ jQuery(async function () {
     try { await _dleInitInProgress; }
     finally { _dleInitInProgress = null; }
 });
+

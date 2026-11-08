@@ -90,6 +90,15 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         super::group_chat_api_commands::rename_group_chat_store_key,
         super::group_chat_api_commands::delete_group_chat_store_json,
         super::group_chat_api_commands::list_group_chat_store_keys,
+        // Group session workspace commands
+        super::session_workspace_commands::prepare_group_session_metadata,
+        super::session_workspace_commands::sync_group_session_metadata,
+        super::session_workspace_commands::get_group_session_workspace,
+        super::session_workspace_commands::get_group_workspace,
+        super::session_workspace_commands::write_session_workspace_entry,
+        super::session_workspace_commands::delete_session_workspace_entry,
+        super::session_workspace_commands::write_group_workspace_entry,
+        super::session_workspace_commands::delete_group_workspace_entry,
         super::group_chat_api_commands::find_last_group_chat_message,
         super::group_chat_api_commands::search_group_chat_messages,
         // Extension store commands (global extension persistence)

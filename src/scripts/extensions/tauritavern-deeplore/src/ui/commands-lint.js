@@ -18,7 +18,7 @@ import { buildCopyButton, attachCopyHandler } from './popups.js';
  * Japanese user sees the localized lint vocabulary that already ships in every
  * locale (dle_lint_w_* / dle_lint_skip_*); the inline EN strings keep node
  * tests and missing-key cases rendering. Mirrors the _resolved(key, fallback)
- * idiom proven in wi-import-report.js. Order matters — drives display order.
+ * Order matters — drives display order.
  */
 const CODE_LABELS = {
     // ── Warnings (auto-fixed under lenientAuthoring) ──
@@ -280,3 +280,4 @@ export function registerLintCommand() {
         returns: ARGUMENT_TYPE.STRING,
     }));
 }
+

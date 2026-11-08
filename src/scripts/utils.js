@@ -17,7 +17,6 @@ import { SlashCommandClosure } from './slash-commands/SlashCommandClosure.js';
 import { getTagsList } from './tags.js';
 import { groups, selected_group } from './group-chats.js';
 import { getCurrentLocale, t } from './i18n.js';
-import { importWorldInfo } from './world-info.js';
 import { deliverBlob } from './file-export.js';
 import { showExportFailureToast, showExportSuccessToast } from './download-feedback.js';
 
@@ -3036,11 +3035,8 @@ export async function importFromExternalUrl(url, { preserveFileName = null, repl
         case 'character':
             await processDroppedFiles([file], extraData, { replacement });
             break;
-        case 'lorebook':
-            await importWorldInfo(file);
-            break;
         default:
-            toastr.warning('Unknown content type');
+            toastr.warning('Only character cards are supported here. Import lorebooks into DeepLore.');
             console.error('Unknown content type', customContentType);
             break;
     }

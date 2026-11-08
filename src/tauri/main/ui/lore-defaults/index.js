@@ -145,7 +145,7 @@ function makeOverlay() {
     overlay.id = 'tt-lore-defaults';
     overlay.hidden = true;
     overlay.innerHTML = `
-        <div class="tt-lore-default-panel" role="dialog" aria-modal="true" aria-label="Lore Defaults">
+        <div class="tt-lore-default-panel" role="dialog" aria-modal="true" aria-label="Lore Defaults" data-tt-ui="panel">
             <header class="tt-lore-default-header">
                 <div>
                     <div class="tt-lore-default-title">Lore Defaults</div>
@@ -323,3 +323,4 @@ export function installLoreDefaults() {
     });
     return window.__TT_LORE_DEFAULTS__;
 }
+

@@ -1,5 +1,5 @@
 <!-- DeepLore — First-Run Setup Wizard -->
-<div class="dle-wizard">
+<div class="dle-wizard" data-tt-ui="panel">
 
     <!-- Screen-reader-only progress announcer. Updated on every page advance so
          assistive tech hears "Step N of M: <title>" without a visible duplicate. -->
@@ -44,11 +44,6 @@
         <div class="dle-wizard-step-line" aria-hidden="true"></div>
         <button type="button" id="dle-wizard-step-8" class="dle-wizard-step" data-step="8" role="tab" aria-selected="false" aria-controls="dle-wizard-page-8">
             <span class="dle-wizard-step-dot">8</span>
-            <span class="dle-wizard-step-label">Import</span>
-        </button>
-        <div class="dle-wizard-step-line" aria-hidden="true"></div>
-        <button type="button" id="dle-wizard-step-9" class="dle-wizard-step" data-step="9" role="tab" aria-selected="false" aria-controls="dle-wizard-page-9">
-            <span class="dle-wizard-step-dot">9</span>
             <span class="dle-wizard-step-label">Done</span>
         </button>
     </nav>
@@ -87,11 +82,6 @@
                     <i class="fa-solid fa-plug dle-wizard-choice-icon" aria-hidden="true"></i>
                     <span class="dle-wizard-choice-title">Connect my vault</span>
                     <span class="dle-wizard-choice-desc">Point DeepLore at the zedon-byok gateway that serves your Markdown folder.</span>
-                </button>
-                <button type="button" class="dle-wizard-choice-card" data-fork="import">
-                    <i class="fa-solid fa-file-import dle-wizard-choice-icon" aria-hidden="true"></i>
-                    <span class="dle-wizard-choice-title">Import a lorebook</span>
-                    <span class="dle-wizard-choice-desc">Bring an existing SillyTavern World Info book into a vault.</span>
                 </button>
             </div>
 
@@ -461,100 +451,7 @@
 
                 <div id="dle-wiz-vault-result" class="dle-wizard-result-banner" style="display: none;"></div>
             </div>
-        </div>
-
-        <!-- ═══ Page 8: Import ═══ -->
-        <div id="dle-wizard-page-8" class="dle-wizard-page" data-wizard-page="8" role="tabpanel" aria-labelledby="dle-wizard-step-8" tabindex="-1">
-            <h2>Import Existing Lorebook</h2>
-            <p class="dle-wizard-subtitle">Already have a SillyTavern lorebook? Import entries into the gateway vault.</p>
-
-            <div class="dle-wizard-card dle-wizard-card-info">
-                <p><i class="fa-solid fa-circle-info" aria-hidden="true"></i> This step is optional. You can always import later with <code>/dle-import</code>.</p>
-            </div>
-
-            <div class="dle-wizard-field">
-                <label>Import Method</label>
-                <div class="dle-wizard-radio-group">
-                    <label class="dle-wizard-radio">
-                        <input type="radio" name="dle-wiz-import-method" value="skip" checked />
-                        <div>
-                            <strong>Skip Import</strong>
-                            <span class="dle-wizard-field-hint">I'll set up entries in the vault manually or import later.</span>
-                        </div>
-                    </label>
-                    <label class="dle-wizard-radio">
-                        <input type="radio" name="dle-wiz-import-method" value="lorebook" />
-                        <div>
-                            <strong>From SillyTavern Lorebook</strong>
-                            <span class="dle-wizard-field-hint">Import from an existing ST World Info book.</span>
-                        </div>
-                    </label>
-                    <label class="dle-wizard-radio">
-                        <input type="radio" name="dle-wiz-import-method" value="file" />
-                        <div>
-                            <strong>From JSON File</strong>
-                            <span class="dle-wizard-field-hint">Upload a World Info export JSON or V2 character card.</span>
-                        </div>
-                    </label>
-                    <label class="dle-wizard-radio">
-                        <input type="radio" name="dle-wiz-import-method" value="paste" />
-                        <div>
-                            <strong>Paste JSON</strong>
-                            <span class="dle-wizard-field-hint">Paste World Info JSON directly.</span>
-                        </div>
-                    </label>
-                </div>
-            </div>
-
-            <!-- Lorebook dropdown (shown when lorebook method selected) -->
-            <div id="dle-wiz-import-lb-fields" style="display: none;">
-                <div class="dle-wizard-field">
-                    <label for="dle-wiz-import-lorebook">Select Lorebook</label>
-                    <select id="dle-wiz-import-lorebook" class="text_pole">
-                        <option value="">— Select a lorebook —</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- File upload (shown when file method selected) -->
-            <div id="dle-wiz-import-file-fields" style="display: none;">
-                <input type="file" id="dle-wiz-import-file" accept=".json" class="dle-hidden" />
-                <button type="button" id="dle-wiz-import-browse" class="menu_button menu_button_icon" style="display: inline-flex;">
-                    <i class="fa-solid fa-file-import" aria-hidden="true"></i>
-                    <span>Browse local JSON file...</span>
-                </button>
-                <span id="dle-wiz-import-file-name" class="dle-wizard-field-hint" style="margin-left: var(--dle-space-2);"></span>
-            </div>
-
-            <!-- JSON paste (shown when paste method selected) -->
-            <div id="dle-wiz-import-paste-fields" style="display: none;">
-                <div class="dle-wizard-field">
-                    <label for="dle-wiz-import-json">Paste JSON</label>
-                    <textarea id="dle-wiz-import-json" class="text_pole dle-import-textarea" placeholder="Paste World Info JSON here..." rows="6"></textarea>
-                </div>
-            </div>
-
-            <!-- Target folder -->
-            <div id="dle-wiz-import-folder-row" style="display: none;">
-                <div class="dle-wizard-field">
-                    <label for="dle-wiz-import-folder">Target Folder (optional)</label>
-                    <span class="dle-wizard-field-hint">Entries will be created in this folder in your vault. Leave blank for vault root.</span>
-                    <input id="dle-wiz-import-folder" class="text_pole" type="text" placeholder="e.g. Imported">
-                </div>
-            </div>
-
-            <!-- Import button + results -->
-            <div id="dle-wiz-import-action" style="display: none;">
-                <button type="button" id="dle-wiz-import-btn" class="menu_button dle-wizard-action-btn">
-                    <i class="fa-solid fa-file-import" aria-hidden="true"></i> <span>Import Entries</span>
-                </button>
-            </div>
-
-            <div id="dle-wiz-import-result" class="dle-wizard-result-banner" style="display: none;"></div>
-        </div>
-
-        <!-- ═══ Page 9: All Done ═══ -->
-        <div id="dle-wizard-page-9" class="dle-wizard-page" data-wizard-page="9" role="tabpanel" aria-labelledby="dle-wizard-step-9" tabindex="-1">
+        </div><div id="dle-wizard-page-8" class="dle-wizard-page" data-wizard-page="9" role="tabpanel" aria-labelledby="dle-wizard-step-8" tabindex="-1">
             <div class="dle-wizard-done-header">
                 <div class="dle-wizard-done-check"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
                 <h2>Setup Complete!</h2>
@@ -610,3 +507,5 @@
     </div>
 
 </div>
+
+

@@ -50,7 +50,7 @@ test('presets cannot replace the active provider unless the caller supplies one'
 });
 
 test('Copilot relies on core provider routing instead of overriding it', async () => {
-    const source = await read('../tauri-tavern-extensions/TauriTavern-DeepLore-Copilot/src/api.js');
+    const source = await read('src/scripts/extensions/tauritavern-deeplore-copilot/index.js');
     assert.doesNotMatch(source, /mainProviderOverrides/);
     assert.doesNotMatch(source, /chat_completion_source:/);
 });

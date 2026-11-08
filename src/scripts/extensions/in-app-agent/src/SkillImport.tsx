@@ -75,21 +75,22 @@ export function SkillImport({ actions, profileId, onInstalled, onPendingChange }
             {items.map((item, index) => <div className="ttia-import-item" key={index}>
                 <strong>{item.preview.skill.displayName || item.preview.skill.name}</strong>
                 <p>{item.preview.skill.description}</p>
-                {item.preview.warnings.map(warning => <p className="ttia-warning" key={warning}>{warning}</p>)}
+                {item.preview.warnings.map(warning => <p className="ttia-warning tt-ui-status" key={warning}>{warning}</p>)}
                 {item.preview.conflict.kind === 'same' && <small>{tr('sameSkill')}</small>}
-                {item.preview.conflict.kind === 'different' && <label><input type="checkbox" checked={item.replace} disabled={busy !== null}
+                {item.preview.conflict.kind === 'different' && <label><input className="tt-ui-checkbox" type="checkbox" checked={item.replace} disabled={busy !== null}
                     onChange={event => setItems(items.map((value, at) => at === index ? { ...value, replace: event.target.checked } : value))} />{tr('replace')}</label>}
             </div>)}
             <p className="ttia-muted">{tr('installNote')}</p>
-            <div className="ttia-actions"><button type="button" disabled={busy !== null} onClick={() => {
+            <div className="ttia-actions tt-ui-toolbar"><button className="tt-ui-button" type="button" disabled={busy !== null} onClick={() => {
                 setBusy('reading'); void release().then(() => setItems([])).catch(setError).finally(() => setBusy(null));
-            }}>{tr('cancel')}</button><button type="button" className="ttia-primary" disabled={busy !== null} onClick={() => { void install(); }}>
+            }}>{tr('cancel')}</button><button className="ttia-primary tt-ui-button" type="button" disabled={busy !== null} onClick={() => { void install(); }}>
                 {busy === 'installing' ? tr('installing') : tr('install')}</button></div>
-        </div> : <div className="ttia-actions">
-            <button type="button" disabled={busy !== null} onClick={() => { void pick(false); }}><Icon name="plus" />{busy ? tr('importing') : tr('importZip')}</button>
-            {actions.skill.isDirectoryImportAvailable() && <button type="button" disabled={busy !== null} onClick={() => { void pick(true); }}>{tr('importFolder')}</button>}
+        </div> : <div className="ttia-actions tt-ui-toolbar">
+            <button className="tt-ui-button" type="button" disabled={busy !== null} onClick={() => { void pick(false); }}><Icon name="plus" />{busy ? tr('importing') : tr('importZip')}</button>
+            {actions.skill.isDirectoryImportAvailable() && <button className="tt-ui-button" type="button" disabled={busy !== null} onClick={() => { void pick(true); }}>{tr('importFolder')}</button>}
         </div>}
-        {notice && <p className="ttia-muted" role="status">{notice}</p>}
+        {notice && <p className="ttia-muted tt-ui-status" role="status">{notice}</p>}
         {error != null && <ErrorNotice error={error} />}
     </div>;
 }
+

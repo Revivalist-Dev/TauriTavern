@@ -38,6 +38,13 @@ export function renderStatusZone() {
     if (!$drawer) return;
     const settings = getSettings();
 
+    if (settings.enabled === false) {
+        const disabledText = tr('dle_status_disabled', 'DeepLore disabled — enable in Extensions');
+        $drawer.find('[data-stat="entries"]').text(vaultIndex.length);
+        $drawer.find('.dle-pipeline-label').text(disabledText).attr('aria-label', `Status: ${disabledText}`);
+        return;
+    }
+
     const status = computeOverallStatus(getCircuitState());
 
     // Skip the very first baseline set — only announce subsequent transitions.

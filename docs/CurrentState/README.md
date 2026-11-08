@@ -26,10 +26,11 @@ This section records how each module works and where its source entry point live
 | [Logging](LoggingObservability.md) | tracing, the Dev API, and LLM request logs |
 | [Resource caching](HostResourceCaching.md) | Resource versions and conditional requests |
 | [Update channels](UpdateChannels.md) | Stable, Canary, and update detection |
-| [SillyBunny host layer](SillyBunnyShell.md) | Desktop icon rail, side panels, and conversation mode |
+| [Tauri host layer](TauriShell.md) | Desktop icon rail and side panels |
 | [Upstream PR assessment](UpstreamPullRequests.md) | Merge, defer, and reject verdicts for the Windows-only baseline |
 | [Windows distribution](WindowsDistribution.md) | WinGet and the installer |
 | [MCP](MCP.md) | Servers, tool catalogue, and model invocation |
 | [Vector API](VectorApi.md) | Indexing, embeddings, and queries |
 | [First-party UI](FirstPartyUI.md) | React, TypeScript, and the build pipeline |
 | [Web Host](WebHost.md) | The host implementation used by the browser embedder (Tavern Studio) |
+

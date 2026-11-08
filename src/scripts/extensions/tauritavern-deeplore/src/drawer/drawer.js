@@ -182,7 +182,7 @@ export async function createDrawerPanel() {
                      aria-expanded="false"
                      aria-label="Open DeepLore drawer"><i class="fa-solid fa-book-open fa-fw" aria-hidden="true"></i></div>
             </div>
-            <div id="deeplore-panel" class="drawer-content closedDrawer fillRight" role="region" aria-label="DeepLore panel">
+            <div id="deeplore-panel" class="drawer-content closedDrawer fillRight" role="region" aria-label="DeepLore panel" data-tt-ui="panel">
                 <div id="deeplore-panelheader" class="fa-solid fa-grip drag-grabber" aria-hidden="true"></div>
                 <div class="dle-drawer-controls">
                     <div class="dle-drawer-pin" title="Pin drawer open">
@@ -752,3 +752,4 @@ export function destroyDrawerPanel() {
         ds.$drawer = null;
     }
 }
+

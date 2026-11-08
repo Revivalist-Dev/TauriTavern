@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use crate::entries::{VaultEntry, VaultMount, VaultState};
+use crate::entries::{VaultEntry, VaultKind, VaultMount, VaultState};
 use crate::error::VaultError;
 use crate::guard::{canonical_root, relative_string, resolve_existing, validate_name};
 
@@ -57,6 +57,7 @@ impl LocalVault {
                 name: mount.name.clone(),
                 path: mount.path.clone(),
                 available: Path::new(&mount.path).is_dir(),
+                kind: VaultKind::from_path(&mount.path),
             })
             .collect::<Vec<_>>();
         let primary = config
@@ -449,6 +450,7 @@ impl LocalVault {
                 name: mount.name.clone(),
                 path: mount.path.clone(),
                 available: Path::new(&mount.path).is_dir(),
+                kind: VaultKind::from_path(&mount.path),
             })
             .collect::<Vec<_>>();
         let primary = config

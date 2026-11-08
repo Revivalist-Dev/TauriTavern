@@ -2759,6 +2759,19 @@ export async function initPersonas() {
     $('#personas_backup').on('click', onBackupPersonas);
     $('#personas_restore').on('click', () => $('#personas_restore_input').trigger('click'));
     $('#personas_restore_input').on('change', onPersonasRestoreInput);
+    $('#personas_refresh').on('click', async function () {
+        const button = $(this);
+        button.prop('disabled', true).find('i').addClass('fa-spin');
+        try {
+            await getUserAvatars(true, user_avatar);
+            toastr.success('Personas refreshed from disk.');
+        } catch (error) {
+            console.error('Failed to refresh personas', error);
+            toastr.error('Failed to refresh personas.');
+        } finally {
+            button.prop('disabled', false).find('i').removeClass('fa-spin');
+        }
+    });
     $('#persona_sort_order').val(power_user.persona_sort_order).on('input', function () {
         const value = String($(this).val());
         // Save sort order, but do not save search sorting, as this is a temporary sorting option

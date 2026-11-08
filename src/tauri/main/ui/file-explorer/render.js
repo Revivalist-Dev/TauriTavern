@@ -13,7 +13,6 @@ export function createRenderer(host) {
         renderMounts();
         renderBreadcrumbs();
         renderContent();
-        renderFooter();
         const toggle = host.getToggle();
         if (toggle) toggle.classList.toggle('tt-fe-active', !host.getDock()?.hidden);
     }
@@ -55,7 +54,7 @@ export function createRenderer(host) {
         breadcrumbs.replaceChildren();
         const vault = state.mounts.find((item) => item.id === state.currentMountId);
         if (!vault) return;
-        const root = el('button', 'tt-fe-breadcrumb', vault.name);
+        const root = el('button', 'tt-fe-breadcrumb tt-ui-breadcrumb', vault.name);
         root.type = 'button';
         root.addEventListener('click', () => {
             state.currentPath = '';
@@ -67,9 +66,9 @@ export function createRenderer(host) {
         let accumulated = '';
         for (const part of state.currentPath.split('/').filter(Boolean)) {
             accumulated = accumulated ? `${accumulated}/${part}` : part;
-            breadcrumbs.append(el('span', 'tt-fe-separator', '/'));
+            breadcrumbs.append(el('span', 'tt-fe-separator tt-ui-breadcrumb__separator', '/'));
             const path = accumulated;
-            const crumb = el('button', 'tt-fe-breadcrumb', part);
+            const crumb = el('button', 'tt-fe-breadcrumb tt-ui-breadcrumb', part);
             crumb.type = 'button';
             crumb.addEventListener('click', () => {
                 state.currentPath = path;
@@ -106,6 +105,7 @@ export function createRenderer(host) {
             row.append(el('i', 'tt-fe-node-icon tt-fe-folder fa-solid fa-hard-drive'));
             row.append(el('span', 'tt-fe-node-name', vault.name));
             if (vault.id === state.primaryMountId) row.append(el('span', 'tt-fe-badge', 'Primary'));
+            if (vault.kind === 'lorebook') row.append(el('span', 'tt-fe-badge tt-fe-badge-lorebook', 'Lorebook'));
             if (state.selected.has(rootKey)) row.classList.add('tt-fe-selected');
             row.addEventListener('click', (event) => {
                 state.currentMountId = vault.id;
@@ -136,10 +136,32 @@ export function createRenderer(host) {
             row.dataset.key = key;
             row.draggable = true;
             const expanded = host.isExpanded(vault.id, entry.path);
-            row.append(el('span', 'tt-fe-chevron', entry.kind === 'directory' ? (expanded ? '▾' : '▸') : ''));
+            const chevron = el('span', 'tt-fe-chevron', entry.kind === 'directory' ? (expanded ? '▾' : '▸') : '');
+            if (entry.kind === 'directory') {
+                chevron.classList.add('tt-fe-chevron--toggle');
+                chevron.setAttribute('role', 'button');
+                chevron.setAttribute('aria-label', `${expanded ? 'Collapse' : 'Expand'} ${entry.name}`);
+                chevron.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    state.currentMountId = vault.id;
+                    host.toggleExpanded(vault.id, entry.path);
+                });
+            }
+            row.append(chevron);
             const extra = entry.kind === 'directory' ? ' tt-fe-folder' : IMAGE_EXTENSIONS.has(entry.extension) ? ' tt-fe-image' : '';
             row.append(el('i', `tt-fe-node-icon ${iconFor(entry)}${extra}`));
             row.append(el('span', 'tt-fe-node-name', entry.name));
+            const sessionOverride = window.__TT_VAULT_OVERRIDES__?.getState?.(entry.path) ?? null;
+            const overridden = Boolean(entry.override || sessionOverride?.blocked);
+            if (overridden) {
+                row.classList.add('tt-fe-overridden');
+                row.dataset.override = entry.overrideSource ?? sessionOverride?.source ?? 'override';
+                row.title = entry.override
+                    ? `Overridden by ${entry.overrideSource ?? 'an experiment'}`
+                    : 'Blocked for this session';
+                row.setAttribute('aria-label', `${entry.name}, overridden`);
+                row.append(el('span', 'tt-fe-override-badge', 'Overridden'));
+            }
             if (entry.kind !== 'directory') {
                 const estimatedTokens = Math.max(1, Math.ceil(Number(entry.size ?? 0) / 4));
                 const stats = el('span', 'tt-fe-node-meta', `~${estimatedTokens.toLocaleString()} tokens | ${formatBytes(entry.size)}`);
@@ -152,6 +174,21 @@ export function createRenderer(host) {
                     });
                 });
                 row.addEventListener('mouseleave', hideHoverCard);
+            }
+            const narrativeParent = entry.path.slice(0, Math.max(0, entry.path.lastIndexOf('/')));
+            if (entry.kind === 'directory' && (narrativeParent === '.narrative' || narrativeParent === 'lore/.narrative')) {
+                const active = window.__TT_EXPERIMENTS__?.active?.id === entry.path;
+                const use = el('button', 'tt-fe-narrative-use', active ? 'Active' : 'Use');
+                use.type = 'button';
+                use.title = active
+                    ? `${entry.name} is the active narrative for this chat`
+                    : `Use ${entry.name} as the override for this chat`;
+                use.disabled = active;
+                use.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    void window.__TT_EXPERIMENTS__?.activate(entry.path);
+                });
+                row.append(use);
             }
             if (state.selected.has(key)) row.classList.add('tt-fe-selected');
             row.addEventListener('click', (event) => {
@@ -233,6 +270,16 @@ export function createRenderer(host) {
             } else thumb.append(el('i', iconFor(entry)));
             card.append(thumb);
             card.append(el('div', 'tt-fe-card-name', entry.name));
+            const sessionOverride = window.__TT_VAULT_OVERRIDES__?.getState?.(entry.path) ?? null;
+            const overridden = Boolean(entry.override || sessionOverride?.blocked);
+            if (overridden) {
+                card.classList.add('tt-fe-overridden');
+                card.dataset.override = entry.overrideSource ?? sessionOverride?.source ?? 'override';
+                card.title = entry.override
+                    ? `Overridden by ${entry.overrideSource ?? 'an experiment'}`
+                    : 'Blocked for this session';
+                card.append(el('span', 'tt-fe-override-badge', 'Overridden'));
+            }
             if (entry.kind !== 'directory') {
                 const estimatedTokens = Math.max(1, Math.ceil(Number(entry.size ?? 0) / 4));
                 const stats = el('div', 'tt-fe-card-meta', `~${estimatedTokens.toLocaleString()} tokens | ${formatBytes(entry.size)}`);
@@ -273,17 +320,6 @@ export function createRenderer(host) {
         collectVisibleKeys();
     }
 
-    function renderFooter() {
-        const footer = host.getFooter();
-        if (!footer) return;
-        footer.replaceChildren();
-        const vault = state.mounts.find((item) => item.id === state.currentMountId);
-        footer.append(el('span', '', state.selected.size > 1
-            ? `${state.selected.size} selected`
-            : vault ? `${vault.name}${state.currentPath ? `/${state.currentPath}` : ''}` : 'No vault'));
-        if (state.loading) footer.append(el('span', '', 'Working...'));
-    }
-
     return {
         render,
         renderMounts,
@@ -291,7 +327,6 @@ export function createRenderer(host) {
         renderContent,
         renderTree,
         renderCards,
-        renderFooter,
         collectVisibleKeys,
     };
 }

@@ -211,31 +211,30 @@ export function AssistantApp({ controller, actions, drawer }: { controller: Assi
     const session = snapshot.sessions.find(item => item.id === snapshot.sessionId);
     const heading = view === 'chat' ? (session ? sessionTitle(session) : tr('title')) : tr(view === 'settings' ? 'settings' : 'history');
     const issue = error ?? snapshot.error;
-    return <div className="ttia-root" data-visible={visible} data-mobile={actions.isMobile()} style={{ '--ttia-content-width': `${contentWidth}%` } as CSSProperties}>
-        <button hidden={surface.assistant} type="button" className="ttia-return" onClick={() => drawer.setMode('assistant')}><Icon name="arrow-left" />{tr('back')}</button>
+    return <div className="ttia-root" data-tt-ui="panel" data-visible={visible} data-mobile={actions.isMobile()} style={{ '--ttia-content-width': `${contentWidth}%` } as CSSProperties}>
+        <button hidden={surface.assistant} type="button" className="ttia-return tt-ui-button" onClick={() => drawer.setMode('assistant')}><Icon name="arrow-left" />{tr('back')}</button>
         <div className="ttia-assistant" hidden={!surface.assistant}>
             <header className="ttia-header"><div className="ttia-heading">
-                {view !== 'chat' ? <button type="button" className="ttia-icon-button" aria-label={tr('conversation')} onClick={() => setView('chat')}><Icon name="arrow-left" /></button>
-                    : <span className="ttia-brand" aria-hidden="true">A<span /></span>}
+                {view !== 'chat' && <button type="button" className="ttia-icon-button tt-ui-icon-button" aria-label={tr('conversation')} onClick={() => setView('chat')}><Icon name="arrow-left" /></button>}
                 <strong title={heading}>{heading}</strong>
             </div><div className="ttia-header-actions">
-                <button type="button" className="ttia-advanced" onClick={() => drawer.setMode('advanced')}>{tr('advanced')}</button>
+                <button type="button" className="ttia-advanced tt-ui-button" onClick={() => drawer.setMode('advanced')}>{tr('advanced')}</button>
                 {view === 'chat' && <>
-                    <button type="button" className="ttia-icon-button" aria-label={tr('newConversation')} title={tr('newConversation')} disabled={!snapshot.initialized}
+                    <button type="button" className="ttia-icon-button tt-ui-icon-button" aria-label={tr('newConversation')} title={tr('newConversation')} disabled={!snapshot.initialized}
                         onClick={() => openSession(null)}><NewConversationIcon /></button>
-                    <button type="button" className="ttia-icon-button" aria-label={tr('history')} title={tr('history')} disabled={!snapshot.initialized}
+                    <button type="button" className="ttia-icon-button tt-ui-icon-button" aria-label={tr('history')} title={tr('history')} disabled={!snapshot.initialized}
                         onClick={() => { setError(null); setView('history'); void controller.refreshSessions().catch(() => { /* The history view displays the error. */ }); }}><Icon name="clock-rotate-left" /></button>
                 </>}
-                {view === 'chat' && snapshot.profileSaved && <button type="button" className="ttia-icon-button" aria-label={tr('settings')} title={tr('settings')}
+                {view === 'chat' && snapshot.profileSaved && <button type="button" className="ttia-icon-button tt-ui-icon-button" aria-label={tr('settings')} title={tr('settings')}
                     onClick={() => { setView('settings'); void refreshOptions(); }}><Icon name="sliders" /></button>}
-                <button type="button" className="ttia-icon-button" aria-label={tr('close')} onClick={() => drawer.close()}><Icon name="xmark" /></button>
+                <button type="button" className="ttia-icon-button tt-ui-icon-button" aria-label={tr('close')} onClick={() => drawer.close()}><Icon name="xmark" /></button>
             </div></header>
             {showTaskBanner && <div className="ttia-task-banner">
                 <div role="status"><span className="ttia-pulse" /><span>{tr(cancelling ? 'stopping' : snapshot.activeRun
                     ? taskSessionId === snapshot.sessionId ? 'working' : 'backgroundTask'
                     : taskSessionId === snapshot.sessionId ? 'preparing' : 'backgroundPreparation')}</span></div>
-                <div className="ttia-actions"><button type="button" onClick={() => openSession(taskSessionId)}>{tr('returnToTask')}<Icon name="arrow-right" /></button>
-                    {snapshot.activeRun && <button type="button" className="ttia-icon-button" aria-label={tr('stop')} title={tr('stop')} disabled={cancelling} onClick={() => { void stop(); }}><Icon name="stop" /></button>}
+                <div className="ttia-actions"><button className="tt-ui-button" type="button" onClick={() => openSession(taskSessionId)}>{tr('returnToTask')}<Icon name="arrow-right" /></button>
+                    {snapshot.activeRun && <button type="button" className="ttia-icon-button tt-ui-icon-button" aria-label={tr('stop')} title={tr('stop')} disabled={cancelling} onClick={() => { void stop(); }}><Icon name="stop" /></button>}
                 </div>
             </div>}
             <div className="ttia-chat-view" hidden={view !== 'chat'}>
@@ -243,12 +242,12 @@ export function AssistantApp({ controller, actions, drawer }: { controller: Assi
                     {issue != null && <ErrorNotice error={issue} retry={() => { setError(null); void initialize().catch(setError); }} />}</div>
                     : snapshot.loading ? <div className="ttia-loading"><span className="ttia-pulse" />{tr('loadingConversation')}</div>
                         : <div className="ttia-conversation-area">
-                            {snapshot.messages.length === 0 && !snapshot.run && <div className="ttia-welcome"><div className="ttia-emblem" aria-hidden="true">A<span /></div>
+                            {snapshot.messages.length === 0 && !snapshot.run && <div className="ttia-welcome">
                             <h2>{tr('welcome')}</h2><p>{tr('welcomeNote')}</p>
                             {!text && <div className="ttia-suggestions">{([
                                 { key: 'suggestLogs', icon: 'magnifying-glass' }, { key: 'suggestExtension', icon: 'puzzle-piece' }, { key: 'suggestSettings', icon: 'sliders' },
                             ] as const).map(({ key, icon }, index) =>
-                                <button type="button" key={key} style={{ '--ttia-stagger': index } as CSSProperties} onClick={() => { controller.setDraft(tr(key)); input.current?.focus(); }}>
+                                <button className="tt-ui-card" type="button" key={key} style={{ '--ttia-stagger': index } as CSSProperties} onClick={() => { controller.setDraft(tr(key)); input.current?.focus(); }}>
                                     <span className="ttia-tile" aria-hidden="true"><Icon name={icon} /></span><span>{tr(key)}</span><Icon name="arrow-up" /></button>)}</div>}
                             </div>}
                             <div className="ttia-history-area" hidden={snapshot.messages.length === 0 && !snapshot.run}>
@@ -260,11 +259,11 @@ export function AssistantApp({ controller, actions, drawer }: { controller: Assi
                     {snapshot.initialized && issue != null && <ErrorNotice error={issue} retry={() => {
                         setError(null); void controller.refresh().catch(setError);
                     }} />}
-                    {notice && <p className="ttia-notice" role="status">{notice}</p>}
+                    {notice && <p className="ttia-notice tt-ui-status" role="status">{notice}</p>}
                     <form className={`ttia-composer ${snapshot.run?.active || preparingHere ? 'has-status' : ''}`} onSubmit={event => { event.preventDefault(); submit(); }}>
                         {sweep > 0 && <span key={sweep} className="ttia-sweep" aria-hidden="true" />}
                         <StatusStrip snapshot={snapshot} preparing={preparingHere} cancelling={cancelling && snapshot.run?.active === true} />
-                        <textarea ref={input} rows={1} aria-label={tr('composer')} placeholder={tr('placeholder')} value={text} readOnly={preparingHere}
+                        <textarea className="tt-ui-textarea" ref={input} rows={1} aria-label={tr('composer')} placeholder={tr('placeholder')} value={text} readOnly={preparingHere}
                             onChange={event => controller.setDraft(event.target.value)} onKeyDown={event => {
                                 if (event.key === 'Enter' && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey
                                     && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229 && actions.shouldSendOnEnter()) {
@@ -281,8 +280,8 @@ export function AssistantApp({ controller, actions, drawer }: { controller: Assi
                                 <ContextMeter events={snapshot.events} open={menu === 'context'} canCompact={idle && modelReady}
                                     onOpenChange={open => setMenu(open ? 'context' : null)} onCompact={() => { void compact(); }} />
                             </div>
-                            {snapshot.run?.active ? <button type="button" className="ttia-send is-stop" aria-label={tr('stop')} title={tr('stop')} disabled={cancelling} onClick={() => { void stop(); }}><Icon name="stop" /></button>
-                                : <button type="submit" className="ttia-send" aria-label={tr('send')} title={tr('send')} disabled={!canSubmit}><Icon name={preparingHere ? 'ellipsis' : 'arrow-up'} /></button>}
+                            {snapshot.run?.active ? <button type="button" className="ttia-send is-stop tt-ui-button tt-ui-icon-button" aria-label={tr('stop')} title={tr('stop')} disabled={cancelling} onClick={() => { void stop(); }}><Icon name="stop" /></button>
+                                : <button type="submit" className="ttia-send tt-ui-button tt-ui-icon-button" aria-label={tr('send')} title={tr('send')} disabled={!canSubmit}><Icon name={preparingHere ? 'ellipsis' : 'arrow-up'} /></button>}
                         </div>
                     </form>
                     <div className="ttia-input-hint">{tr(preparingHere ? 'preparing' : snapshot.activeRun || preparing ? 'waitingForTask'
@@ -302,3 +301,4 @@ export function AssistantApp({ controller, actions, drawer }: { controller: Assi
         </div>
     </div>;
 }
+

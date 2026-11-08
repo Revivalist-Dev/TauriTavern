@@ -350,11 +350,12 @@
 #bg_tabs .bg_tabs_list {
     display: flex;
     flex-direction: row;
-    gap: 5px;
-    background: none;
-    border: none;
+    gap: 2px;
+    background: var(--tt-tab-surface, var(--SmartThemeBlurTintColor));
+    border: 1px solid var(--tt-tab-border, var(--SmartThemeBorderColor));
+    border-radius: 5px 5px 0 0;
     margin: 5px 0;
-    padding: 0;
+    padding: 4px 4px 0;
     padding-right: 4em;
     position: relative;
 }
@@ -366,25 +367,32 @@
     text-align: center;
     min-width: 8em;
     list-style: none;
-    color: var(--SmartThemeBodyColor);
-    background-color: var(--SmartThemeBlurTintColor);
-    border: 1px solid var(--SmartThemeBorderColor);
-    border-radius: 5px;
+    color: var(--tt-tab-text, var(--SmartThemeBodyColor));
+    background-color: var(--tt-tab-surface-muted, var(--SmartThemeBlurTintColor));
+    border: 1px solid transparent;
+    border-bottom: 2px solid transparent;
+    border-radius: 5px 5px 0 0;
     padding: 0;
     cursor: pointer;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 500;
     margin: 0 !important;
     filter: none;
-    opacity: 0.8;
-    transition: opacity var(--animation-duration-2x);
+    opacity: 1;
+    transition: background-color var(--animation-duration-2x), border-color var(--animation-duration-2x), color var(--animation-duration-2x);
 }
 
 #bg_tabs .bg_tabs_list .bg_tab_button:hover {
-    opacity: 1;
+    background-color: var(--tt-tab-surface-hover, var(--SmartThemeBlurTintColor));
+    color: var(--tt-tab-text, var(--SmartThemeBodyColor));
 }
 
 #bg_tabs .bg_tabs_list .bg_tab_button.ui-tabs-active {
-    background-color: color-mix(in srgb, var(--SmartThemeQuoteColor) 33%, var(--SmartThemeBlurTintColor) 66%);
+    background-color: var(--tt-tab-surface-active, var(--SmartThemeBlurTintColor));
+    border-color: var(--tt-tab-border, var(--SmartThemeBorderColor));
+    border-bottom-color: var(--tt-tab-accent, var(--SmartThemeQuoteColor));
+    font-weight: 600;
+    opacity: 1;
 }
 
 #bg_tabs.ui-widget-content {

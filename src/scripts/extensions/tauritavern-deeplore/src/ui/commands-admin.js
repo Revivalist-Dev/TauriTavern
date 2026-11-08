@@ -50,7 +50,6 @@ export const DLE_COMMANDS = [
     { cmd: '/dle-summarize', desc: 'AI-generate summary fields for all entries missing one' },
     { cmd: '/dle-review', desc: 'Send entire vault to AI for review and feedback' },
     { cmd: '/dle-librarian', desc: 'Open Librarian AI session (new entry, gap review, or vault review)' },
-    { cmd: '/dle-import', desc: 'Import SillyTavern World Info into the gateway vault' },
     { cmd: '/dle-setup', desc: 'Run guided setup wizard' },
     { sep: true, label: 'Per-Chat Overrides' },
     { cmd: '/dle-pin', desc: 'Pin an entry (always inject in this chat)' },

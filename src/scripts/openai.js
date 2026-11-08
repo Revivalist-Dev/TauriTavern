@@ -4379,6 +4379,11 @@ export async function createGenerationParameters(settings, model, type, messages
         'verbosity': getVerbosity(settings),
     };
 
+    const modelOutputCap = getModelMaxOutputTokens(model);
+    if (modelOutputCap && Number(generate_data.max_tokens) > modelOutputCap) {
+        generate_data.max_tokens = modelOutputCap;
+    }
+
     if (typeof settings.secret_id === 'string' && settings.secret_id.trim()) {
         generate_data.secret_id = settings.secret_id.trim();
     }
@@ -7005,6 +7010,25 @@ function onSettingsPresetChange() {
     });
 }
 
+function getModelMaxOutputTokens(model) {
+    const name = String(model || '').trim();
+    // Kimi K2.x on Bedrock is capped at 16K output tokens even though its
+    // context window is 256K. Sending the context size as max_tokens is rejected.
+    if (/kimi/i.test(name)) {
+        return 16384;
+    }
+    return null;
+}
+
+function clampMaxTokensForActiveModel() {
+    const cap = getModelMaxOutputTokens(getChatCompletionModel());
+    if (!cap) return;
+    const requested = Number(oai_settings.openai_max_tokens);
+    if (!Number.isFinite(requested) || requested <= cap) return;
+    oai_settings.openai_max_tokens = cap;
+    $('#openai_max_tokens').val(cap).trigger('input');
+}
+
 function getMaxContextOpenAI(value) {
     if (oai_settings.max_context_unlocked) {
         return unlocked_max;
@@ -7992,6 +8016,7 @@ async function onModelChange() {
     }
 
     saveSettingsDebounced();
+    clampMaxTokensForActiveModel();
     updateFeatureSupportFlags();
     eventSource.emit(event_types.CHATCOMPLETION_MODEL_CHANGED, value);
 }
@@ -8992,6 +9017,7 @@ export function initOpenAI() {
 
     $('#openai_max_tokens').on('input', function () {
         oai_settings.openai_max_tokens = Number($(this).val());
+        clampMaxTokensForActiveModel();
         calculateOpenRouterCost();
         calculateElectronHubCost();
         calculateChutesCost();
@@ -9306,6 +9332,7 @@ export function initOpenAI() {
 
     $('#custom_model_id').on('input', function () {
         oai_settings.custom_model = String($(this).val());
+        clampMaxTokensForActiveModel();
         updateCustomEndpointPreview();
         saveSettingsDebounced();
     });
@@ -9661,4 +9688,5 @@ export function initOpenAI() {
     $('#openai_proxy_access_key_show').on('click', onProxyAccessKeyShowClick);
     $('#customize_additional_parameters').on('click', onCustomizeParametersClick);
     $('#openai_proxy_preset').on('change', onProxyPresetChange);
+    clampMaxTokensForActiveModel();
 }

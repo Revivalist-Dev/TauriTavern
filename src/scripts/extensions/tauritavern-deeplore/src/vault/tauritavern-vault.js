@@ -66,7 +66,7 @@ export async function nativeVaultFetch({ path, method = 'GET', body = null }) {
                 workspaceRoots: [mountId],
             });
             if (hook && hook.allowed === false) {
-                return response(403, { error: hook.results?.[0]?.userMessage || 'Blocked by a Customize hook.' });
+                return response(403, { error: hook.results?.[0]?.userMessage || 'Blocked by an Agent Workspace hook.' });
             }
             const entries = await vault.list(mountId, clean);
             const transformed = window.__TT_EXPERIMENTS__?.transformEntries?.(mountId, clean, entries) ?? entries;
@@ -85,7 +85,7 @@ export async function nativeVaultFetch({ path, method = 'GET', body = null }) {
                 workspaceRoots: [mountId],
             });
             if (hook && hook.allowed === false) {
-                return response(403, { error: hook.results?.[0]?.userMessage || 'Blocked by a Customize hook.' });
+                return response(403, { error: hook.results?.[0]?.userMessage || 'Blocked by an Agent Workspace hook.' });
             }
             if (window.__TT_EXPERIMENTS__?.isRemoved?.(mountId, clean)) {
                 return response(404, { error: 'Not found' });
@@ -125,3 +125,4 @@ export async function nativeVaultFetch({ path, method = 'GET', body = null }) {
         return response(status, { error: message });
     }
 }
+

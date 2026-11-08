@@ -57,11 +57,23 @@ Both forms reuse the same loop and workspace. See [Multi-agent collaboration](Su
 2. Open Extensions → Agent System in the rail, choose `Default Writer`, and turn on Agent Mode.
 3. Send a message as usual, then inspect the tool calls, the workspace, and the commit result in the run history.
 
-The SillyBunny In-Chat Agents UI is installed separately as the `sb-agents` extension; open
-Extensions → In-Chat Agents. It is a different setup UI from the native Agent System and shares the
+The Tauri Tauri Agents UI is installed separately as the `tauri-agents` extension; open
+Extensions → Tauri Agents. It is a different setup UI from the native Agent System and shares the
 same agent runtime.
 
 The default Profile uses the current chat's preset and model. When you need a dedicated writing, proofreading, or research agent, copy a Profile and set its instructions and tools. See [Profiles and presets](ProfilesAndPreset.md) for configuration.
+
+## Global and lorebook agents
+
+Agent definitions are directory-backed and read-only in Tauri Agents. They are separate from Profiles.
+
+- Global agents live in `<TauriTavern data root>/agents/*.md` and are available to every session.
+- Lorebook agents live in `<lorebook mount>/.cursor/agents/*.md`.
+- A mount is a lorebook when its directory basename starts with `lorebook-`; other mounts do not contribute vault agents.
+- `global:` and `vault:` IDs are distinct. If names collide, both entries remain visible with their source badges.
+- Edit directory-backed agents in Agent Workspace, not in Tauri Agents. Tauri Agents rejects save and delete operations for them.
+
+The override resolver combines narrative content overrides with session and group lore blocks. Override folders live under `.narrative/<narrative>/` inside the base lorebook or `lore/` directory. The File Explorer's **Narratives** menu lists them; the **Use** button at the right of each row activates that narrative for the current group or character chat, while **Base vault** clears the override. A blocked or experimentally replaced file is shown in red in the File Explorer; pinned entries keep their pin indicator instead.
 
 ## Where to look for each task
 
@@ -80,3 +92,5 @@ The default Profile uses the current chat's preset and model. When you need a de
 | Verify a change | [Testing](TestingStrategy.md) |
 
 The backend still follows the repository's [crate boundaries](../BackendStructure.md). The agent documentation maintains current behaviour only; look up fields and defaults in the corresponding type or implementation, and the topic pages explain usage and ownership.
+
+

@@ -1,4 +1,4 @@
-<div id="scp-window" class="scp-window" style="display:none">
+<div id="scp-window" class="scp-window" data-tt-ui="panel" style="display:none">
     <div class="scp-rh scp-rh-n"></div><div class="scp-rh scp-rh-e"></div>
     <div class="scp-rh scp-rh-s"></div><div class="scp-rh scp-rh-w"></div>
     <div class="scp-rh scp-rh-ne"></div><div class="scp-rh scp-rh-se"></div>
@@ -7,9 +7,10 @@
     <div class="scp-header" id="scp-drag-handle">
         <div class="scp-header-left">
             <span class="scp-logo">${I.bot}</span>
-            <span class="scp-title">DeepLore Copilot</span>
-            <span class="scp-char-badge" id="scp-char-badge"></span>
-            <span class="scp-provider-badge" id="scp-provider-badge" title="Provider preset"></span>
+            <span class="scp-header-titles">
+                <span class="scp-title">DeepLore Copilot</span>
+                <span class="scp-char-badge" id="scp-char-badge"></span>
+            </span>
         </div>
         <div class="scp-header-right">
             <button class="scp-hbtn scp-search-hbtn" id="scp-search-btn" title="Search in chat (Ctrl+F)">${I.search}</button>
@@ -61,7 +62,7 @@
             <div class="scp-menu-panel" id="scp-menu-panel">
                 <button class="scp-menu-item" id="scp-menu-lb-item">${I.book}<span>Lorebook Manager</span></button>
                 <button class="scp-menu-item" id="scp-menu-char-item">${I.user}<span>Character Manager</span></button>
-                <button class="scp-menu-item" id="scp-menu-customize-item">${I.gear}<span>Customize</span></button>
+                <button class="scp-menu-item" id="scp-menu-customize-item">${I.gear}<span>Agent Workspace</span></button>
             </div>
         </div>
     </div>
@@ -90,6 +91,7 @@
         <button class="scp-action-btn scp-qp-toggle-action" id="scp-qp-toggle-btn" title="Quick Prompts">${I.lightning}</button>
         <button class="scp-action-btn scp-fav-toggle-action" id="scp-fav-btn" title="Starred Messages">${I.star}</button>
         <div class="scp-flex-grow"></div>
+        <span class="scp-provider-badge" id="scp-provider-badge" style="display:none"></span>
         <span class="scp-token-count" id="scp-token-count" title="Estimated payload tokens"></span>
         <span class="scp-msg-count" id="scp-msg-count"></span>
     </div>
@@ -118,14 +120,14 @@
 </div>
 
 <div id="scp-ctx-modal" class="scp-modal-overlay" style="display:none">
-    <div class="scp-modal">
+    <div class="scp-modal" data-tt-ui="panel">
         <div class="scp-modal-header">
             <span>${I.search} Raw Context Payload</span>
             <button class="scp-hbtn scp-hbtn-close" id="scp-modal-close">${I.x}</button>
         </div>
-        <div class="scp-modal-tabs">
-            <button class="scp-modal-tab active" data-tab="formatted">Formatted</button>
-            <button class="scp-modal-tab" data-tab="json">JSON</button>
+        <div class="scp-modal-tabs tt-ui-tablist" data-tt-ui="tabs" role="tablist" aria-label="Message view">
+            <button class="scp-modal-tab tt-ui-tab active" data-tt-ui="tab" data-tab="formatted" role="tab" aria-selected="true">Formatted</button>
+            <button class="scp-modal-tab tt-ui-tab" data-tt-ui="tab" data-tab="json" role="tab" aria-selected="false">JSON</button>
         </div>
         <div class="scp-modal-body">
             <pre id="scp-ctx-formatted" class="scp-ctx-pre"></pre>
@@ -138,7 +140,7 @@
 </div>
 
 <div id="scp-changelog-modal" class="scp-modal-overlay" style="display:none">
-    <div class="scp-modal scp-changelog-modal-box">
+    <div class="scp-modal scp-changelog-modal-box" data-tt-ui="panel">
         <div class="scp-modal-header">
             <span style="display:flex;align-items:center;gap:8px">${I.starFill}<span style="color:var(--scp-text);font-size:13px;font-weight:600">What's New in DeepLore Copilot</span></span>
             <button class="scp-hbtn scp-hbtn-close" id="scp-changelog-close">${I.x}</button>
@@ -146,3 +148,6 @@
         <div class="scp-modal-body scp-changelog-body" id="scp-changelog-body"></div>
     </div>
 </div>
+
+
+

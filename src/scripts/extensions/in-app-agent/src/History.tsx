@@ -79,13 +79,13 @@ export function History({ snapshot, controller, actions, onOpen, onNew }: {
     }
     return <section className="ttia-session-history" aria-label={tr('history')}>
         <div className="ttia-history-toolbar">
-            <label className="ttia-history-search"><Icon name="magnifying-glass" />
-                <input type="search" aria-label={tr('searchConversations')} placeholder={tr('searchConversations')} value={query} onChange={event => setQuery(event.target.value)} />
+            <label className="ttia-history-search tt-ui-search"><Icon name="magnifying-glass" />
+                <input className="tt-ui-input" type="search" aria-label={tr('searchConversations')} placeholder={tr('searchConversations')} value={query} onChange={event => setQuery(event.target.value)} />
             </label>
-            <button type="button" className="ttia-history-new" onClick={onNew}><NewConversationIcon />{tr('newConversation')}</button>
+            <button type="button" className="ttia-history-new tt-ui-button" onClick={onNew}><NewConversationIcon />{tr('newConversation')}</button>
         </div>
         {issue != null && <ErrorNotice error={issue} retry={() => { setError(null); void controller.refreshSessions().catch(setError); }} />}
-        {sessions.length === 0 ? <div className="ttia-history-empty"><Icon name="comments" />
+        {sessions.length === 0 ? <div className="ttia-history-empty tt-ui-empty"><Icon name="comments" />
             <p>{tr(search ? 'noMatchingConversations' : 'noConversations')}</p>
             {!search && <span>{tr('historyEmptyNote')}</span>}
         </div> : <div className="ttia-session-groups">
@@ -98,27 +98,27 @@ export function History({ snapshot, controller, actions, onOpen, onNew }: {
                         const timestamp = session.lastUsedAt ?? session.createdAt;
                         const at = new Date(timestamp);
                         return <li key={session.id} className="ttia-session-row" data-current={current}>
-                            {editing?.id === session.id ? <form className="ttia-session-rename" onSubmit={event => { event.preventDefault(); void rename(); }}>
-                                <input ref={input} aria-label={tr('conversationTitle')} value={editing.title} disabled={working !== null}
+                            {editing?.id === session.id ? <form className="ttia-session-rename tt-ui-toolbar" onSubmit={event => { event.preventDefault(); void rename(); }}>
+                                <input className="tt-ui-input" ref={input} aria-label={tr('conversationTitle')} value={editing.title} disabled={working !== null}
                                     onChange={event => setEditing({ id: session.id, title: event.target.value })} onKeyDown={event => {
                                         if (event.key === 'Escape' && !event.nativeEvent.isComposing) { event.preventDefault(); setEditing(null); }
                                     }} />
-                                <button type="submit" className="ttia-icon-button" aria-label={tr('saveTitle')} disabled={!editing.title.trim() || working !== null || snapshot.busy}><Icon name="check" /></button>
-                                <button type="button" className="ttia-icon-button" aria-label={tr('cancel')} disabled={working !== null} onClick={() => setEditing(null)}><Icon name="xmark" /></button>
+                                <button type="submit" className="ttia-icon-button tt-ui-icon-button" aria-label={tr('saveTitle')} disabled={!editing.title.trim() || working !== null || snapshot.busy}><Icon name="check" /></button>
+                                <button type="button" className="ttia-icon-button tt-ui-icon-button" aria-label={tr('cancel')} disabled={working !== null} onClick={() => setEditing(null)}><Icon name="xmark" /></button>
                             </form> : <>
-                                <button type="button" className="ttia-session-open" aria-current={current ? 'page' : undefined} onClick={() => onOpen(session.id)}>
+                                <button type="button" className="ttia-session-open tt-ui-row tt-ui-row--interactive" aria-current={current ? 'page' : undefined} onClick={() => onOpen(session.id)}>
                                     <strong className="ttia-session-title" title={sessionTitle(session)}>{sessionTitle(session)}</strong>
-                                    {current && <span className="ttia-session-tag">{tr('currentConversation')}</span>}
-                                    {running && <span className="ttia-session-tag is-running"><span className="ttia-pulse" />{tr('runningConversation')}</span>}
+                                    {current && <span className="ttia-session-tag tt-ui-badge">{tr('currentConversation')}</span>}
+                                    {running && <span className="ttia-session-tag is-running tt-ui-badge"><span className="ttia-pulse" />{tr('runningConversation')}</span>}
                                     <time className="ttia-session-time" dateTime={timestamp} title={date.format(at)}>{displayTime(at)}</time>
                                 </button>
                                 <div className="ttia-session-menu" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setMenu(null); }}>
-                                    <button type="button" className="ttia-icon-button" aria-label={tr('conversationActions', { title: sessionTitle(session) })}
+                                    <button type="button" className="ttia-icon-button tt-ui-icon-button" aria-label={tr('conversationActions', { title: sessionTitle(session) })}
                                         aria-expanded={menu === session.id} disabled={working !== null || snapshot.busy}
                                         onKeyDown={closeMenu} onClick={() => setMenu(menu === session.id ? null : session.id)}><Icon name="ellipsis" /></button>
-                                    {menu === session.id && <div className="ttia-session-menu-items">
-                                        <button type="button" onKeyDown={closeMenu} onClick={() => { setMenu(null); setEditing({ id: session.id, title: sessionTitle(session) }); }}><Icon name="pen" />{tr('renameConversation')}</button>
-                                        <button type="button" className="ttia-danger" disabled={running} title={running ? tr('stopBeforeDelete') : undefined}
+                                    {menu === session.id && <div className="ttia-session-menu-items tt-ui-menu">
+                                        <button type="button" className="tt-ui-menu__item" onKeyDown={closeMenu} onClick={() => { setMenu(null); setEditing({ id: session.id, title: sessionTitle(session) }); }}><Icon name="pen" />{tr('renameConversation')}</button>
+                                        <button type="button" className="ttia-danger tt-ui-menu__item" disabled={running} title={running ? tr('stopBeforeDelete') : undefined}
                                             onKeyDown={closeMenu} onClick={() => { void remove(session); }}><Icon name="trash-can" />{tr('deleteConversation')}</button>
                                     </div>}
                                 </div>
@@ -130,3 +130,7 @@ export function History({ snapshot, controller, actions, onOpen, onNew }: {
         </div>}
     </section>;
 }
+
+
+
+

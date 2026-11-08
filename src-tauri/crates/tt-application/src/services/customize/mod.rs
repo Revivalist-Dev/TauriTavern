@@ -34,14 +34,16 @@ struct NativeStore {
 pub struct CustomizeService {
     root: Arc<PathBuf>,
     plugin_roots: Arc<Vec<PathBuf>>,
+    global_agents_root: Arc<PathBuf>,
     store: Arc<RwLock<NativeStore>>,
 }
 
 impl CustomizeService {
-    pub fn new(root: PathBuf, plugin_roots: Vec<PathBuf>) -> Self {
+    pub fn new(root: PathBuf, plugin_roots: Vec<PathBuf>, global_agents_root: PathBuf) -> Self {
         Self {
             root: Arc::new(root),
             plugin_roots: Arc::new(plugin_roots),
+            global_agents_root: Arc::new(global_agents_root),
             store: Arc::new(RwLock::new(NativeStore::default())),
         }
     }
@@ -103,7 +105,10 @@ impl CustomizeService {
     pub async fn snapshot(&self, vault_root: Option<&str>) -> Result<CustomizeSnapshot, String> {
         let mut store = self.store().await?;
         let mut warnings = Vec::new();
+        let (global_items, global_warnings) = self.scan_global_agents().await;
+        warnings.extend(global_warnings);
         let mut items = std::mem::take(&mut store.items);
+        items.extend(global_items);
         let mut hook_config = store.hook_config.clone();
         let mut vault_relative_hooks = None;
 
@@ -143,6 +148,29 @@ impl CustomizeService {
             hook_config,
             hook_trusted,
         })
+    }
+
+    async fn scan_global_agents(&self) -> (Vec<CustomizationItem>, Vec<CustomizeWarning>) {
+        let mut items = Vec::new();
+        let mut warnings = Vec::new();
+        let root = self.global_agents_root.as_ref();
+        self.scan_markdown_dir(
+            root,
+            root,
+            CustomizationKind::Agent,
+            &mut items,
+            &mut warnings,
+            false,
+        )
+        .await;
+        for item in &mut items {
+            item.id = format!("global:{}", item.id);
+            item.scope = CustomizationScope::GlobalAgents;
+            item.source = CustomizationSource::Vault;
+            item.metadata
+                .insert("agentSource".to_string(), "global".to_string());
+        }
+        (items, warnings)
     }
 
     async fn scan_plugins(&self) -> (Vec<CustomizationItem>, Vec<CustomizeWarning>) {
@@ -363,15 +391,17 @@ impl CustomizeService {
         )
         .await;
         let agents_dir = cursor.join("agents");
-        self.scan_markdown_dir(
-            root,
-            &agents_dir,
-            CustomizationKind::Agent,
-            &mut items,
-            &mut warnings,
-            false,
-        )
-        .await;
+        if is_lorebook_root(root) {
+            self.scan_markdown_dir(
+                root,
+                &agents_dir,
+                CustomizationKind::Agent,
+                &mut items,
+                &mut warnings,
+                false,
+            )
+            .await;
+        }
         let commands_dir = cursor.join("commands");
         self.scan_markdown_dir(
             root,
@@ -510,6 +540,36 @@ impl CustomizeService {
             request.surfaces.clone()
         };
         let mut store = self.store().await?;
+        if request.scope == CustomizationScope::GlobalAgents {
+            if request.kind != CustomizationKind::Agent {
+                return Err("the global agents directory only stores agents".to_string());
+            }
+            let path = self
+                .global_agents_root
+                .join(format!("{}.md", parsing::slugify(&request.name)));
+            let body = format_body(&request, &surfaces);
+            tokio::fs::create_dir_all(self.global_agents_root.as_ref())
+                .await
+                .map_err(|error| format!("create global agents directory: {error}"))?;
+            tokio::fs::write(&path, &body)
+                .await
+                .map_err(|error| format!("write global agent: {error}"))?;
+            let body = self
+                .scan_global_agents()
+                .await
+                .0
+                .into_iter()
+                .find(|item| {
+                    item.path
+                        .as_deref()
+                        .map(|item_path| {
+                            item_path.ends_with(&format!("{}.md", parsing::slugify(&request.name)))
+                        })
+                        .unwrap_or(false)
+                })
+                .ok_or_else(|| "saved global agent could not be scanned".to_string())?;
+            return Ok(body);
+        }
         if request.scope == CustomizationScope::Vault {
             let root = request
                 .vault_root
@@ -578,6 +638,22 @@ impl CustomizeService {
             self.save_store(&store).await?;
             *self.store.write().await = store;
             return Ok(());
+        }
+        if id.starts_with("global:") {
+            let item = self
+                .scan_global_agents()
+                .await
+                .0
+                .into_iter()
+                .find(|item| item.id == id)
+                .ok_or_else(|| "global agent not found".to_string())?;
+            let path = self.resolve_vault_path(
+                self.global_agents_root.as_ref(),
+                item.path.as_deref().unwrap_or(""),
+            )?;
+            return tokio::fs::remove_file(&path)
+                .await
+                .map_err(|error| format!("delete global agent: {error}"));
         }
         let Some(vault_root) = vault_root.map(str::trim).filter(|value| !value.is_empty()) else {
             return Err("customization not found".to_string());
@@ -707,8 +783,14 @@ impl CustomizeService {
                 "hook configuration is not trusted; trust it in Customize > Hooks".to_string(),
             );
         }
-        let payload: HookEventPayload =
+        let mut payload: HookEventPayload =
             hooks::payload_from_value(&request.event, &request.surface, request.payload.clone());
+        // Relative hook commands resolve from the active vault, not the Tauri process cwd.
+        if payload.cwd.is_empty() {
+            if let Some(root) = request.vault_root.as_deref() {
+                payload.cwd = root.to_string();
+            }
+        }
         let results = hooks::dispatch(&config, &payload)
             .await
             .map_err(|error| error.to_string())?;
@@ -910,6 +992,13 @@ fn format_body(request: &CustomizeSaveRequest, surfaces: &[CustomizationSurface]
     header
 }
 
+fn is_lorebook_root(root: &Path) -> bool {
+    root.file_name()
+        .and_then(|name| name.to_str())
+        .map(|name| name.to_ascii_lowercase().starts_with("lorebook-"))
+        .unwrap_or(false)
+}
+
 fn merge_items(items: Vec<CustomizationItem>) -> Vec<CustomizationItem> {
     let mut merged = BTreeMap::<String, CustomizationItem>::new();
     for item in items {
@@ -938,9 +1027,10 @@ fn scope_rank(scope: CustomizationScope) -> u8 {
     match scope {
         CustomizationScope::Plugin => 0,
         CustomizationScope::Global => 1,
-        CustomizationScope::Profile => 2,
-        CustomizationScope::Character => 3,
-        CustomizationScope::Vault => 4,
+        CustomizationScope::GlobalAgents => 2,
+        CustomizationScope::Profile => 3,
+        CustomizationScope::Character => 4,
+        CustomizationScope::Vault => 5,
     }
 }
 
@@ -1011,7 +1101,7 @@ mod tests {
         )
         .await
         .unwrap();
-        let service = CustomizeService::new(root.join("_store"), Vec::new());
+        let service = CustomizeService::new(root.join("_store"), Vec::new(), root.join("agents"));
         let snapshot = service
             .snapshot(Some(root.to_str().unwrap()))
             .await
@@ -1028,5 +1118,69 @@ mod tests {
             .unwrap();
         assert_eq!(context.rules.len(), 1);
         let _ = tokio::fs::remove_dir_all(root).await;
+    }
+
+    #[tokio::test]
+    async fn scans_global_agents_and_only_lorebook_vault_agents() {
+        let base = std::env::temp_dir().join(format!("tt-agents-{}", uuid::Uuid::new_v4()));
+        let global = base.join("agents");
+        let lorebook = base.join("lorebook-umamusume");
+        let folder = base.join("notes");
+        let lore_agents = lorebook.join(".cursor").join("agents");
+        let folder_agents = folder.join(".cursor").join("agents");
+        tokio::fs::create_dir_all(&global).await.unwrap();
+        tokio::fs::create_dir_all(&lore_agents).await.unwrap();
+        tokio::fs::create_dir_all(&folder_agents).await.unwrap();
+        tokio::fs::write(
+            global.join("global.md"),
+            "---\nname: Global\ndescription: Shared\n---\nGlobal helper.",
+        )
+        .await
+        .unwrap();
+        tokio::fs::write(
+            lore_agents.join("uma.md"),
+            "---\nname: Uma\ndescription: Vault\n---\nVault helper.",
+        )
+        .await
+        .unwrap();
+        tokio::fs::write(
+            folder_agents.join("ignored.md"),
+            "---\nname: Ignored\n---\nNot a lorebook.",
+        )
+        .await
+        .unwrap();
+
+        let service = CustomizeService::new(base.join("_store"), Vec::new(), global);
+
+        let lore = service
+            .snapshot(Some(lorebook.to_str().unwrap()))
+            .await
+            .unwrap();
+        let lore_agents: Vec<_> = lore
+            .items
+            .iter()
+            .filter(|item| item.kind == CustomizationKind::Agent)
+            .collect();
+        assert_eq!(lore_agents.len(), 2);
+        assert!(lore_agents.iter().any(|item| item.scope == CustomizationScope::GlobalAgents && item.name == "Global"));
+        assert!(
+            lore_agents
+                .iter()
+                .any(|item| item.scope == CustomizationScope::Vault && item.name == "Uma")
+        );
+
+        let plain = service
+            .snapshot(Some(folder.to_str().unwrap()))
+            .await
+            .unwrap();
+        let plain_agents: Vec<_> = plain
+            .items
+            .iter()
+            .filter(|item| item.kind == CustomizationKind::Agent)
+            .collect();
+        assert_eq!(plain_agents.len(), 1);
+        assert_eq!(plain_agents[0].name, "Global");
+
+        let _ = tokio::fs::remove_dir_all(base).await;
     }
 }

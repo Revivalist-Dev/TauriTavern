@@ -356,6 +356,8 @@ All page-to-backend paths are relative to a mount. The `tt-adapter-local-vault` 
 
 `body.tt-fe-open` shrinks and re-centers `#sheld` and `#top-bar` via `--tt-fe-width`; the dock's left edge is a resizer. Below 900px the dock overlays instead. Run `pnpm run test:layout` after changing the dock or the explorer; the suite covers geometry, resizing, tree/cards, thumbnails, create/rename/delete and drag/drop.
 
+The dock is also a tabbed right-hand panel. A center tab's move button (the split-columns icon) re-homes that tab into the dock and opens the dock. The dock's tab strip then shows **Explorer** plus every moved file tab. Selecting **Explorer** restores the vault tree; selecting a file tab shows the same editor in the dock. Each moved tab has actions to return it to the center strip or close it. Moving the last right-panel tab back or closing it hides the strip and leaves the explorer in place.
+
 ## 8. Compatibility layer strategy
 
 - `src/tauri-main.js`: the new main entry (recommended).

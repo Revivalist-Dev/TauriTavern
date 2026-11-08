@@ -2,11 +2,13 @@
 import { characterAvatarFileNameFromStem } from '../../main/services/characters/character-identity.js';
 import { estimateTokenCount } from '../../main/brokers/token-count-broker.js';
 
-/** Approximate the native tokenizer for browser-only fixtures. */
+/** Approximate the native tokenizer for browser-only fixtures. @param {any[]} requests */
 function estimateBatchTokens(requests) {
+    /** @param {number} total @param {any} message */
+    const addMessageTokens = (total, message) => total + estimateTokenCount(message?.content) + 4;
     return (Array.isArray(requests) ? requests : []).map((request) => {
         const messages = Array.isArray(request?.messages) ? request.messages : [];
-        return messages.reduce((total, message) => total + estimateTokenCount(message?.content) + 4, 0);
+        return messages.reduce(addMessageTokens, 0);
     });
 }
 

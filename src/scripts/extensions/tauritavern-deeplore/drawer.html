@@ -99,32 +99,32 @@
 <div id="dle-drawer-tabs" class="dle-drawer-zone dle-zone-tabs">
 
     <!-- Tab bar -->
-    <div class="dle-tab-bar" role="tablist" aria-label="DeepLore panels" aria-orientation="horizontal">
-        <button type="button" class="dle-tab active" id="dle-tab-injection" data-tab="injection" role="tab"
+    <div class="dle-tab-bar tt-ui-tablist" data-tt-ui="tabs" role="tablist" aria-label="DeepLore panels" aria-orientation="horizontal">
+        <button type="button" class="dle-tab tt-ui-tab active" data-tt-ui="tab" id="dle-tab-injection" data-tab="injection" role="tab"
                 aria-selected="true" aria-controls="dle-panel-injection" aria-label="Injection — see which lore was included in the last message and why" tabindex="0">
             <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
             <span class="dle-tab-text">Injection</span>
             <span class="dle-tab-badge" data-badge="injection" aria-hidden="true"></span>
         </button>
-        <button type="button" class="dle-tab" id="dle-tab-browse" data-tab="browse" role="tab"
+        <button type="button" class="dle-tab tt-ui-tab" data-tt-ui="tab" id="dle-tab-browse" data-tab="browse" role="tab"
                 aria-selected="false" aria-controls="dle-panel-browse" aria-label="Browse — search and manage all lore entries in your vault" tabindex="-1">
             <i class="fa-solid fa-book-open" aria-hidden="true"></i>
             <span class="dle-tab-text">Browse</span>
             <span class="dle-tab-badge" data-badge="browse" aria-hidden="true"></span>
         </button>
-        <button type="button" class="dle-tab" id="dle-tab-gating" data-tab="gating" role="tab"
+        <button type="button" class="dle-tab tt-ui-tab" data-tt-ui="tab" id="dle-tab-gating" data-tab="gating" role="tab"
                 aria-selected="false" aria-controls="dle-panel-gating" aria-label="Filters — set contextual gating fields" tabindex="-1">
             <i class="fa-solid fa-filter" aria-hidden="true"></i>
             <span class="dle-tab-text">Filters</span>
             <span class="dle-tab-badge" data-badge="gating" aria-hidden="true"></span>
         </button>
-        <button type="button" class="dle-tab" id="dle-tab-librarian" data-tab="librarian" role="tab"
+        <button type="button" class="dle-tab tt-ui-tab" data-tt-ui="tab" id="dle-tab-librarian" data-tab="librarian" role="tab"
                 aria-selected="false" aria-controls="dle-panel-librarian" aria-label="Librarian — lore gap inbox and draft review" tabindex="-1">
             <i class="fa-solid fa-book-bookmark" aria-hidden="true"></i>
             <span class="dle-tab-text">Librarian</span>
             <span class="dle-tab-badge dle-librarian-badge" data-badge="librarian" aria-hidden="true"></span>
         </button>
-        <button type="button" class="dle-tab" id="dle-tab-tools" data-tab="tools" role="tab"
+        <button type="button" class="dle-tab tt-ui-tab" data-tt-ui="tab" id="dle-tab-tools" data-tab="tools" role="tab"
                 aria-selected="false" aria-controls="dle-panel-tools" aria-label="Tools — diagnostics, AI tools, and data management" tabindex="-1">
             <i class="fa-solid fa-toolbox" aria-hidden="true"></i>
             <span class="dle-tab-text">Tools</span>
@@ -178,11 +178,8 @@
                     <button type="button" class="menu_button dle-empty-cta-btn" data-empty-action="setup" title="Guided setup wizard">
                         <i class="fa-solid fa-hat-wizard" aria-hidden="true"></i> <span>Open Setup Wizard</span>
                     </button>
-                    <button type="button" class="menu_button dle-empty-cta-btn" data-empty-action="import-wi" title="Import World Info (lorebook) entries from SillyTavern to Obsidian">
-                        <i class="fa-solid fa-file-import" aria-hidden="true"></i> <span>Import from World Info</span>
-                    </button>
                 </div>
-                <p class="dle-empty-commands dle-text-xs dle-muted">Prefer commands? Use <code>/dle-setup</code> or <code>/dle-import</code>.</p>
+                <p class="dle-empty-commands dle-text-xs dle-muted">Prefer commands? Use <code>/dle-setup</code>.</p>
             </div>
         </div>
         <!-- Entry Timers (cooldown, decay) — collapsible -->
@@ -290,11 +287,8 @@
                     <button type="button" class="menu_button dle-empty-cta-btn" data-empty-action="setup" title="Guided setup wizard">
                         <i class="fa-solid fa-hat-wizard" aria-hidden="true"></i> <span>Open Setup Wizard</span>
                     </button>
-                    <button type="button" class="menu_button dle-empty-cta-btn" data-empty-action="import-wi" title="Import World Info (lorebook) entries from SillyTavern to Obsidian">
-                        <i class="fa-solid fa-file-import" aria-hidden="true"></i> <span>Import from World Info</span>
-                    </button>
                 </div>
-                <p class="dle-empty-commands dle-text-xs dle-muted">Prefer commands? Use <code>/dle-setup</code> or <code>/dle-import</code>.</p>
+                <p class="dle-empty-commands dle-text-xs dle-muted">Prefer commands? Use <code>/dle-setup</code>.</p>
             </div>
         </div>
         <!-- Empty state: filters returned no results -->
@@ -459,9 +453,6 @@
         <div class="dle-tools-group">
             <h3 class="dle-tools-group-label">Vault Ops</h3>
             <div class="dle-tools-grid">
-                <button type="button" class="menu_button dle-tool-btn" data-action="import-wi" title="Import World Info (lorebook) entries from SillyTavern to Obsidian">
-                    <i class="fa-solid fa-file-import" aria-hidden="true"></i> <span>Import World Info</span>
-                </button>
                 <button type="button" class="menu_button dle-tool-btn" data-action="graph" title="Visualize entry relationships">
                     <i class="fa-solid fa-diagram-project" aria-hidden="true"></i> <span>Graph</span>
                 </button>
@@ -560,3 +551,4 @@
 
 <!-- Screen reader announcements (visually hidden, announced via aria-live) -->
 <div id="dle-drawer-live" class="dle-sr-only" aria-live="polite" aria-atomic="true"></div>
+

@@ -3,6 +3,7 @@ import { keepFocus, setAriaRelation } from './dom-handlers.js';
 import { ChatInputFocusIntent, focusChatInput } from './chat-input-focus.js';
 import { Fuse } from '../lib.js';
 import { isInlineDrawerOpen, setInlineDrawerOpen } from './drawers.js';
+import { hydrateGroupSessionMetadata, syncGroupSessionMetadata } from './tauri/chat/session-workspace.js';
 
 import {
     shuffle,
@@ -129,6 +130,36 @@ let fav_grp_checked = false;
 let openGroupId = null;
 let newGroupMembers = [];
 
+window.addEventListener('tt:session-workspace-lore-changed', (event) => {
+    const { key, value } = event.detail || {};
+    if (!key) return;
+    if (value === undefined) {
+        delete chat_metadata[key];
+    } else {
+        chat_metadata[key] = value;
+    }
+    updateChatMetadata(chat_metadata, true);
+    if (selected_group) {
+        void saveGroupMetadata(selected_group);
+    }
+});
+
+document.addEventListener('click', (event) => {
+    const button = event.target instanceof Element
+        ? event.target.closest('#group_session_workspace')
+        : null;
+    if (!button || !selected_group) return;
+    const group = groups.find((candidate) => candidate.id === selected_group);
+    if (!group?.chat_id) return;
+    window.dispatchEvent(new CustomEvent('tt:open-session-workspace', {
+        detail: {
+            groupId: selected_group,
+            chatId: group.chat_id,
+            groupName: group.name || '',
+        },
+    }));
+});
+
 export const group_activation_strategy = {
     NATURAL: 0,
     LIST: 1,
@@ -211,7 +242,7 @@ async function regenerateGroup() {
  * @param {string} chatId Chat ID
  * @returns {Promise<ChatFile>} Array of chat messages
  */
-async function loadGroupChat(chatId, { allowNotFound = false, coldSwipes = false } = {}) {
+async function loadGroupChat(chatId, { allowNotFound = false, coldSwipes = false, groupId = null } = {}) {
     const normalizedChatId = String(chatId || '').trim();
     if (!normalizedChatId) {
         if (allowNotFound) {
@@ -220,7 +251,19 @@ async function loadGroupChat(chatId, { allowNotFound = false, coldSwipes = false
         throw new Error('Invalid group chat payload request');
     }
 
-    return loadGroupChatPayload({ id: normalizedChatId, allowNotFound, coldSwipes });
+    const payload = await loadGroupChatPayload({ id: normalizedChatId, allowNotFound, coldSwipes });
+    if (groupId && payload?.[0]?.chat_metadata && typeof payload[0].chat_metadata === 'object') {
+        try {
+            payload[0].chat_metadata = await hydrateGroupSessionMetadata(
+                groupId,
+                normalizedChatId,
+                payload[0].chat_metadata,
+            );
+        } catch (error) {
+            console.error('TauriTavern: Failed to hydrate session workspace:', error);
+        }
+    }
+    return payload;
 }
 
 async function hasPersistedGroupChats(groupId) {
@@ -298,7 +341,7 @@ export async function getGroupChat(groupId, reload = false, { allowNewChat = fal
     }
 
     const chat_id = group.chat_id;
-    const data = await loadGroupChat(chat_id, { allowNotFound: allowNewChat, coldSwipes: coldSwipesEnabled() });
+    const data = await loadGroupChat(chat_id, { allowNotFound: allowNewChat, coldSwipes: coldSwipesEnabled(), groupId });
     try {
         if (!isStillActive()) {
             return;
@@ -712,10 +755,16 @@ async function saveGroupChat(groupId, shouldSaveGroup, force = false, commitReas
 export function saveGroupMetadata(groupId) {
     return enqueueChatSave(() => runChatSave({
         title: t`Group Chat could not be saved`,
-        save: () => saveGroupChatMetadata({
-            id: groups.find(x => x.id == groupId).chat_id,
-            chatMetadata: persistedChatMetadata(),
-        }),
+        save: async () => {
+            const chatId = groups.find(x => x.id == groupId).chat_id;
+            const chatMetadata = persistedChatMetadata();
+            try {
+                await syncGroupSessionMetadata(groupId, chatId, chatMetadata);
+            } catch (error) {
+                console.error('TauriTavern: Failed to sync session workspace:', error);
+            }
+            await saveGroupChatMetadata({ id: chatId, chatMetadata });
+        },
         recover: () => saveGroupChatUnsafe(groupId, true, true),
     }));
 }
@@ -737,6 +786,11 @@ async function saveGroupChatUnsafe(groupId, shouldSaveGroup, force = false, comm
     await runChatSave({
         title: t`Group Chat could not be saved`,
         save: async () => {
+            try {
+                await syncGroupSessionMetadata(groupId, chatId, chatHeader.chat_metadata);
+            } catch (error) {
+                console.error('TauriTavern: Failed to sync session workspace:', error);
+            }
             await saveGroupChatPayload({ id: chatId, payload: [chatHeader, ...chat], force, commitReason });
             if (shouldSaveGroup) {
                 await editGroup(groupId, false, false);

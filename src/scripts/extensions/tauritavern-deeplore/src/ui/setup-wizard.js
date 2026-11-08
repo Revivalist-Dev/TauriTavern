@@ -8,11 +8,10 @@ import { setIndexTimestamp } from '../state.js';
 import { testConnection, writeNote, writeFieldDefinitions, buildConnectionGuidanceHtml } from '../vault/vault-api.js';
 import { buildIndex } from '../vault/vault.js';
 import { serializeFieldDefinitions, DEFAULT_FIELD_DEFINITIONS } from '../fields.js';
-import { parseWorldInfoJson, importEntries } from '../vault/import.js';
 import { trf, tr } from '../strings.js';
 import { EXTENSION_REF } from '../ext-path.js';
 
-const TOTAL_PAGES = 9;
+const TOTAL_PAGES = 8;
 
 const PRESETS = {
     small:  { scanDepth: 4,  maxEntries: 10, budget: 2048 },
@@ -23,7 +22,6 @@ const PRESETS = {
 let currentPage = 1;
 let connectionVerified = false;
 let searchMode = 'keywords';
-let importResult = null;
 let $wizard = null;
 // SKIP/RESUME: set true the moment the user reaches Finish (applyWizardSettings). Lets the
 // close handler distinguish "completed" from "dismissed via X / Esc / Finish-later" so we
@@ -81,7 +79,6 @@ export async function showSetupWizard(startPage = 1) {
     currentPage = 1;
     connectionVerified = false;
     searchMode = 'keywords';
-    importResult = null;
     wizardFinished = false;
 
     await callGenericPopup(html, POPUP_TYPE.DISPLAY, '', {
@@ -105,7 +102,6 @@ export async function showSetupWizard(startPage = 1) {
             wirePresets();
             wireSearchMode();
             wireVaultStructure();
-            wireImport();
             wireDoneActions();
             wireStepIndicator();
             wireSkip();
@@ -241,7 +237,6 @@ function goToPage(page) {
     if (page === 5) loadAiProfiles();
     if (page === 6) wireLibrarianToggle();
     if (page === 7) wireVaultStructurePage();
-    if (page === 8) loadImportLorebooks();
     if (page === 9) buildSummary();
 
     // a11y (FOCUS-ON-ADVANCE): move focus to the newly-active panel so keyboard/SR users
@@ -527,15 +522,6 @@ function wireWelcomeFork() {
             case 'connect':
                 goToPage(2);
                 $wizard.find('#dle-wiz-host').trigger('focus');
-                break;
-            case 'import':
-                // Import lives on Page 8. Mark the skipped intermediate steps complete so
-                // the step-dots stay navigable and Prev walks back normally; connection is
-                // still re-gated at Finish (#16) so this can't silently enable an unverified vault.
-                for (let i = 2; i < 8; i++) markStepComplete(i);
-                goToPage(8);
-                $wizard.find('input[name="dle-wiz-import-method"][value="lorebook"]')
-                    .prop('checked', true).trigger('change');
                 break;
         }
     });
@@ -904,152 +890,6 @@ async function runVaultStructureCreation() {
     wizardState.sessionsOutcome = outcome.sessions;
 }
 
-let importJsonData = '';
-
-function wireImport() {
-    $wizard.find('input[name="dle-wiz-import-method"]').on('change', function () {
-        const method = $(this).val();
-        $wizard.find('#dle-wiz-import-lb-fields').toggle(method === 'lorebook');
-        $wizard.find('#dle-wiz-import-file-fields').toggle(method === 'file');
-        $wizard.find('#dle-wiz-import-paste-fields').toggle(method === 'paste');
-        $wizard.find('#dle-wiz-import-folder-row').toggle(method !== 'skip');
-        $wizard.find('#dle-wiz-import-action').toggle(method !== 'skip');
-        $wizard.find('#dle-wiz-import-result').hide();
-        importJsonData = '';
-    });
-
-    $wizard.find('#dle-wiz-import-browse').on('click', () => {
-        $wizard.find('#dle-wiz-import-file')[0]?.click();
-    });
-    $wizard.find('#dle-wiz-import-file').on('change', function () {
-        const file = this.files?.[0];
-        if (!file) return;
-        $wizard.find('#dle-wiz-import-file-name').text(file.name);
-        const reader = new FileReader();
-        reader.onload = () => { importJsonData = /** @type {string} */ (reader.result); };
-        reader.onerror = () => { toastr.error(tr('dle_wiz_import_read_file_failed', 'Failed to read file.'), 'DeepLore'); };
-        reader.readAsText(file);
-    });
-
-    $wizard.find('#dle-wiz-import-lorebook').on('change', async function () {
-        const name = $(this).val();
-        if (!name) { importJsonData = ''; return; }
-        try {
-            const { loadWorldInfo } = await import('../../../../../world-info.js');
-            const data = await loadWorldInfo(name);
-            if (!data) {
-                // ${0}=lorebook name. English: 'Failed to load lorebook "${0}".'
-                toastr.error(trf('dle_wiz_import_load_lorebook_failed', name), 'DeepLore');
-                return;
-            }
-            importJsonData = JSON.stringify(data, null, 2);
-        } catch (err) {
-            console.error('[DLE] Wizard loadWorldInfo error:', err);
-            toastr.error(tr('dle_wiz_import_load_lorebook_error', 'Couldn\'t load that lorebook. Try a different one or paste the JSON directly.'), 'DeepLore');
-        }
-    });
-
-    $wizard.find('#dle-wiz-import-btn').on('click', async function () {
-        const $btn = $(this);
-        const $result = $wizard.find('#dle-wiz-import-result');
-        const method = $wizard.find('input[name="dle-wiz-import-method"]:checked').val();
-
-        let jsonText = '';
-        if (method === 'paste') {
-            jsonText = $wizard.find('#dle-wiz-import-json').val()?.trim() || '';
-        } else {
-            jsonText = importJsonData;
-        }
-
-        if (!jsonText) {
-            toastr.warning(tr('dle_wiz_import_no_data', 'No data to import. Select a lorebook, upload a file, or paste JSON first.'), 'DeepLore');
-            return;
-        }
-
-        let entries, source;
-        try {
-            ({ entries, source } = parseWorldInfoJson(jsonText));
-        } catch (err) {
-            $result.html(`<i class="fa-solid fa-circle-xmark"></i> ${escapeHtml(err.message)}`)
-                .removeClass('dle-wizard-result-success').addClass('dle-wizard-result-error').show();
-            return;
-        }
-
-        if (!entries || entries.length === 0) {
-            $result.html('<i class="fa-solid fa-circle-info"></i> ' + tr('dle_wiz_import_no_entries', 'No entries found in the provided data.'))
-                .removeClass('dle-wizard-result-success dle-wizard-result-error').show();
-            return;
-        }
-
-        const folder = $wizard.find('#dle-wiz-import-folder').val()?.trim() || '';
-
-        $btn.prop('disabled', true).html('<goo-spinner size="22" color="currentColor" aria-hidden="true"></goo-spinner> ' + tr('dle_wiz_importing', 'Importing…'));
-        // ${0}=done, ${1}=total. English: "Importing ${0}/${1}…"
-        $result.html('<goo-spinner size="22" color="currentColor" aria-hidden="true"></goo-spinner> ' + escapeHtml(trf('dle_wiz_importing_progress', 0, entries.length)))
-            .removeClass('dle-wizard-result-success dle-wizard-result-error').show();
-
-        // #14: pass the wizard's live connection — on first run nothing is saved yet,
-        // so importEntries' default getPrimaryVault() would hit the empty/default vault (401).
-        const wizVault = {
-            host: $wizard.find('#dle-wiz-host').val().trim() || '127.0.0.1',
-            port: parseInt($wizard.find('#dle-wiz-port').val(), 10) || 27123,
-            apiKey: $wizard.find('#dle-wiz-api-key').val().trim(),
-            https: $wizard.find('#dle-wiz-https').is(':checked'),
-        };
-
-        try {
-            const result = await importEntries(entries, folder, (done, total) => {
-                // ${0}=done, ${1}=total. English: "Importing ${0}/${1}…"
-                $result.html('<goo-spinner size="22" color="currentColor" aria-hidden="true"></goo-spinner> ' + escapeHtml(trf('dle_wiz_importing_progress', done, total)));
-            }, { vault: wizVault });
-
-            importResult = result;
-            // ${0}=renamed count. English: " (${0} renamed to avoid overwrite)"
-            const renamedNote = result.renamed > 0 ? trf('dle_wiz_import_renamed_note', result.renamed) : '';
-            if (result.failed > 0) {
-                // source pre-escaped (rendered via .html); translated template carries no markup so trf output is not re-escaped.
-                // ${0}=imported, ${1}=total, ${2}=source, ${3}=renamedNote, ${4}=failed.
-                // English: 'Imported ${0}/${1} from "${2}"${3}. ${4} failed.'
-                $result.html('<i class="fa-solid fa-triangle-exclamation"></i> ' + trf('dle_wiz_import_result_failed', result.imported, entries.length, escapeHtml(source), renamedNote, result.failed))
-                    .addClass('dle-wizard-result-error').removeClass('dle-wizard-result-success').show();
-            } else {
-                // ${0}=imported, ${1}=source, ${2}=renamedNote. English: 'Imported ${0} entries from "${1}"${2}'
-                $result.html('<i class="fa-solid fa-circle-check"></i> ' + trf('dle_wiz_import_result_success', result.imported, escapeHtml(source), renamedNote))
-                    .addClass('dle-wizard-result-success').removeClass('dle-wizard-result-error').show();
-            }
-            // L-23: re-enable on success too (catch branch already does) so a user can
-            // import a second lorebook/file in the same wizard session without the button
-            // staying permanently disabled.
-            $btn.html('<i class="fa-solid fa-circle-check"></i> ' + tr('dle_wiz_import_complete_btn', 'Import Complete')).prop('disabled', false);
-        } catch (err) {
-            // ${0}=error message. English: "Import error: ${0}"
-            $result.html('<i class="fa-solid fa-circle-xmark"></i> ' + escapeHtml(trf('dle_wiz_import_error', err.message)))
-                .addClass('dle-wizard-result-error').removeClass('dle-wizard-result-success').show();
-            $btn.html('<i class="fa-solid fa-file-import"></i> ' + tr('dle_setup_wizard_import_entries_btn', 'Import Entries')).prop('disabled', false);
-        }
-    });
-}
-
-async function loadImportLorebooks() {
-    const $select = $wizard.find('#dle-wiz-import-lorebook');
-    try {
-        const { world_names } = await import('../../../../../world-info.js');
-        if (!Array.isArray(world_names) || world_names.length === 0) {
-            $select.html('<option value="">' + escapeHtml(tr('dle_wiz_import_no_lorebooks_opt', 'No lorebooks available')) + '</option>');
-            return;
-        }
-        let options = '<option value="">' + escapeHtml(tr('dle_wiz_import_select_lorebook_opt', '— Select a lorebook —')) + '</option>';
-        for (const name of world_names) {
-            options += `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
-        }
-        $select.html(options);
-    } catch (err) {
-        // BUG-112: log so dropdown load failures are diagnosable.
-        console.debug('[DLE] Wizard lorebook dropdown load failed:', err?.message);
-        $select.html('<option value="">' + escapeHtml(tr('dle_wiz_import_load_lorebooks_failed_opt', 'Failed to load lorebooks')) + '</option>');
-    }
-}
-
 function buildSummary() {
     const $summary = $wizard.find('#dle-wiz-summary');
     const vaultName = $wizard.find('#dle-wiz-vault-name').val().trim() || tr('dle_wiz_summary_default_vault', 'Primary');
@@ -1093,11 +933,6 @@ function buildSummary() {
 
     if (fieldsCreated) items.push('<i class="fa-solid fa-circle-check"></i> ' + tr('dle_wiz_summary_fields_created', 'Field definitions created'));
     if (sessionsCreated) items.push('<i class="fa-solid fa-circle-check"></i> ' + tr('dle_wiz_summary_sessions_created', 'Sessions folder created'));
-    if (importResult && importResult.imported > 0) {
-        // ${0}=imported count, ${1}=failed suffix. English: 'Imported <strong>${0}</strong> entries${1}'
-        const failedSuffix = importResult.failed > 0 ? trf('dle_wiz_summary_import_failed_suffix', importResult.failed) : '';
-        items.push('<i class="fa-solid fa-circle-check"></i> ' + trf('dle_wiz_summary_imported', importResult.imported, failedSuffix));
-    }
 
     // #67: gate on the explicit autofill flag (+ the real demo vault name) so a user who
     // names a real vault "Demo World" doesn't get Duskfrost-specific tips.
@@ -1215,4 +1050,6 @@ function executeCommand(cmd) {
         ctx.executeSlashCommands(cmd).catch(err => console.error('[DLE] Wizard command error:', cmd, err));
     }
 }
+
+
 

@@ -76,7 +76,7 @@ async function registerCharacterChatCommands() {
         try {
             parser.addCommandObject(commandType.fromProps({
                 name,
-                helpString: item.description || 'Customize command',
+                helpString: item.description || 'Agent Workspace command',
                 callback: (args) => {
                     const value = typeof args === 'string' ? args : args?.value ?? '';
                     return String(item.body || '').replaceAll('$ARGUMENTS', String(value));
@@ -98,7 +98,7 @@ function installCharacterChatBridge() {
         if (!event) return;
         void dispatchHook('character_chat', event, payload).then((result) => {
             if (result && result.allowed === false) {
-                window.toastr?.warning?.(result.results?.[0]?.userMessage || `A Customize hook blocked ${event}.`);
+                window.toastr?.warning?.(result.results?.[0]?.userMessage || `An Agent Workspace hook blocked ${event}.`);
             }
             if (result?.followupMessage) {
                 window.dispatchEvent(new CustomEvent('tt:hook-followup', {
@@ -132,3 +132,4 @@ function installCharacterChatBridge() {
         emit('sessionEnd', { conversationId: context.chatId ?? '' });
     });
 }
+

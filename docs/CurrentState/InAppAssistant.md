@@ -28,6 +28,12 @@ Run state follows the backend's active Run; with no active Run and no terminal e
 
 When the context reaches the compaction point of the preset budget, or the provider reports a context overflow, the runtime compacts automatically; for the rules see [the run loop](../Agent/Runtime.md#session-context-compaction). The status bar shows that compaction is running; the Transcript shows "Context compacted" with the token counts before and after among the work items of the Run it belongs to, expandable to the summary. A compaction record is not shown as a user bubble and does not trigger the automatic follow of a new user message; the original conversation stays in the history. The context-usage ring in the input box shows the current Run's latest count as a share of the compaction point; the count comes from run events and the frontend does no tokenization. "Compact now" in the menu starts a compaction Run while the assistant is idle. Compacting mid-Run requires the page to be online; after a page reload, the host resumes assembly replies for a Run that is still active.
 
+## Performance
+
+Streaming applies text and reasoning in top-level block batches and updates only the Run whose content changed; an unchanged Run is not re-rendered. The transcript keeps a bounded tail of the session history, reads older pages backwards, and the runtime reads Session history from the end when assembling a prompt. Provider responses that arrive as oversized or partial SSE payloads are handled without restarting the stream. Preview height changes are coalesced into an animation frame. The frontend performance baseline covers these paths and is updated only when a counter change is intended.
+
+The performance batch was taken from `Darkatse/TauriTavern` `dev`: `572bf8bb` (streaming frames), `5ef85d24` (preview height), `38e17bb1` (in-app-agent live updates), `e32de36d` (partial SSE events), `430ee843` (event tracing), and `2cb72aeb` (Session history tail). Local additions in the same pass narrow the panel resize observer to the settings holder so message class changes do not force style recalculation during a stream.
+
 ## Interface and tool boundaries
 
 The original advanced-formatting node and the drawer behavior are kept, including theme transparency, blur, and the mobile constraints. On desktop the assistant covers the chat input area downwards and its content width defaults to 100%; the width setting affects only the inner content, and mobile and narrow windows fill the available width.

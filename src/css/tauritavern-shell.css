@@ -1,0 +1,242 @@
+/*
+ * Tauri desktop shell (Windows only).
+ *
+ * A left rail built from SillyTavern's existing top-bar drawers, with one
+ * side panel at a time. Everything here is desktop layout: there is no phone
+ * breakpoint, no mobile shell and no platform-specific window chrome.
+ */
+
+body {
+    --tauri-rail-width: 58px;
+    --tauri-panel-width: 460px;
+    --tauri-surface: var(--tt-ui-surface, var(--SmartThemeBlurTintColor, #171b24));
+    --tauri-surface-strong: var(--tt-ui-surface-raised, var(--tauri-surface));
+    --tauri-border: var(--tt-ui-border, color-mix(in srgb, var(--SmartThemeBorderColor, #ffffff) 16%, transparent));
+    --tauri-accent: var(--tt-ui-accent, var(--SmartThemeQuoteColor, #7fb7ff));
+    --tauri-muted: var(--tt-ui-text-muted, color-mix(in srgb, var(--SmartThemeBodyColor, #e8ecf2) 62%, transparent));
+
+    /* Panel API tokens: extensions style against these, not against a theme. */
+    --tauri-foreground: var(--tt-ui-text, var(--SmartThemeBodyColor, #e8ecf2));
+    --tauri-panel-bg: var(--tt-ui-surface, var(--tauri-surface));
+    --tauri-panel-border: var(--tauri-border);
+    --tauri-hover: color-mix(in srgb, var(--tauri-accent) 16%, transparent);
+    --tauri-error: #ff8f8f;
+    --tauri-success: #8fe0a6;
+}
+
+    body #top-bar {
+        display: none;
+    }
+
+    body #top-settings-holder {
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: var(--tauri-rail-width);
+        height: 100dvh;
+        margin: 0;
+        padding: 8px 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 2px;
+        border-right: 1px solid var(--tauri-border);
+        background: var(--tauri-surface-strong);
+        backdrop-filter: blur(var(--SmartThemeBlurStrength, 10px));
+        z-index: 3005;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-bottom: 14px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--tauri-border) transparent;
+    }
+
+    body #top-settings-holder::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    body #top-settings-holder::-webkit-scrollbar-thumb {
+        background: var(--tauri-border);
+        border-radius: 3px;
+    }
+
+    body #top-settings-holder .tauri-rail-separator {
+        width: 30px;
+        height: 1px;
+        margin: 6px auto;
+        flex: none;
+        background: var(--tauri-border);
+    }
+
+    body #top-settings-holder .drawer {
+        width: 100%;
+        flex: none;
+    }
+
+    body #top-settings-holder .drawer-toggle {
+        width: 44px;
+        height: 44px;
+        margin: 2px auto;
+        padding: 0;
+        display: grid;
+        place-items: center;
+        border-radius: 12px;
+        color: var(--tauri-muted);
+    }
+
+    body #top-settings-holder .drawer-toggle:hover,
+    body #top-settings-holder .drawer-toggle:has(.drawer-icon.openIcon) {
+        background: color-mix(in srgb, var(--tauri-accent) 18%, transparent);
+        color: var(--tt-ui-accent, var(--tauri-accent));
+        border-color: var(--tt-ui-accent, var(--tauri-accent));
+        box-shadow: inset 2px 0 0 var(--tt-ui-accent, var(--tauri-accent));
+    }
+
+    body #top-settings-holder .drawer-icon {
+        width: 20px;
+        height: 20px;
+        margin: 0;
+        font-size: 18px;
+        line-height: 20px;
+        text-align: center;
+    }
+
+    body #top-settings-holder .drawer-icon svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    /* Regular drawers become one side panel next to the rail. Editor-style
+       drawers (World Info, prompt manager, character popup) keep their own
+       stock geometry so their wide layouts are not squeezed. */
+    body #top-settings-holder .drawer-content:not(#WorldInfo):not(#floatingPrompt) {
+        position: fixed;
+        top: 0;
+        left: var(--tauri-rail-width);
+        right: auto;
+        bottom: 0;
+        width: min(var(--tauri-panel-width), calc(100vw - var(--tauri-rail-width)));
+        min-width: 0;
+        max-width: none;
+        max-height: 100dvh;
+        margin: 0;
+        border-radius: 0 14px 14px 0;
+        border: 1px solid var(--tauri-border);
+        border-left: none;
+        background: var(--tauri-surface);
+        backdrop-filter: blur(var(--SmartThemeBlurStrength, 10px));
+        overflow: hidden auto;
+        scrollbar-gutter: stable;
+        transform: none;
+        z-index: 3004;
+    }
+
+    body #top-settings-holder .drawer-content.openDrawer {
+        display: flex;
+        flex-direction: column;
+    }
+
+    body #sheld {
+        top: 6px;
+        height: calc(100dvh - 12px);
+        width: calc(100vw - var(--tauri-rail-width) - 16px);
+        margin-left: var(--tauri-rail-width);
+        margin-right: 8px;
+    }
+
+    body .tauri-panel-heading {
+        color: var(--tt-ui-text, var(--tauri-foreground));
+        font-size: var(--tt-ui-font-size, 1rem);
+        font-weight: 600;
+        letter-spacing: 0;
+        margin: 0;
+    }
+
+/* Extension panels -------------------------------------------------------- */
+
+body .tauri-panel-content {
+    padding: 0;
+    /* The ST drawer theme can be translucent; extension panels stay on an opaque surface. */
+    background: var(--tt-tab-surface, var(--SmartThemeBlurTintColor, #1b1b20)) !important;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+}
+
+body .tauri-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--tauri-border);
+}
+
+body .tauri-panel-heading {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+body .tauri-panel-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 14px 16px 20px;
+}
+
+body .tauri-panel-error {
+    margin: 0;
+    color: var(--tauri-error);
+    font-size: 0.86rem;
+}
+
+/* Drawer controls -------------------------------------------------------- */
+
+body .tauri-icon-button {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--tauri-border);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--tauri-muted);
+    cursor: pointer;
+}
+
+body .tauri-icon-button:hover {
+    color: var(--SmartThemeBodyColor, #e8ecf2);
+    border-color: var(--tauri-accent);
+}
+
+/* One shared handle follows the edge of whichever side panel is open. */
+body .tt-ui-panel-resize {
+    position: fixed;
+    top: 50%;
+    left: calc(var(--tauri-rail-width) + min(var(--tauri-panel-width), calc(100vw - var(--tauri-rail-width))) - 6px);
+    z-index: 4100;
+    transform: translate(-50%, -50%);
+}
+
+body .tt-ui-panel-resize[hidden] {
+    display: none;
+}
+
+
+
+
+#right-nav-panel[data-tt-ui="panel"] {
+    border-radius: 0 var(--tt-ui-radius-md) var(--tt-ui-radius-md) 0;
+}
+
+body .tauri-icon-button {
+    background: var(--tt-ui-surface-muted, var(--tauri-surface));
+    border-color: var(--tt-ui-border, var(--tauri-border));
+    border-radius: var(--tt-ui-radius-sm, 10px);
+}
+
+body .tauri-icon-button:hover {
+    background: var(--tt-ui-surface-raised, var(--tauri-surface));
+    color: var(--tt-ui-text, var(--SmartThemeBodyColor, #e8ecf2));
+    border-color: var(--tt-ui-accent, var(--tauri-accent));
+}

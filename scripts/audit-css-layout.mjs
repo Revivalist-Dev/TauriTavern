@@ -19,8 +19,8 @@ const SRC = path.join(ROOT, 'src');
 const PANEL_SELECTORS = [
     '#top-settings-holder',
     '.drawer-content',
-    '.sb-panel-content',
-    '.sb-panel-drawer',
+    '.tauri-panel-content',
+    '.tauri-panel-drawer',
     '#extensions_settings',
     '#extensions_settings2',
     '.extensions_block',
@@ -45,8 +45,8 @@ const GEOMETRY_PROPERTIES = new Set([
 
 const ALLOWED_FIXED = [
     // The shell deliberately turns the stock drawers into fixed rail panels.
-    { file: 'src/css/tauritavern-sillybunny-shell.css', selector: '.drawer-content' },
-    { file: 'src/css/tauritavern-sillybunny-shell.css', selector: '#top-settings-holder' },
+    { file: 'src/css/tauritavern-shell.css', selector: '.drawer-content' },
+    { file: 'src/css/tauritavern-shell.css', selector: '#top-settings-holder' },
     // Maximized drawers intentionally cover the viewport.
     { selector: '.drawer-content.maximized' },
     // Mobile-only rules are retained from upstream and are not used on Windows.
@@ -246,3 +246,5 @@ if (first.errors.length > 0) {
 } else {
     console.log('\nFirst-party CSS layout guardrails passed.');
 }
+
+

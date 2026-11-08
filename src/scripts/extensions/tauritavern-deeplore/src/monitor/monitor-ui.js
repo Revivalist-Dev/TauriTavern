@@ -57,10 +57,10 @@ function buttonHtml() {
 
 function panelHtml() {
     return `
-        <div id="${PANEL_ID}" class="dle-monitor-panel" role="dialog" aria-modal="false"
-             aria-label="DeepLore Monitor" aria-hidden="true">
-            <header class="dle-mon-head">
-                <div class="dle-mon-title">
+        <div id="${PANEL_ID}" class="dle-monitor-panel tt-ui-panel" role="dialog" aria-modal="false"
+             data-tt-ui="panel" aria-label="DeepLore Monitor" aria-hidden="true">
+            <header class="dle-mon-head tt-ui-toolbar">
+                <div class="dle-mon-title tt-ui-title">
                     <span class="dle-monitor-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
                              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false">

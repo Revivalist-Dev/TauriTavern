@@ -131,6 +131,12 @@ if errorlevel 1 (
 
 :launch
 title TauriTavern dev
+rem A second instance shares the WebView2 profile and can deadlock the first window.
+tasklist /FI "IMAGENAME eq tauritavern.exe" 2>nul | find /I "tauritavern.exe" >nul
+if not errorlevel 1 (
+    echo [tauritavern] Closing the existing TauriTavern instance...
+    taskkill /IM tauritavern.exe /T /F >nul 2>&1
+)
 echo [tauritavern] Launching %EXE%
 start "" /wait "%EXE%"
 set "APP_RESULT=%ERRORLEVEL%"

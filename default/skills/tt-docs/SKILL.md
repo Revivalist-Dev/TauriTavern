@@ -39,7 +39,8 @@ These are TauriTavern's own documents, from the same source revision as this app
 - `references/CurrentState/Sync.md` — LAN Sync and TT-Sync: what data syncs, which settings sections sync independently, discovery and pairing, and automatic sync.
 - `references/CurrentState/DataDirectorySelection.md` — Choosing or moving the data directory: what is supported and what is not.
 - `references/CurrentState/UpdateChannels.md` — Stable and Canary update channels, and how updates are detected and installed on Windows.
-- `references/CurrentState/SillyBunnyShell.md` — The Windows-only SillyBunny desktop shell: left rail, side panels, conversation mode and how it reuses stock SillyTavern generation.
+- `references/CurrentState/TauriShell.md` — The Windows-only Tauri desktop shell: left rail, side panels, conversation mode and how it reuses stock SillyTavern generation.
 - `references/CurrentState/UpstreamPullRequests.md` — The Windows-only decision table for open upstream pull requests: apply, defer or reject.
 - `references/CurrentState/CharacterIdentityContract.md` — How characters keep their identity across renames and imports, how a character's chats are found, and how a card's embedded world info is adopted.
 - `references/CurrentState/InAppAssistant.md` — The in-app assistant itself: its profile and lifecycle, Sessions and history, interface, and the boundaries of its tools.
+

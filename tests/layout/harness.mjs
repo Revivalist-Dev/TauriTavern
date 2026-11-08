@@ -137,7 +137,7 @@ export async function openLayoutPage({ width = 1280, height = 900, waitForShell 
     await page.waitForSelector('#top-settings-holder', { timeout: 20_000 });
     await page.waitForSelector('#extensions-settings-button', { timeout: 20_000 });
     if (waitForShell) {
-        await page.waitForSelector('body.sb-shell', { timeout: 20_000 });
+        await page.waitForFunction(() => document.body.dataset.tauriShellInstalled === 'true', null, { timeout: 20_000 });
         await page.waitForFunction(() => {
             const rail = document.getElementById('top-settings-holder')?.getBoundingClientRect();
             return Boolean(rail && rail.width > 0 && rail.width < 100);
@@ -234,3 +234,4 @@ export function assertInsideViewport(box, label, viewport) {
         throw new Error(`${label}: outside viewport ${JSON.stringify(box)}`);
     }
 }
+

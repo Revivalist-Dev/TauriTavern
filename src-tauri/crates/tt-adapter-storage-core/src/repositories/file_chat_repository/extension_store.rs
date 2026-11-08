@@ -19,6 +19,13 @@ fn validate_store_component(raw: &str, label: &str) -> Result<String, DomainErro
         )));
     }
 
+    if value == "." || value == ".." {
+        return Err(DomainError::InvalidData(format!(
+            "Chat store {} cannot be a relative path segment",
+            label
+        )));
+    }
+
     if !value
         .chars()
         .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.'))
@@ -90,10 +97,16 @@ async fn rename_store_json_entry(dir: &Path, key: &str, new_key: &str) -> Result
 
 impl FileChatRepository {
     fn group_chat_store_root(&self, chat_id: &str) -> Result<PathBuf, DomainError> {
-        Ok(self
-            .group_chats_dir
-            .join(".tauritavern")
-            .join(Self::normalize_jsonl_file_stem(chat_id)?))
+        let stem = Self::normalize_jsonl_file_stem(chat_id)?;
+        if let Some(group_id) = stem.strip_prefix("__group__") {
+            let group_id = validate_store_component(group_id, "group id")?;
+            return Ok(self
+                .group_chats_dir
+                .join(".tauritavern")
+                .join("_groups")
+                .join(group_id));
+        }
+        Ok(self.group_chats_dir.join(".tauritavern").join(stem))
     }
 
     async fn resolve_character_chat_store_dir(
@@ -400,6 +413,51 @@ impl FileChatRepository {
             .await?;
         list_store_keys(&dir).await
     }
+
+    pub(super) async fn delete_group_chat_store_dir(
+        &self,
+        chat_id: &str,
+    ) -> Result<(), DomainError> {
+        let root = self.group_chat_store_root(chat_id)?;
+        match fs::remove_dir_all(&root).await {
+            Ok(()) => Ok(()),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+            Err(error) => Err(DomainError::InternalError(format!(
+                "Failed to delete group chat store {}: {}",
+                root.display(),
+                error
+            ))),
+        }
+    }
+
+    pub(super) async fn rename_group_chat_store_dir(
+        &self,
+        old_chat_id: &str,
+        new_chat_id: &str,
+    ) -> Result<(), DomainError> {
+        let old_root = self.group_chat_store_root(old_chat_id)?;
+        if !old_root.exists() {
+            return Ok(());
+        }
+        let new_root = self.group_chat_store_root(new_chat_id)?;
+        if new_root.exists() {
+            fs::remove_dir_all(&new_root).await.map_err(|error| {
+                DomainError::InternalError(format!(
+                    "Failed to replace group chat store {}: {}",
+                    new_root.display(),
+                    error
+                ))
+            })?;
+        }
+        fs::rename(&old_root, &new_root).await.map_err(|error| {
+            DomainError::InternalError(format!(
+                "Failed to rename group chat store {} to {}: {}",
+                old_root.display(),
+                new_root.display(),
+                error
+            ))
+        })
+    }
 }
 
 async fn list_store_keys(dir: &Path) -> Result<Vec<String>, DomainError> {
@@ -444,4 +502,26 @@ async fn list_store_keys(dir: &Path) -> Result<Vec<String>, DomainError> {
 
     keys.sort();
     Ok(keys)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_store_component;
+
+    #[test]
+    fn rejects_path_traversal_segments() {
+        for value in ["", ".", "..", "../outside", "a/b", "a\\b"] {
+            assert!(
+                validate_store_component(value, "namespace").is_err(),
+                "{value:?} should be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn accepts_normal_store_components() {
+        for value in ["session", "deeplore", "rpgraph", "active-workflow"] {
+            assert!(validate_store_component(value, "namespace").is_ok());
+        }
+    }
 }

@@ -29,17 +29,20 @@ export function ModelMenu({ models, choice, open, disabled, onOpenChange, onSele
             <span className="ttia-chip-label" key={choice.label}>{choice.label}</span>
             <Icon name="chevron-down" />
         </>}>
-        {choice.state === 'missing' && <div className="ttia-menu-item is-missing" role="menuitemradio" aria-checked="true" aria-disabled="true" title={tr('bindingMissing')}>
+        {choice.state === 'missing' && <div className="ttia-menu-item tt-ui-menu__item is-missing tt-ui-menu__item" role="menuitemradio" aria-checked="true" aria-disabled="true" title={tr('bindingMissing')}>
             <span className="ttia-menu-label">{choice.label}</span><span className="ttia-menu-detail">{tr('modelUnavailable')}</span><Icon name="check" />
         </div>}
         {models.map(target => <MenuRadio key={target.id} checked={target.id === choice.target?.id} label={targetName(target)}
             title={targetName(target)} onSelect={() => onSelect(target)} />)}
-        {models.length === 0 && <div className="ttia-model-empty" role="menuitem" aria-disabled="true">
+        {models.length === 0 && <div className="ttia-model-empty tt-ui-empty" role="menuitem" aria-disabled="true">
             <p>{tr('noModels')}</p><span>{tr('noModelsNote')}</span>
         </div>}
-        <div className="ttia-menu-rule" role="separator" />
-        <button type="button" tabIndex={-1} className="ttia-menu-item ttia-model-manage" role="menuitem" onClick={onManage}>
+        <div className="ttia-menu-rule tt-ui-divider" role="separator" />
+        <button type="button" tabIndex={-1} className="ttia-menu-item ttia-model-manage tt-ui-menu__item" role="menuitem" onClick={onManage}>
             <span className="ttia-menu-label">{tr('connections')}</span><Icon name="arrow-up-right-from-square" />
         </button>
     </ComposerMenu>;
 }
+
+
+

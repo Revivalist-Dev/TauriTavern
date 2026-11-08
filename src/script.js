@@ -133,8 +133,6 @@ import {
     selected_world_info,
     flushWorldInfoSaves,
     deleteWorldInfo,
-    importEmbeddedWorldInfo,
-    completeCharacterLorebookAdoption,
     checkEmbeddedWorld,
     setWorldInfoButtonClass,
     wi_anchor_position,
@@ -12254,13 +12252,6 @@ export async function processDroppedFiles(files, data = new Map(), { replacement
         toastr.error(t`Cannot import characters while generating. Stop the request and try again.`, t`Import aborted`);
         throw new Error('Cannot import character while generating');
     }
-    try {
-        await flushWorldInfoSaves('import_character_lorebook');
-    } catch (error) {
-        toastr.error(error?.message, t`Import aborted`);
-        throw error;
-    }
-
     const avatarFileNames = [];
     pauseImportedCharacterAgentAssetQueue();
     try {
@@ -12269,12 +12260,6 @@ export async function processDroppedFiles(files, data = new Map(), { replacement
             const imported = await importCharacter(file, { preserveFileName: preservedName, replacement });
             if (imported) {
                 avatarFileNames.push(imported.avatarFileName);
-                try {
-                    await completeCharacterLorebookAdoption(imported.avatarFileName, imported.lorebook, { notify: imported.replaced });
-                } catch (error) {
-                    console.warn('Character imported, but its lorebook adoption could not be completed:', error);
-                    toastr.warning(error?.message, t`Character imported; lorebook import failed`);
-                }
             }
         }
 
@@ -14112,9 +14097,6 @@ jQuery(async function () {
             case 'renameCharButton':
                 await renameCharacter();
                 break;
-            case 'import_character_info':
-                await importEmbeddedWorldInfo();
-                break;
             case 'character_source': {
                 const source = getCharacterSource(this_chid);
                 if (source && isValidUrl(source)) {
@@ -14301,6 +14283,20 @@ jQuery(async function () {
 
     $('#charListGridToggle').on('click', async () => {
         doCharListDisplaySwitch();
+    });
+
+    $('#rm_button_refresh').on('click', async () => {
+        const button = $(this);
+        button.prop('disabled', true).addClass('fa-spin');
+        try {
+            await getCharacters();
+            toastr.success('Character list refreshed from disk.');
+        } catch (error) {
+            console.error('Failed to refresh characters', error);
+            toastr.error('Failed to refresh the character list.');
+        } finally {
+            button.prop('disabled', false).removeClass('fa-spin');
+        }
     });
 
     $('#hideCharPanelAvatarButton').on('click', function () {

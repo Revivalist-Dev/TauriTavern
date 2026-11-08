@@ -146,12 +146,12 @@ input.extension_missing[type="checkbox"] {
 
 /* The shell drawer is 460px wide. Two settings columns leave about 230px each,
    which is too narrow for tables and extension forms, so stack them there. */
-body.sb-shell .extensions_block {
+body.tauri-shell .extensions_block {
     flex-direction: column;
 }
 
-body.sb-shell #extensions_settings,
-body.sb-shell #extensions_settings2 {
+body.tauri-shell #extensions_settings,
+body.tauri-shell #extensions_settings2 {
     width: 100%;
 }
 
@@ -192,3 +192,4 @@ body.sb-shell #extensions_settings2 {
     margin-bottom: 10px;
     padding: 5px;
 }
+

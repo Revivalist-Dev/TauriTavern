@@ -29,7 +29,7 @@ function installVaultMock() {
         ],
     };
     const mounts = [
-        { id: 'mnt-lore', name: 'Lore Vault', path: 'C:/Vault/Lore', available: true },
+        { id: 'mnt-lore', name: 'Lore Vault', path: 'C:/Vault/Lore', available: true, kind: 'lorebook' },
         { id: 'mnt-notes', name: 'Notes', path: 'C:/Vault/Notes', available: true },
     ];
     let primaryMountId = 'mnt-lore';
@@ -120,6 +120,7 @@ let session;
 let page;
 
 async function openExplorer() {
+    await page.waitForSelector('#tt-file-explorer-toggle', { state: 'visible' });
     if (await page.locator('#tt-file-explorer').isHidden()) await page.click('#tt-file-explorer-toggle');
     await page.waitForSelector('#tt-file-explorer', { state: 'visible' });
     await page.waitForTimeout(150);
@@ -155,6 +156,90 @@ before(async () => {
 
 after(async () => {
     await session?.close();
+});
+
+test('narrative overrides live under .narrative and stay scoped to the current chat', async () => {
+    const result = await page.evaluate(async () => {
+        const originalList = window.__TT_VAULT_API__.list;
+        const originalRead = window.__TT_VAULT_API__.readText;
+        const originalSillyTavern = window.SillyTavern;
+        const list = async (mount, path) => {
+            if (path === '.narrative') {
+                return [
+                    { name: 'story-one', path: '.narrative/story-one', kind: 'directory' },
+                    { name: 'story-two', path: '.narrative/story-two', kind: 'directory' },
+                ];
+            }
+            if (path === '.narrative/story-one') {
+                return [{ name: 'session-notes.md', path: '.narrative/story-one/session-notes.md', kind: 'file' }];
+            }
+            if (path === '.narrative/story-two') {
+                return [{ name: 'session-notes.md', path: '.narrative/story-two/session-notes.md', kind: 'file' }];
+            }
+            return originalList(mount, path);
+        };
+        window.__TT_VAULT_API__.list = list;
+        window.__TT_VAULT_API__.readText = async (mount, path) => {
+            if (String(path).startsWith('.narrative/')) return `# ${path}`;
+            return originalRead(mount, path);
+        };
+        const setChat = (group, chat) => {
+            window.SillyTavern = { getContext: () => ({ groupId: group, chatId: chat }) };
+        };
+        const experiments = window.__TT_EXPERIMENTS__;
+        try {
+            setChat('group-one', 'chat-a');
+            await experiments.restoreForChat();
+            const manifests = await experiments.discover();
+            const trigger = document.createElement('button');
+            trigger.className = 'tt-fe-experiment-open';
+            trigger.title = 'Narratives';
+            document.body.appendChild(trigger);
+            await experiments.openMenu(trigger);
+            const useButtons = [...document.querySelectorAll('.tt-fe-experiment-use')];
+            const menuLabels = [...document.querySelectorAll('.tt-fe-experiment-item > span')].map(span => span.textContent);
+            useButtons.find(button => button.closest('.tt-fe-experiment-item')?.innerText.includes('Story One'))
+                ?.click();
+            await new Promise(resolve => setTimeout(resolve, 100));
+            experiments.closeMenu();
+            trigger.remove();
+            const first = experiments.status();
+            const transformed = await experiments.transformLoreEntries([
+                { title: 'Session Notes', path: 'session-notes.md', content: 'base content', keys: [] },
+            ]);
+            setChat('group-one', 'chat-b');
+            await experiments.restoreForChat();
+            const second = experiments.status();
+            setChat('group-one', 'chat-a');
+            await experiments.restoreForChat();
+            const restored = experiments.status();
+            return {
+                ids: manifests.map(manifest => manifest.id),
+                labels: manifests.map(manifest => manifest.label),
+                menuLabels,
+                useButtons: useButtons.length,
+                first,
+                transformed,
+                second,
+                restored,
+            };
+        } finally {
+            experiments.deactivate();
+            window.__TT_VAULT_API__.list = originalList;
+            window.__TT_VAULT_API__.readText = originalRead;
+            window.SillyTavern = originalSillyTavern;
+            localStorage.removeItem('tt:narrative-overrides');
+        }
+    });
+    assert.deepEqual(result.ids, ['.narrative/story-one', '.narrative/story-two']);
+    assert.deepEqual(result.labels, ['Story One', 'Story Two']);
+    assert.deepEqual(result.menuLabels, ['Base vault', 'Story One', 'Story Two']);
+    assert.equal(result.useButtons, 3);
+    assert.equal(result.first.active.id, '.narrative/story-one');
+    assert.equal(result.transformed[0].override, true);
+    assert.match(result.transformed[0].content, /story-one\/session-notes\.md/);
+    assert.equal(result.second.active, null);
+    assert.equal(result.restored.active.id, '.narrative/story-one');
 });
 
 test('opening the dock shrinks and recenters the chat without moving the rail', async () => {
@@ -212,9 +297,10 @@ test('the tree shows mounts, expands folders and switches to card thumbnails', a
     await openExplorer();
     const text = await page.locator('#tt-file-explorer').innerText();
     assert.match(text, /Lore Vault/);
+    assert.match(text, /Lorebook/);
     assert.match(text, /Notes/);
     await ensureLoreExpanded();
-    await page.dblclick('[data-key="mnt-lore|chapters"] .tt-fe-node-name');
+    await page.click('[data-key="mnt-lore|chapters"] .tt-fe-chevron--toggle');
     await page.waitForTimeout(250);
     assert.match(await page.locator('#tt-file-explorer').innerText(), /chapter-01\.md/);
     await page.click('.tt-fe-breadcrumb >> text=Lore Vault');
@@ -330,6 +416,7 @@ test('narrative experiments overlay removals and overrides in the vault', async 
         const transformed = experiments.transformEntries('mnt-lore', 'Characters', [
             { name: 'Old.md', path: 'Characters/Old.md', kind: 'file', size: 10 },
             { name: 'Kept.md', path: 'Characters/Kept.md', kind: 'file', size: 10 },
+            { name: 'New.md', path: 'Characters/New.md', kind: 'file', size: 10 },
         ]);
         const read = experiments.readText('mnt-lore', 'Characters/New.md');
         const lore = experiments.transformLoreEntries([
@@ -343,6 +430,8 @@ test('narrative experiments overlay removals and overrides in the vault', async 
     assert.deepEqual(result.transformed.map((entry) => entry.name), ['Kept.md', 'New.md']);
     assert.equal(result.transformed.find((entry) => entry.name === 'New.md').readPath, 'Narrative-Experiments/arranged/overrides/Characters/New.md');
     assert.match(result.read, /new arrangement/i);
+    assert.equal(result.transformed.find((entry) => entry.name === 'New.md').override, true);
+    assert.match(result.transformed.find((entry) => entry.name === 'New.md').overrideSource, /^experiment:/);
     assert.deepEqual(result.lore.map((entry) => entry.title), ['Kept', 'New']);
     assert.equal(result.lore.find((entry) => entry.title === 'New').override, true);
 });
@@ -396,6 +485,21 @@ test('opening the character panel closes the file explorer', async () => {
     await page.click('#rightNavHolder .drawer-toggle');
     await page.waitForTimeout(200);
     assert.ok(await page.locator('#tt-file-explorer').isHidden(), 'file explorer stayed open');
+});
+
+test('open state survives a reload and close state is remembered', async () => {
+    await openExplorer();
+    assert.equal(await page.evaluate(() => localStorage.getItem('tt.fileExplorer.open')), '1');
+    await page.reload();
+    await page.waitForSelector('#tt-file-explorer:not([hidden])', { state: 'visible' });
+    assert.ok(await page.locator('#tt-file-explorer').isVisible(), 'explorer did not reopen after reload');
+
+    await page.click('[aria-label="Close file explorer"]');
+    await page.waitForTimeout(150);
+    assert.equal(await page.evaluate(() => localStorage.getItem('tt.fileExplorer.open')), '0');
+    await page.reload();
+    await page.waitForTimeout(500);
+    assert.ok(await page.locator('#tt-file-explorer').isHidden(), 'explorer reopened after being closed');
 });
 
 export { installVaultMock };

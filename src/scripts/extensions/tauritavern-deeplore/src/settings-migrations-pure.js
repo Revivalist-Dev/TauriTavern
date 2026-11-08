@@ -83,14 +83,10 @@ export function runMigrations(settings, fromVersion, _toVersion) {
             console.warn('[DLE] v2.5 migration: flipped Custom Proxy mode to Connection Profile for:', migratedKeys);
         }
     }
-    if (fromVersion < 5) {
-        // 4 → 5: WI parity (Wave 4) added wiImportEmHandling setting.
-        // Defensive default — every read site already does `|| 'append'` so
-        // missing values work, but populate explicitly so the settings-popup
-        // dropdown renders correctly for upgrading users (validateSettings
-        // doesn't merge missing-then-default keys for non-numeric fields).
-        if (settings.wiImportEmHandling == null) {
-            settings.wiImportEmHandling = 'append';
-        }
+    if (fromVersion < 6) {
+        // 5 → 6: DeepLore is the native lore loader. Existing profiles are
+        // migrated on; the native markdown-lore path is only a fallback when
+        // the user explicitly disables DeepLore after this version.
+        settings.enabled = true;
     }
 }

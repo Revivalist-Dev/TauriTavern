@@ -29,18 +29,19 @@
 
 .dle-monitor-panel {
     position: fixed;
-    top: 35px;
-    left: 42px;
+    top: 0;
+    left: var(--tauri-rail-width, 58px);
     bottom: 0;
     z-index: 4000;
     display: none;
     flex-direction: column;
-    width: min(1180px, calc(100vw - 42px));
-    max-width: calc(100vw - 42px);
-    background: var(--SmartThemeBlurTintColor, rgba(18, 20, 26, 0.98));
-    color: var(--SmartThemeBodyColor, #e8e8e8);
-    border-right: 1px solid var(--SmartThemeBorderColor, #333);
-    box-shadow: 12px 0 36px rgba(0, 0, 0, 0.45);
+    width: min(1180px, calc(100vw - var(--tauri-rail-width, 58px)));
+    max-width: calc(100vw - var(--tauri-rail-width, 58px));
+    background: var(--tt-ui-surface, var(--SmartThemeBlurTintColor, #12141a));
+    color: var(--tt-ui-text, var(--SmartThemeBodyColor, #e8e8e8));
+    border-left: 1px solid var(--tt-ui-border, var(--SmartThemeBorderColor, #333));
+    border-right: 1px solid var(--tt-ui-border, var(--SmartThemeBorderColor, #333));
+    border-radius: 0;
 }
 .dle-monitor-panel.dle-monitor-open {
     display: flex;
@@ -358,3 +359,4 @@
     border: 1px dashed var(--SmartThemeBorderColor, #3a3d46);
     border-radius: 6px;
 }
+

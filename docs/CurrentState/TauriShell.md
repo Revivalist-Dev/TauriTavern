@@ -1,6 +1,6 @@
-# SillyBunny desktop host layer (Windows)
+# Tauri desktop host layer (Windows)
 
-SillyBunny's desktop UI plugs into TauriTavern as a first-party host layer rather than being injected
+Tauri's desktop UI plugs into TauriTavern as a first-party host layer rather than being injected
 as a third-party extension. It contains only the Windows desktop layout: no mobile shell, no phone
 breakpoints, and no Android/iOS branches.
 
@@ -8,10 +8,9 @@ breakpoints, and no Android/iOS branches.
 
 | Location | Responsibility |
 | --- | --- |
-| `src/css/tauritavern-sillybunny-shell.css` | Layout and theme variables for the left icon rail, the side panels, and the conversation panel |
-| `src/tauri/main/ui/sillybunny-shell/index.js` | Install entry point: adds `sb-shell` to `body` and injects the Conversation drawer |
-| `src/tauri/main/ui/sillybunny-shell/panels.js` | Extension panel host: `__TAURITAVERN_SB_SHELL__` registration, queued panels, and icon-rail buttons |
-| `src/tauri/main/ui/sillybunny-shell/conversation.js` | Conversation timeline and send box |
+| `src/css/tauritavern-shell.css` | Layout and theme variables for the left icon rail and side panels |
+| `src/tauri/main/ui/tauri-shell/index.js` | Install entry point: adds `tauri-shell` to `body` and integrates the icon rail |
+| `src/tauri/main/ui/tauri-shell/panels.js` | Extension panel host: `__TAURITAVERN_SHELL__` registration, queued panels, and icon-rail buttons |
 | `src/tauri/main/bootstrap.js` | Loads the install entry point dynamically after `APP_READY` |
 
 ## Structure
@@ -22,16 +21,10 @@ breakpoints, and no Android/iOS branches.
 - **Side panels**: at desktop widths the regular drawer's `.drawer-content` is pinned to the right of
   the icon rail, one at a time. Wide editors such as World Info and Prompt Manager keep their own
   geometry so a narrow panel does not squeeze them.
-- **Conversation mode**: `#sb_conversation` is an ordinary drawer whose timeline mirrors the most
-  recent 80 messages from `#chat > .mes`. The mirror strips `id`, `script`, and `iframe` so it neither
-  duplicates IDs with the real chat nor starts a second runtime.
-- **Sending**: writes to `#send_textarea`, dispatches an `input` event, then clicks `#send_but`.
-  Generation, streaming, swipes, and extensions still take SillyTavern's original path; there is no
-  second generation pipeline.
 
 ## Extension panels
 
-The first-party host layer exposes `globalThis.__TAURITAVERN_SB_SHELL__`:
+The first-party host layer exposes `globalThis.__TAURITAVERN_SHELL__`:
 
 | Member | Behaviour |
 | --- | --- |
@@ -41,16 +34,16 @@ The first-party host layer exposes `globalThis.__TAURITAVERN_SB_SHELL__`:
 | `close(id)` | Closes the panel |
 | `list()` | Returns the registered panel ids |
 
-`registerPanel()` in `shared/sb-core` prefers this host; while the host is not ready it parks panels
-in `__SB_PENDING_PANELS__` and drains them at install time. It falls back to `sb-tabs` only when no
+`registerPanel()` in `shared/tauri-core` prefers this host; while the host is not ready it parks panels
+in `__TAURI_PENDING_PANELS__` and drains them at install time. It falls back to `tauri-tabs` only when no
 host exists.
 
 Injected drawers arrive after `script.js` has made its one-time `.drawer-toggle` binding, so the host
 calls `doNavbarIconClick` for each injected drawer and closes it with `setTopLevelDrawerOpen`;
 otherwise clicking an icon opens nothing.
 
-Extensions already wired to a panel: `sb-prompt`, `sb-chat`, `sb-groups`, `sb-image-gen`,
-`sb-chat-archive`, `sb-card-scripts`, `sb-trackers`; `sillybunny-debugger` keeps its own
+Extensions already wired to a panel: `tauri-prompt`, `tauri-chat`, `tauri-groups`, `tauri-image-gen`,
+`tauri-chat-archive`, `tauri-card-scripts`, `tauri-trackers`; `tauri-diagnostics` keeps its own
 extension-menu entry. The Cards and Lorebooks panels have been removed.
 
 ### Agent setup UIs
@@ -60,7 +53,7 @@ Extensions drawer:
 
 - **Agent System** (`#agent_system_container`, right settings column): the TauriTavern-native
   profiles, delegation, prompt, tools, skills and run UI.
-- **In-Chat Agents** (`#in_chat_agents_container`, left settings column): the SillyBunny `sb-agents`
+- **Tauri Agents** (`#tauri_agents_container`, left settings column): the Tauri `tauri-agents`
   port, with its settings, agent editor and pathfinder UI. It mounts its `settings.html` into this
   host container; without the container the extension's append is a silent no-op.
 
@@ -80,8 +73,12 @@ Both open from the Extensions drawer in the icon rail, not from a separate rail 
 
 ## Differences from upstream
 
-- The original SillyBunny implementation remounts the top-level DOM and maintains its own tab state
+- The original Tauri implementation remounts the top-level DOM and maintains its own tab state
   machine; this implementation is primarily CSS layout with minimal DOM changes, to reduce conflicts
   with the 2.4.0 panel runtime.
-- The third-party `sb-tabs` injection layer no longer participates in the host UI; feature panels
+- The third-party `tauri-tabs` injection layer no longer participates in the host UI; feature panels
   should register with the 2.4 Panel Runtime.
+
+
+
+

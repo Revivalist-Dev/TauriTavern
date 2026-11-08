@@ -35,9 +35,10 @@ export function EffortMenu({ effort, preset, presetEffort, open, disabled, onOpe
             <span className="ttia-chip-label" key={label}>{label}</span>
         </>}>
         {LEVELS.map(level => <MenuRadio key={level} checked={effort === level} label={effortLabel(level)} onSelect={() => onSelect(level)} />)}
-        <div className="ttia-menu-rule" role="separator" />
+        <div className="ttia-menu-rule tt-ui-divider" role="separator" />
         <MenuRadio checked={effort === 'auto'} label={effortLabel('auto')} title={tr('effortAutoNote')} onSelect={() => onSelect('auto')} />
         <MenuRadio checked={!effort} label={tr('effortPreset')} detail={presetEffort ? effortLabel(presetEffort) : undefined}
             title={tr('effortPresetNote', { preset })} onSelect={() => onSelect(undefined)} />
     </ComposerMenu>;
 }
+

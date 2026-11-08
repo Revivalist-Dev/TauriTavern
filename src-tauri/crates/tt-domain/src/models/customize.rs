@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 pub enum CustomizationScope {
     Plugin,
     Global,
+    GlobalAgents,
     Profile,
     Character,
     Vault,

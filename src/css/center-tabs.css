@@ -16,10 +16,8 @@
     padding: 0 4px;
     overflow-x: auto;
     overflow-y: hidden;
-    border-bottom: 1px solid var(--SmartThemeBorderColor, rgb(255 255 255 / 12%));
-    background: var(--SmartThemeBlurTintColor, #1b1b20);
-    backdrop-filter: blur(var(--SmartThemeBlurStrength, 10px));
-    -webkit-backdrop-filter: blur(var(--SmartThemeBlurStrength, 10px));
+    border-bottom: 1px solid var(--tt-tab-border, var(--SmartThemeBorderColor, rgb(255 255 255 / 12%)));
+    background: var(--tt-tab-surface, var(--SmartThemeBlurTintColor, #1b1b20));
     scrollbar-width: none;
 }
 
@@ -45,25 +43,27 @@
     border: 1px solid transparent;
     border-bottom: 2px solid transparent;
     border-radius: 5px 5px 0 0;
-    color: var(--SmartThemeEmColor, #aaa);
+    background: var(--tt-tab-surface-muted, var(--SmartThemeBlurTintColor, #1b1b20));
+    color: var(--tt-tab-text, var(--SmartThemeEmColor, #aaa));
     font: inherit;
     font-size: 12px;
+    font-weight: 500;
     cursor: pointer;
     user-select: none;
     white-space: nowrap;
 }
 
 .tt-center-tab:hover {
-    background: rgb(255 255 255 / 8%);
-    background: color-mix(in srgb, var(--SmartThemeBodyColor, #fff) 8%, transparent);
-    color: var(--SmartThemeBodyColor, #eee);
+    background: var(--tt-tab-surface-hover, color-mix(in srgb, var(--SmartThemeBodyColor, #fff) 8%, var(--SmartThemeBlurTintColor, #1b1b20)));
+    color: var(--tt-tab-text, var(--SmartThemeBodyColor, #eee));
 }
 
 .tt-center-tab.tt-center-tab-active {
-    border-color: var(--SmartThemeBorderColor, rgb(255 255 255 / 12%));
-    border-bottom-color: var(--SmartThemeQuoteColor, #5da9e9);
-    background: color-mix(in srgb, var(--SmartThemeBlurTintColor, #1b1b20) 80%, black);
-    color: var(--SmartThemeBodyColor, #eee);
+    border-color: var(--tt-tab-border, var(--SmartThemeBorderColor, rgb(255 255 255 / 12%)));
+    border-bottom-color: var(--tt-tab-accent, var(--SmartThemeQuoteColor, #5da9e9));
+    background: var(--tt-tab-surface-active, color-mix(in srgb, var(--SmartThemeBlurTintColor, #1b1b20) 80%, black));
+    color: var(--tt-tab-text, var(--SmartThemeBodyColor, #eee));
+    font-weight: 600;
 }
 
 .tt-center-tab-pinned {
@@ -140,6 +140,9 @@
     white-space: nowrap;
 }
 
+#tt-center-file-edit,
+#tt-center-file-save,
+#tt-center-file-cancel,
 #tt-center-file-open {
     width: 28px;
     height: 24px;
@@ -150,11 +153,40 @@
     color: inherit;
 }
 
+#tt-center-file-edit:hover,
+#tt-center-file-save:hover,
+#tt-center-file-cancel:hover,
 #tt-center-file-open:hover,
+#tt-center-file-edit:focus-visible,
+#tt-center-file-save:focus-visible,
+#tt-center-file-cancel:focus-visible,
 #tt-center-file-open:focus-visible {
     border-color: var(--SmartThemeBorderColor, rgb(255 255 255 / 12%));
     background: var(--white20a, rgb(255 255 255 / 12%));
     color: var(--SmartThemeBodyColor, #eee);
+}
+
+#tt-center-file-edit[hidden],
+#tt-center-file-save[hidden],
+#tt-center-file-cancel[hidden] {
+    display: none;
+}
+
+.tt-center-file-editor {
+    display: block;
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    resize: none;
+    background: transparent;
+    color: var(--SmartThemeBodyColor, #eee);
+    font-family: var(--monoFontFamily, monospace);
+    font-size: 12px;
+    line-height: 1.5;
+    tab-size: 4;
 }
 
 #tt-center-file-body {
@@ -235,4 +267,144 @@ body.tt-fe-open:not(.tt-copilot-open) #tt-center-file {
         right: 0;
         width: auto;
     }
+}
+
+/* Right-hand panel tabs */
+.tt-right-tabs {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    flex: 0 0 auto;
+    min-height: 30px;
+    padding: 4px 6px 0;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #444);
+    background: var(--SmartThemeBlurTintColor, #202226);
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.tt-right-tabs[hidden],
+.tt-right-panel[hidden] {
+    display: none;
+}
+
+.tt-right-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    max-width: 180px;
+    padding: 5px 7px 6px;
+    border: 1px solid transparent;
+    border-bottom: 0;
+    border-radius: 5px 5px 0 0;
+    background: transparent;
+    color: var(--SmartThemeBodyColor, #e8e8e8);
+    font: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.tt-right-tab-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tt-right-tab:hover {
+    background: rgb(255 255 255 / 7%);
+    color: var(--SmartThemeBodyColor, #e8e8e8);
+}
+
+.tt-right-tab-active {
+    border-color: var(--SmartThemeBorderColor, #444);
+    background: var(--SmartThemeBlurTintColor, #202226);
+    color: var(--SmartThemeBodyColor, #e8e8e8);
+}
+
+.tt-right-tab-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 0;
+    border-radius: 3px;
+    background: transparent;
+    color: inherit;
+    font-size: 9px;
+    cursor: pointer;
+    opacity: 0.55;
+}
+
+.tt-right-tab-action:hover {
+    background: rgb(255 255 255 / 13%);
+    opacity: 1;
+}
+
+.tt-right-panel {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.tt-right-panel #tt-center-file,
+body #tt-center-file.tt-center-file-in-right {
+    position: relative !important;
+    inset: auto !important;
+    left: auto !important;
+    right: auto !important;
+    z-index: auto !important;
+    display: flex !important;
+    flex: 1 1 auto;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+#tt-file-explorer.tt-right-tab-mode .tt-fe-header,
+#tt-file-explorer.tt-right-tab-mode .tt-fe-mounts,
+#tt-file-explorer.tt-right-tab-mode .tt-fe-toolbar,
+#tt-file-explorer.tt-right-tab-mode .tt-fe-search,
+#tt-file-explorer.tt-right-tab-mode .tt-fe-content,
+#tt-file-explorer.tt-right-tab-mode .tt-fe-breadcrumbs {
+    display: none;
+}
+
+.tt-center-tab-move {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 0;
+    border-radius: 3px;
+    background: transparent;
+    color: inherit;
+    font-size: 9px;
+    cursor: pointer;
+    opacity: 0.35;
+    transition: opacity 100ms ease, background 100ms ease;
+}
+
+.tt-center-tab:hover .tt-center-tab-move,
+.tt-center-tab-active .tt-center-tab-move {
+    opacity: 0.75;
+}
+
+.tt-center-tab-move:hover {
+    background: rgb(255 255 255 / 13%);
+    opacity: 1;
 }

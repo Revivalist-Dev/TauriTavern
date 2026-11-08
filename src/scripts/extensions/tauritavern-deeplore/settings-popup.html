@@ -1,5 +1,5 @@
 <!-- DeepLore — Settings Popup (header strip + grouped sidebar nav) -->
-<div class="dle-settings-popup">
+<div class="dle-settings-popup" data-tt-ui="panel">
 
     <!-- Header strip: brand + master enable + help -->
     <header class="dle-settings-header">
@@ -404,21 +404,6 @@
                     <input id="dle-sp-priority-reversed" type="checkbox" class="checkbox">
                     <span>Reverse Priority (higher number wins)</span>
                 </label>
-
-                <label class="dle-advanced-subheader"><small>Import</small></label>
-                <label class="checkbox_label" for="dle-sp-import-compress-default" title="When checked, World Info imports run each entry's body through the caveman compressor before writing. Drops articles / fillers / pleasantries to shrink token count ~15-30% without changing meaning. Stored frontmatter is annotated with `compress: caveman`. Code blocks, inline code, and URLs are preserved.">
-                    <input id="dle-sp-import-compress-default" type="checkbox" class="checkbox">
-                    <span>Shrink imported entries to save tokens (caveman mode)</span>
-                </label>
-                <div class="flex-container dle-sp-indent" title="How WI 'Example Messages' positions (before_example_messages / after_example_messages) are converted. DLE has no EM slot, so 'Append' makes them regular vault entries with a '## Example Dialogue' subheader; 'Skip' drops them entirely. Per-import override available from the post-import popup.">
-                    <div class="flex1">
-                        <label for="dle-sp-wi-import-em-handling"><small>WI Example Messages on import</small></label>
-                        <select id="dle-sp-wi-import-em-handling" class="text_pole">
-                            <option value="append">Append as subheader (default)</option>
-                            <option value="skip">Skip</option>
-                        </select>
-                    </div>
-                </div>
 
                 <label class="dle-advanced-subheader"><small>Chain Matching</small></label>
                 <label class="checkbox_label" for="dle-sp-recursive-scan" title="Scan matched entries' content for keywords that might trigger additional entries.">

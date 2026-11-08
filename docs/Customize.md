@@ -1,6 +1,6 @@
-# Customize user guide
+# Agent Workspace user guide
 
-The **Customize** panel is available from the TauriTavern settings rail and from the Copilot menu. It
+The **Agent Workspace** panel is available from the TauriTavern settings rail and from the Copilot menu. It
 is backed by the native Rust process.
 
 ## Creative Writing framing
@@ -15,14 +15,27 @@ The surface selector now uses **Character Chat**. Customizations saved against t
 name must be opened and saved again; the old value is intentionally not accepted. Bundled third-party
 presets keep their original labels.
 
-## Opening Customize
+## Opening Agent Workspace
 
-- Open the settings rail and select **Customize**.
-- In Copilot, open the menu and choose **Customize**. Both open the same panel.
+- Open the settings rail and select **Agent Workspace**.
+- In Copilot, open the menu and choose **Agent Workspace**. Both open the same panel.
 
 The panel has seven tabs: Rules, Skills, Subagents, Commands, Hooks, MCP, and Plugins.
 
+## Panel layout
+
+Rules, Skills, Subagents, and Commands use a two-part workspace. On wide panels the item list sits in
+a left rail and the editor occupies the remaining space. On narrow panels the list moves above the
+editor and is capped in height, so the form keeps the available space.
+
+The editor form scrolls independently. **Save**, **Cancel**, and **Delete** stay in a pinned action
+bar below the form, and Name and Description share a row only when the editor is wide enough.
+
 ## Rules, Skills, Subagents, and Commands
+
+Every item row has an **Open raw file** button. It opens the source file in a center tab, where text
+files can be edited and saved in place. The center-tab editor also handles hooks, scripts, JSON,
+documents, and any other text file under `.cursor`.
 
 Resources can be stored in native app storage or in the active vault. Vault resources live in:
 
@@ -73,8 +86,14 @@ Hooks use Cursor's JSON configuration shape:
 }
 ```
 
-- Vault hooks live at `.cursor/hooks.json`.
-- The first save does not trust them. Open **Hooks** and press **Trust configuration**.
+- Vault hooks live at `.cursor/hooks.json`; global hooks live at `~/.cursor/hooks.json`.
+- The **Hook scope** selector switches the editor between **Global · all vaults** and a specific
+  lorebook. A lorebook inherits the global hooks until its local file is saved; saving the local scope
+  creates the lorebook override.
+- Commands run with the selected vault root as their working directory, so `node .cursor/hooks/check.js`
+  resolves inside that vault. Global hooks run from the global hooks directory.
+- The first save does not trust them. Open **Hooks** and press **Trust configuration** for the selected
+  scope.
 - Commands receive the event JSON on standard input and return JSON such as
   `{"permission":"deny","agentMessage":"Blocked by policy"}`.
 - The **Run test event** button exercises the current event without executing a real tool.
@@ -140,3 +159,4 @@ they are trusted.
   endpoints you have reviewed.
 - Vault hook trust is tied to the configuration hash; editing `hooks.json` requires trusting it again.
 - Plugin hooks remain disabled by default.
+

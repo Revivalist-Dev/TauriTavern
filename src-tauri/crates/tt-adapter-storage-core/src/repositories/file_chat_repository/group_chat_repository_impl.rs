@@ -296,6 +296,19 @@ impl GroupChatRepository for FileChatRepository {
             .await
     }
 
+    async fn delete_group_chat_store(&self, chat_id: &str) -> Result<(), DomainError> {
+        self.delete_group_chat_store_dir(chat_id).await
+    }
+
+    async fn rename_group_chat_store(
+        &self,
+        old_chat_id: &str,
+        new_chat_id: &str,
+    ) -> Result<(), DomainError> {
+        self.rename_group_chat_store_dir(old_chat_id, new_chat_id)
+            .await
+    }
+
     async fn find_last_group_chat_message(
         &self,
         chat_id: &str,

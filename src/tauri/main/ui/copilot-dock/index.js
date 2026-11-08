@@ -28,7 +28,9 @@ function setWidth(width) {
 function buildDock() {
     if (document.getElementById('tt-copilot-dock')) return;
     const dock = document.createElement('section');
+    dock.className = 'tt-copilot-dock';
     dock.id = 'tt-copilot-dock';
+    dock.dataset.ttUi = 'panel';
     dock.setAttribute('aria-label', 'Copilot');
     dock.innerHTML = `
         <div class="tt-copilot-head">
@@ -209,3 +211,4 @@ export function installCopilotDock() {
         }
     }, 2000);
 }
+

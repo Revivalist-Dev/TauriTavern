@@ -139,7 +139,7 @@ function RunBar({ active, startedAt, endedAt, toolCalls, expanded, onToggle }: {
     const parts: string[] = [];
     if (durationMs !== null) parts.push(tr('workedFor', { duration: formatDuration(durationMs) }));
     if (toolCalls > 0) parts.push(tr('calls', { count: toolCalls }));
-    return <button type="button" className={`ttia-run-bar${active ? ' is-active' : ''}`} aria-expanded={expanded} data-assistant-disclosure onClick={onToggle}>
+    return <button type="button" className={`ttia-run-bar tt-ui-disclosure-toggle${active ? ' is-active' : ''}`} aria-expanded={expanded} data-assistant-disclosure onClick={onToggle}>
         <Icon name="chevron-right" /><span>{parts.length > 0 ? parts.join(' · ') : tr('working')}</span><span className="ttia-run-line" />
     </button>;
 }
@@ -170,7 +170,7 @@ function ToolResult({ result, runId, actions, expanded }: { result: Result; runI
     return <div className="ttia-tool-result">
         <div className="ttia-detail-label">{tr('result')}<CopyButton text={content} copy={actions.copy} /></div>
         <pre>{content}</pre>
-        {path && full === null && <button type="button" disabled={loading} onClick={() => {
+        {path && full === null && <button className="tt-ui-button" type="button" disabled={loading} onClick={() => {
             setLoading(true); setError(null);
             void actions.readResult(runId, path).then(file => setFull(file.text)).catch(setError).finally(() => setLoading(false));
         }}>{loading ? tr('loading') : tr('fullResult')}</button>}
@@ -387,7 +387,7 @@ export function Transcript({ snapshot, controller, actions, visible }: {
                 setAway(!following.current);
             }}>
             <div className="ttia-messages">
-                {snapshot.nextBeforeSeq !== null && <button type="button" className="ttia-older" disabled={loadingOlder || snapshot.busy}
+                {snapshot.nextBeforeSeq !== null && <button type="button" className="ttia-older tt-ui-button" disabled={loadingOlder || snapshot.busy}
                     onClick={() => { void loadOlder(); }}>{loadingOlder ? tr('loading') : tr('older')}</button>}
                 {pageError != null && <ErrorNotice error={pageError} retry={() => { void loadOlder(); }} />}
                 {runs.map((run, index) => {
@@ -397,8 +397,9 @@ export function Transcript({ snapshot, controller, actions, visible }: {
                 })}
             </div>
         </div>
-        {away && <button type="button" className="ttia-latest" onClick={() => {
+        {away && <button type="button" className="ttia-latest tt-ui-button" onClick={() => {
             following.current = true; setAway(false); scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: 'smooth' });
         }}><Icon name="arrow-down" />{tr('latest')}</button>}
     </div>;
 }
+

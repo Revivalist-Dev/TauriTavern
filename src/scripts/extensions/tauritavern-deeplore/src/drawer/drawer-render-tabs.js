@@ -84,14 +84,12 @@ function _fixItPinLabel(stage) {
 
 // Button-first call-to-action for the pre-setup empty states (Injection / Browse). Mirrors the
 // static markup in drawer.html so the JS-rebuilt and static variants stay identical. data-empty-action
-// is dispatched in drawer-events.js (executes the same /dle-setup, /dle-import as the Tools tab).
+// is dispatched in drawer-events.js (executes the same /dle-setup as the Tools tab).
 // Slash-command hint kept as small muted text below for power users (f082).
 function emptyCtaHtml() {
     return '<div class="dle-empty-cta-row">'
         + `<button type="button" class="menu_button dle-empty-cta-btn" data-empty-action="setup" title="${escapeHtml(tr('dle_drawer_tool_setup_wizard_tooltip'))}">`
         + `<i class="fa-solid fa-hat-wizard" aria-hidden="true"></i> <span>${escapeHtml(tr('dle_empty_cta_setup'))}</span></button>`
-        + `<button type="button" class="menu_button dle-empty-cta-btn" data-empty-action="import-wi" title="${escapeHtml(tr('dle_import_wi_tooltip'))}">`
-        + `<i class="fa-solid fa-file-import" aria-hidden="true"></i> <span>${escapeHtml(tr('dle_empty_cta_import'))}</span></button>`
         + '</div>'
         + `<p class="dle-empty-commands dle-text-xs dle-muted">${tr('dle_empty_cta_hint')}</p>`;
 }

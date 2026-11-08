@@ -72,7 +72,7 @@ test('IME and modified Enter never send to character chat; switching formatting 
     expect(h.sendMessage).not.toHaveBeenCalled();
     expect(globalKey).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Advanced formatting' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Back to assistant' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Assistant' }));
     input = screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Message the app assistant' });
     expect(input.value).toBe('Check settings');
     fireEvent.keyDown(input, { key: 'Enter' });
@@ -280,7 +280,7 @@ for (const { visible, deny, checked, nextVisible, nextDeny } of [
             fileCount: 1, totalBytes: 12, hasScripts: false, hasBinary: false, installedAt: '' },
     ] });
     render(<AssistantApp controller={h.controller} actions={h.actions} drawer={drawer} />, { container: drawer.mount });
-    fireEvent.click(screen.getByRole('button', { name: 'Assistant settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Assistant Settings' }));
     fireEvent.click(await screen.findByRole('button', { name: /^Skill/ }));
     const checkbox = screen.getByRole<HTMLInputElement>('checkbox', { name: /test-skill/ });
     expect(checkbox.checked).toBe(checked);
@@ -316,10 +316,10 @@ test('cancelling settings releases an unconfirmed Skill import and saving waits 
         installImport: () => Promise.resolve({ scope: preview.skill.scope, name: preview.skill.name, action: 'installed' }) };
     const view = render(<AssistantApp controller={h.controller} actions={h.actions} drawer={drawer} />, { container: drawer.mount });
     const editStreaming = () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Advanced settings' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Advanced Settings' }));
         fireEvent.click(screen.getByRole('checkbox', { name: 'Stream replies' }));
     };
-    fireEvent.click(screen.getByRole('button', { name: 'Assistant settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Assistant Settings' }));
     await screen.findByRole('button', { name: /Skill/ });
     editStreaming();
     fireEvent.click(screen.getByRole('button', { name: /Skill/ }));
@@ -329,7 +329,7 @@ test('cancelling settings releases an unconfirmed Skill import and saving waits 
     const footer = view.container.querySelector<HTMLElement>('.ttia-settings-footer');
     if (!footer) throw new Error('Expected settings actions');
     fireEvent.click(within(footer).getByRole('button', { name: 'Cancel' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Assistant settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Assistant Settings' }));
     editStreaming();
     expect(screen.getByRole('button', { name: 'Save settings' }).hasAttribute('disabled')).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: /Skill/ }));
@@ -342,3 +342,17 @@ test('cancelling settings releases an unconfirmed Skill import and saving waits 
     await waitFor(() => expect(saveProfile).toHaveBeenCalledWith(expect.objectContaining({ skills: { visible: ['*'], deny: [] } })));
     drawer.dispose();
 });
+
+test('assistant controls use the shared Tauri UI primitives', () => {
+    document.body.innerHTML = '<div id="advanced-formatting-button" class="drawer"><div class="drawer-toggle"><div class="drawer-icon"></div></div><div id="AdvancedFormatting" class="drawer-content openDrawer"></div></div>';
+    const drawer = installAssistantDrawer(drawers);
+    const h = harness();
+    render(<AssistantApp controller={h.controller} actions={h.actions} drawer={drawer} />, { container: drawer.mount });
+    expect(screen.getByRole('button', { name: 'Assistant Settings' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Conversation History' })).toBeTruthy();
+    const input = screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Message the app assistant' });
+    expect(input.classList.contains('tt-ui-textarea')).toBe(true);
+    expect(screen.getByRole('button', { name: 'Send message' }).classList.contains('tt-ui-button')).toBe(true);
+    drawer.dispose();
+});
+
